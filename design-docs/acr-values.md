@@ -21,6 +21,18 @@ Thunder currently ignores the `acr_values` parameter in authorization requests e
 
 - Support for `acr` inside the `claims` request parameter `id_token` field is out of scope.
 
+## Tasks
+
+1. Add ACR-AMR mapping to server config schema
+2. Validate mapping on startup/reload: reject duplicate ACR keys or empty AMR lists 
+3. Changes in the model and registration endpoint
+4. Support acr_values query paramter in the /oauth2/authorize endpoint.
+5. Define acr_options as a new PROMPT node variant in the flow graph schema/constants.
+6. changes in /flow/execute endpoint for ACR Filtering and auto selection
+7. AMR validation in the Auth executor and add the statisfied ACR in Auth Assertion JWT.
+8. /.well-known/openid-configuration Discovery endpoint changes.
+
+
 ## Acceptance Criteria
 
 | # | Area | Criteria |
