@@ -1,6 +1,42 @@
 # ThunderID – Architecture Reference
 
-Go IAM server (`github.com/asgardeo/thunder`). Single binary serving a REST API + two React SPAs (`/gate`, `/console`).
+Go IAM server (`github.com/asgardeo/thunder`). **Single binary** serving REST API + two React SPAs (`/gate` login UI, `/console` admin UI), backed by three SQLite/Postgres databases: `configdb`, `runtimedb`, `userdb`.
+
+## Build & Run Commands
+
+All commands run from the repo root unless noted.
+
+| Task | Command |
+|------|---------|
+| Build everything | `make build` |
+| Build backend only | `make build_backend` |
+| Build frontend only | `make build_frontend` |
+| Run (backend + frontend) | `make run` |
+| Run backend only | `make run_backend` |
+| Run frontend only | `make run_frontend` |
+| Lint backend | `make lint_backend` |
+| Lint frontend | `make lint_frontend` |
+| Lint all | `make lint` |
+| Run all unit tests | `make test_unit` |
+| Run integration tests | `make test_integration` |
+| Regenerate mocks | `make mockery` |
+| Regenerate i18n defaults | `make generate_i18n` |
+
+### Run a single Go test / package
+
+```bash
+cd backend
+go test ./internal/<package>/... -run TestFunctionName -v
+```
+
+### Run a single frontend test
+
+```bash
+cd frontend
+pnpm test --filter=<package-name>        # e.g. thunder-gate
+# or within the app directory:
+pnpm exec vitest run path/to/Component.test.tsx
+```
 
 ## Structure
 
