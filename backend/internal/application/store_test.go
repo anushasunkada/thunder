@@ -172,3 +172,4 @@ func (suite *ApplicationStoreTestSuite) TestBuildOAuthConfigData_NilOAuthConfig(
 	cfg := buildOAuthConfigData(model.InboundAuthConfigProcessedDTO{})
 	suite.Nil(cfg)
 }
+

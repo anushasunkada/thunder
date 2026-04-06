@@ -60,6 +60,7 @@ const (
 	RequestParamNonce               string = "nonce"
 	RequestParamPrompt              string = "prompt"
 	RequestParamRequestURI          string = "request_uri"
+	RequestParamAcrValues           string = "acr_values"
 )
 
 // OIDC prompt parameter values.

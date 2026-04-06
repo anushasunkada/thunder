@@ -20,6 +20,7 @@ package discovery
 
 import (
 	"context"
+	"sort"
 
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/pkce"
@@ -91,6 +92,7 @@ func (ds *discoveryService) GetOIDCMetadata(ctx context.Context) *OIDCProviderMe
 		UserInfoEncryptionEncValuesSupported: supportedUserInfoEncryptionEncs,
 		ClaimsSupported:                      ds.getSupportedClaims(),
 		ClaimsParameterSupported:             true,
+		AcrValuesSupported:                   ds.getSupportedAcrValues(),
 	}
 }
 
@@ -156,6 +158,16 @@ func (ds *discoveryService) isGlobalPARRequired() bool {
 
 func (ds *discoveryService) getSupportedSubjectTypes() []string {
 	return constants.GetSupportedSubjectTypes()
+}
+
+func (ds *discoveryService) getSupportedAcrValues() []string {
+	acrAMR := config.GetThunderRuntime().Config.OAuth.AuthClass.AcrAMR
+	acrs := make([]string, 0, len(acrAMR))
+	for acr := range acrAMR {
+		acrs = append(acrs, acr)
+	}
+	sort.Strings(acrs)
+	return acrs
 }
 
 func (ds *discoveryService) getSupportedClaims() []string {

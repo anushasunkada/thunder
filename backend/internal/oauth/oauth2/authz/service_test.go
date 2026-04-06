@@ -1710,3 +1710,195 @@ func determineClaimsForTokens(oidcScopes []string, claimsRequest *oauth2model.Cl
 
 	return accessTokenClaims, idTokenClaims, userInfoClaims
 }
+
+// ---------------------------------------------------------------------------
+// HandleInitialAuthorizationRequest — effective ACR resolution
+// ---------------------------------------------------------------------------
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_NoAcrValues_NoDefaults() {
+	app := suite.testApp()
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.NotContains(suite.T(), initContext.RuntimeData, flowcm.RuntimeKeyRequestedAuthClasses)
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), suite.testMsg())
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_NoDefaults() {
+	app := suite.testApp()
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.NotContains(suite.T(), initContext.RuntimeData, flowcm.RuntimeKeyRequestedAuthClasses)
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:password urn:thunder:acr:generated-code"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_AllInDefaults() {
+	app := suite.testApp()
+	app.AcrValues = []string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:generated-code",
+		"urn:thunder:acr:biometrics",
+	}
+
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.Equal(suite.T(),
+				[]string{"urn:thunder:acr:generated-code", "urn:thunder:acr:password"},
+				strings.Fields(initContext.RuntimeData[flowcm.RuntimeKeyRequestedAuthClasses]))
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:generated-code urn:thunder:acr:password"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_SomeNotInDefaults() {
+	app := suite.testApp()
+	app.AcrValues = []string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:generated-code",
+	}
+
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			effective := initContext.RuntimeData[flowcm.RuntimeKeyRequestedAuthClasses]
+			assert.Equal(suite.T(), []string{"urn:thunder:acr:password"}, strings.Fields(effective))
+			assert.NotContains(suite.T(), effective, "urn:thunder:acr:biometrics")
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:password urn:thunder:acr:biometrics"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_NoneInDefaults() {
+	defaults := []string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"}
+	app := suite.testApp()
+	app.AcrValues = defaults
+
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.ElementsMatch(suite.T(), defaults,
+				strings.Fields(initContext.RuntimeData[flowcm.RuntimeKeyRequestedAuthClasses]))
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:biometrics urn:thunder:acr:linked-wallet"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_DuplicatesDeduped() {
+	app := suite.testApp()
+	app.AcrValues = []string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:generated-code",
+	}
+
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.Equal(suite.T(),
+				[]string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"},
+				strings.Fields(initContext.RuntimeData[flowcm.RuntimeKeyRequestedAuthClasses]))
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:password urn:thunder:acr:password urn:thunder:acr:generated-code"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}
+
+func (suite *AuthorizeServiceTestSuite) TestHandleInitialAuthorizationRequest_AcrValues_SingleDefault() {
+	app := suite.testApp()
+	app.AcrValues = []string{"urn:thunder:acr:password"}
+
+	suite.mockInboundClient.EXPECT().GetOAuthClientByClientID(mock.Anything, "test-client-id").Return(app, nil)
+	suite.mockValidator.On("validateInitialAuthorizationRequest", mock.Anything, app).
+		Return(false, "", "")
+	suite.mockFlowExecService.EXPECT().InitiateFlow(mock.Anything,
+		mock.AnythingOfType("*flowexec.FlowInitContext")).
+		Run(func(_ context.Context, initContext *flowexec.FlowInitContext) {
+			assert.Equal(suite.T(),
+				"urn:thunder:acr:password",
+				initContext.RuntimeData[flowcm.RuntimeKeyRequestedAuthClasses])
+		}).
+		Return("test-flow-id", nil)
+	suite.mockAuthReqStore.EXPECT().AddRequest(mock.Anything, mock.Anything).Return(testAuthID, nil)
+
+	msg := suite.testMsg()
+	msg.RequestQueryParams[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:password"
+
+	svc := suite.newService()
+	result, authErr := svc.HandleInitialAuthorizationRequest(context.Background(), msg)
+
+	assert.Nil(suite.T(), authErr)
+	assert.NotNil(suite.T(), result)
+}

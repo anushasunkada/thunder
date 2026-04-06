@@ -41,6 +41,7 @@ type OAuthAppConfig struct {
 	UserInfo                           *inboundmodel.UserInfoConfig        `json:"userInfo,omitempty"`
 	ScopeClaims                        map[string][]string                 `json:"scopeClaims,omitempty"`
 	Certificate                        *inboundmodel.Certificate           `json:"certificate,omitempty"`
+	AcrValues                          []string                            `json:"acrValues,omitempty"`
 }
 
 // OAuthAppConfigComplete represents the complete structure for OAuth application configuration.
@@ -59,6 +60,7 @@ type OAuthAppConfigComplete struct {
 	UserInfo                           *inboundmodel.UserInfoConfig        `json:"userInfo,omitempty" yaml:"user_info,omitempty"`
 	ScopeClaims                        map[string][]string                 `json:"scopeClaims,omitempty" yaml:"scope_claims,omitempty"`
 	Certificate                        *inboundmodel.Certificate           `json:"certificate,omitempty" jsonschema:"Application certificate. Optional. For certificate-based authentication or JWT validation."`
+	AcrValues                          []string                            `json:"acrValues,omitempty" yaml:"acr_values,omitempty"`
 }
 
 // OAuthAppConfigDTO represents the data transfer object for OAuth application configuration.
@@ -78,6 +80,7 @@ type OAuthAppConfigDTO struct {
 	UserInfo                           *inboundmodel.UserInfoConfig        `json:"userInfo,omitempty" jsonschema:"UserInfo endpoint configuration. Configure user attributes returned from the OIDC userinfo endpoint."`
 	ScopeClaims                        map[string][]string                 `json:"scopeClaims,omitempty" jsonschema:"Scope-to-claims mapping. Maps OAuth scopes to user claims for both ID token and userinfo."`
 	Certificate                        *inboundmodel.Certificate           `json:"certificate,omitempty" jsonschema:"Application certificate. Optional. For certificate-based authentication or JWT validation."`
+	AcrValues                          []string                            `json:"acrValues,omitempty" jsonschema:"ACR values. Optional. Defines the allowed set of ACR values for authorization requests. Requested ACRs not in this list are silently ignored; if none match, all configured ACR values are used."`
 }
 
 // IsAllowedGrantType reports whether the input DTO allows the given grant type.

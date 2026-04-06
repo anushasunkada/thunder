@@ -55,6 +55,7 @@ type OAuthProfileData struct {
 	UserInfo                           *UserInfoConfig     `json:"userInfo,omitempty"`
 	ScopeClaims                        map[string][]string `json:"scopeClaims,omitempty"`
 	Certificate                        *Certificate        `json:"certificate,omitempty"`
+	AcrValues                          []string            `json:"acrValues,omitempty"`
 }
 
 // OAuthTokenConfig wraps access and ID token configs.
@@ -131,6 +132,7 @@ type OAuthClient struct {
 	UserInfo                           *UserInfoConfig                     `yaml:"user_info,omitempty"`
 	ScopeClaims                        map[string][]string                 `yaml:"scope_claims,omitempty"`
 	Certificate                        *Certificate                        `yaml:"certificate,omitempty"`
+	AcrValues                          []string                            `yaml:"acr_values,omitempty"`
 }
 
 // IsAllowedGrantType reports whether the OAuth client allows the given grant type.

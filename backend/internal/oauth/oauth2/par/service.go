@@ -134,6 +134,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		ClaimsRequest:       claimsRequest,
 		ClaimsLocales:       params[oauth2const.RequestParamClaimsLocales],
 		Nonce:               params[oauth2const.RequestParamNonce],
+		AcrValues:           params[oauth2const.RequestParamAcrValues],
 	}
 
 	parRequest := pushedAuthorizationRequest{

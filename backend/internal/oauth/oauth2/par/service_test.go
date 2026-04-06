@@ -355,6 +355,28 @@ func (s *ServiceTestSuite) TestHandlePAR_ScopesDownscopedAgainstResourceServers(
 	assert.Equal(s.T(), []string{"read"}, captured.OAuthParameters.PermissionScopes)
 }
 
+func (s *ServiceTestSuite) TestHandlePAR_AcrValuesPropagated() {
+	store := newParStoreInterfaceMock(s.T())
+	var captured pushedAuthorizationRequest
+	store.EXPECT().Store(mock.Anything, mock.Anything, mock.Anything).
+		Run(func(_ context.Context, req pushedAuthorizationRequest, _ int64) {
+			captured = req
+		}).Return("test-uri", nil)
+
+	svc := newPARService(store, s.newPermissiveResourceMock())
+	app := s.newTestApp()
+	params := s.newValidParams()
+	params[oauth2const.RequestParamAcrValues] = "urn:thunder:acr:password urn:thunder:acr:generated-code"
+
+	resp, errCode, _ := svc.HandlePushedAuthorizationRequest(s.ctx, params, nil, app)
+
+	assert.Empty(s.T(), errCode)
+	assert.NotNil(s.T(), resp)
+	assert.Equal(s.T(),
+		"urn:thunder:acr:password urn:thunder:acr:generated-code",
+		captured.OAuthParameters.AcrValues)
+}
+
 func (s *ServiceTestSuite) TestHandlePAR_NonceTooLong() {
 	store := newParStoreInterfaceMock(s.T())
 	svc := newPARService(store, s.newPermissiveResourceMock())

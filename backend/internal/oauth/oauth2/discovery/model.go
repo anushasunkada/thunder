@@ -49,4 +49,5 @@ type OIDCProviderMetadata struct {
 	ClaimsSupported                      []string `json:"claims_supported"`
 	ClaimsParameterSupported             bool     `json:"claims_parameter_supported"`
 	EndSessionEndpoint                   string   `json:"end_session_endpoint,omitempty"`
+	AcrValuesSupported                   []string `json:"acr_values_supported,omitempty"`
 }

@@ -81,6 +81,18 @@ func (suite *DiscoveryTestSuite) SetupTest() {
 			Issuer:         "https://test.thunder.io",
 			ValidityPeriod: 3600,
 		},
+		OAuth: config.OAuthConfig{
+			AuthClass: config.AuthClassConfig{
+				AMR: map[string]config.AMRFactor{
+					"Password": {Type: "PWD"},
+					"OTP":      {Type: "OTP"},
+				},
+				AcrAMR: map[string][]string{
+					"urn:thunder:acr:password":       {"Password"},
+					"urn:thunder:acr:generated-code": {"OTP"},
+				},
+			},
+		},
 	}
 	_ = config.InitializeThunderRuntime("test", testConfig)
 
@@ -161,6 +173,9 @@ func (suite *DiscoveryTestSuite) TestOIDCDiscovery() {
 
 	// Verify RFC 9207 advertisement (inherited from embedded OAuth2AuthorizationServerMetadata)
 	assert.True(suite.T(), metadata.AuthorizationResponseIssParameterSupported)
+	// Verify ACR values are published
+	assert.Contains(suite.T(), metadata.AcrValuesSupported, "urn:thunder:acr:password")
+	assert.Contains(suite.T(), metadata.AcrValuesSupported, "urn:thunder:acr:generated-code")
 }
 
 // TestGrantTypeIsValid tests the GrantType.IsValid() method

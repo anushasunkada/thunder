@@ -217,6 +217,7 @@ type OAuthConfig struct {
 	AuthorizationCode AuthorizationCodeConfig `yaml:"authorization_code" json:"authorization_code"`
 	DCR               DCRConfig               `yaml:"dcr" json:"dcr"`
 	PAR               PARConfig               `yaml:"par" json:"par"`
+	AuthClass         AuthClassConfig         `yaml:"auth_class" json:"auth_class"`
 	// AllowWildcardRedirectURI enables wildcard pattern matching for redirect URIs.
 	// When false (default), only exact redirect URI matching is performed.
 	AllowWildcardRedirectURI bool `yaml:"allow_wildcard_redirect_uri" json:"allow_wildcard_redirect_uri"`
@@ -551,6 +552,51 @@ func (c *TrustedIssuerConfig) Validate() error {
 	}
 }
 
+// AMRFactor represents a single authentication method reference factor entry.
+type AMRFactor struct {
+	Type string `yaml:"type" json:"type"`
+}
+
+// AuthClassConfig holds the ACR-AMR mapping configuration.
+type AuthClassConfig struct {
+	AMR    map[string]AMRFactor `yaml:"amr" json:"amr"`
+	AcrAMR map[string][]string  `yaml:"acr_amr" json:"acr_amr"`
+}
+
+// Validate checks the ACR-AMR mapping for configuration errors.
+// It returns an error if any acr_amr entry has an empty AMR list or references
+// an AMR key not defined in the amr section.
+func (c *AuthClassConfig) Validate() error {
+	for amrKey := range c.AMR {
+		if strings.TrimSpace(amrKey) == "" {
+			return fmt.Errorf("auth_class: AMR key must not be empty")
+		}
+	}
+
+	if len(c.AcrAMR) == 0 {
+		return nil
+	}
+
+	for acr, amrKeys := range c.AcrAMR {
+		if strings.TrimSpace(acr) == "" {
+			return fmt.Errorf("auth_class: ACR value must not be empty")
+		}
+		if len(amrKeys) == 0 {
+			return fmt.Errorf("auth_class: ACR %q has an empty AMR list", acr)
+		}
+		for _, amrKey := range amrKeys {
+			if strings.TrimSpace(amrKey) == "" {
+				return fmt.Errorf("auth_class: ACR %q references an empty AMR key", acr)
+			}
+			if _, ok := c.AMR[amrKey]; !ok {
+				return fmt.Errorf("auth_class: ACR %q references unknown AMR key %q", acr, amrKey)
+			}
+		}
+	}
+
+	return nil
+}
+
 // Config holds the complete configuration details of the server.
 type Config struct {
 	Server               ServerConfig           `yaml:"server" json:"server"`
@@ -620,6 +666,11 @@ func LoadConfig(configPath string, defaultPath string, thunderHome string) (*Con
 	}
 
 	if err := cfg.Server.SecurityConfig.Validate(); err != nil {
+		return nil, err
+	}
+
+	// Validate ACR-AMR mapping.
+	if err := cfg.OAuth.AuthClass.Validate(); err != nil {
 		return nil, err
 	}
 

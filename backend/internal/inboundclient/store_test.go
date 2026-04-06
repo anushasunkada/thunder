@@ -233,6 +233,149 @@ func (suite *InboundClientStoreTestSuite) TestBuildOAuthProfileFromRow_Malformed
 	suite.Contains(err.Error(), "failed to unmarshal OAuth profile JSON")
 }
 
+// --- AcrValues serialization / deserialization ---
+
+func (suite *InboundClientStoreTestSuite) TestMarshalOAuthProfileData_WithAcrValues() {
+	profile := &inboundmodel.OAuthProfileData{
+		RedirectURIs: []string{"https://example.com/callback"},
+		GrantTypes:   []string{"authorization_code"},
+		AcrValues:    []string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"},
+	}
+
+	data, err := marshalOAuthProfileData(profile)
+
+	suite.NoError(err)
+	suite.NotNil(data)
+
+	var result map[string]interface{}
+	suite.NoError(json.Unmarshal(data, &result))
+
+	acrRaw, ok := result["acrValues"].([]interface{})
+	suite.True(ok, "acrValues should be present in JSON")
+	suite.Len(acrRaw, 2)
+	suite.Equal("urn:thunder:acr:password", acrRaw[0])
+	suite.Equal("urn:thunder:acr:generated-code", acrRaw[1])
+}
+
+func (suite *InboundClientStoreTestSuite) TestMarshalOAuthProfileData_WithEmptyAcrValues() {
+	profile := &inboundmodel.OAuthProfileData{
+		RedirectURIs: []string{"https://example.com/callback"},
+		GrantTypes:   []string{"authorization_code"},
+		AcrValues:    []string{},
+	}
+
+	data, err := marshalOAuthProfileData(profile)
+
+	suite.NoError(err)
+	var result map[string]interface{}
+	suite.NoError(json.Unmarshal(data, &result))
+
+	suite.Nil(result["acrValues"])
+}
+
+func (suite *InboundClientStoreTestSuite) TestMarshalOAuthProfileData_WithNilAcrValues() {
+	profile := &inboundmodel.OAuthProfileData{
+		RedirectURIs: []string{"https://example.com/callback"},
+		AcrValues:    nil,
+	}
+
+	data, err := marshalOAuthProfileData(profile)
+
+	suite.NoError(err)
+	var result map[string]interface{}
+	suite.NoError(json.Unmarshal(data, &result))
+
+	suite.Nil(result["acrValues"])
+}
+
+func (suite *InboundClientStoreTestSuite) TestBuildOAuthProfileFromRow_WithAcrValues() {
+	cfg := inboundmodel.OAuthProfileData{
+		RedirectURIs:            []string{"https://example.com/callback"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		AcrValues:               []string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"},
+	}
+	cfgBytes, _ := json.Marshal(cfg)
+
+	row := map[string]interface{}{
+		"entity_id":    testEntityID,
+		"oauth_config": string(cfgBytes),
+	}
+
+	result, err := buildOAuthProfileFromRow(row)
+
+	suite.NoError(err)
+	suite.Require().NotNil(result.OAuthProfile)
+	suite.Equal(
+		[]string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"},
+		result.OAuthProfile.AcrValues,
+	)
+}
+
+func (suite *InboundClientStoreTestSuite) TestBuildOAuthProfileFromRow_WithSingleAcrValue() {
+	cfg := inboundmodel.OAuthProfileData{
+		RedirectURIs: []string{"https://example.com/callback"},
+		GrantTypes:   []string{"authorization_code"},
+		AcrValues:    []string{"urn:thunder:acr:password"},
+	}
+	cfgBytes, _ := json.Marshal(cfg)
+
+	row := map[string]interface{}{
+		"entity_id":    testEntityID,
+		"oauth_config": string(cfgBytes),
+	}
+
+	result, err := buildOAuthProfileFromRow(row)
+
+	suite.NoError(err)
+	suite.Require().NotNil(result.OAuthProfile)
+	suite.Equal([]string{"urn:thunder:acr:password"}, result.OAuthProfile.AcrValues)
+}
+
+func (suite *InboundClientStoreTestSuite) TestBuildOAuthProfileFromRow_WithoutAcrValues() {
+	cfg := inboundmodel.OAuthProfileData{
+		RedirectURIs: []string{"https://example.com/callback"},
+		GrantTypes:   []string{"authorization_code"},
+	}
+	cfgBytes, _ := json.Marshal(cfg)
+
+	row := map[string]interface{}{
+		"entity_id":    testEntityID,
+		"oauth_config": string(cfgBytes),
+	}
+
+	result, err := buildOAuthProfileFromRow(row)
+
+	suite.NoError(err)
+	suite.Require().NotNil(result.OAuthProfile)
+	suite.Nil(result.OAuthProfile.AcrValues)
+}
+
+func (suite *InboundClientStoreTestSuite) TestAcrValues_RoundTrip() {
+	acrs := []string{"urn:thunder:acr:password", "urn:thunder:acr:generated-code"}
+
+	profile := &inboundmodel.OAuthProfileData{
+		RedirectURIs:            []string{"https://example.com/callback"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+		AcrValues:               acrs,
+	}
+
+	data, err := marshalOAuthProfileData(profile)
+	suite.NoError(err)
+
+	row := map[string]interface{}{
+		"entity_id":    testEntityID,
+		"oauth_config": string(data),
+	}
+
+	result, err := buildOAuthProfileFromRow(row)
+	suite.NoError(err)
+	suite.Equal(acrs, result.OAuthProfile.AcrValues)
+}
+
 // --- Helper tests ---
 
 func (suite *InboundClientStoreTestSuite) TestParseBoolFromCount() {

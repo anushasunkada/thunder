@@ -19,6 +19,8 @@
 package core
 
 import (
+	"strings"
+
 	"github.com/asgardeo/thunder/internal/flow/common"
 	"github.com/asgardeo/thunder/internal/system/error/serviceerror"
 	"github.com/asgardeo/thunder/internal/system/log"
@@ -36,6 +38,8 @@ type PromptNodeInterface interface {
 	GetMessage() string
 	SetMessage(message string)
 	IsDisplayOnly() bool
+	GetVariant() string
+	SetVariant(variant string)
 }
 
 // promptNode represents a node that prompts for user input/ action in the flow execution.
@@ -45,6 +49,7 @@ type promptNode struct {
 	meta     interface{}
 	nextNode string
 	message  string
+	variant  string
 	logger   *log.Logger
 }
 
@@ -113,12 +118,44 @@ func (n *promptNode) Execute(ctx *NodeContext) (*common.NodeResponse, *serviceer
 		return nodeResp, nil
 	}
 
-	if n.resolvePromptInputs(ctx, nodeResp) {
+	// For login_options nodes, compute the filtered+ordered prompt set as a local variable.
+	// This avoids mutating the shared n.prompts field, which would be a race condition when
+	// multiple goroutines execute the same cached graph node concurrently.
+	effectivePrompts := n.prompts
+	var acrToAction map[string]string
+	if n.variant == common.NodeVariantLoginOptions {
+		acrToAction = n.acrToActionMapping()
+		requestedACRs := parseACRValues(ctx.RuntimeData[common.RuntimeKeyRequestedAuthClasses])
+		effectivePrompts = n.filterAndOrderPrompts(requestedACRs, acrToAction)
+	}
+
+	if n.resolvePromptInputs(ctx, nodeResp, effectivePrompts) {
 		logger.Debug("All required inputs and action are available, returning complete status")
 
 		if ctx.CurrentAction != "" {
-			if nextNode := n.getNextNodeForActionRef(ctx.CurrentAction, logger); nextNode != "" {
+			if n.variant == common.NodeVariantLoginOptions {
+				if allowedRaw := ctx.RuntimeData[common.RuntimeKeyAllowedLoginOptions]; allowedRaw != "" {
+					if !containsField(allowedRaw, ctx.CurrentAction) {
+						logger.Debug("Selected action is not in allowed login options",
+							log.String("actionRef", ctx.CurrentAction))
+						nodeResp.Status = common.NodeStatusFailure
+						nodeResp.FailureReason = "Invalid action selected"
+						return nodeResp, nil
+					}
+				}
+			}
+			if nextNode := getNextNodeForActionRef(effectivePrompts, ctx.CurrentAction, logger); nextNode != "" {
 				nodeResp.NextNodeID = nextNode
+				// Record the completed ACR for ID token generation by reverse-scanning the
+				// authMethodMapping for the action ref the user selected.
+				if n.variant == common.NodeVariantLoginOptions {
+					for acr, ref := range acrToAction {
+						if ref == ctx.CurrentAction {
+							nodeResp.RuntimeData[common.RuntimeKeySelectedAuthClass] = acr
+							break
+						}
+					}
+				}
 			} else {
 				logger.Debug("Invalid action selected", log.String("actionRef", ctx.CurrentAction))
 				nodeResp.Status = common.NodeStatusFailure
@@ -144,9 +181,19 @@ func (n *promptNode) Execute(ctx *NodeContext) (*common.NodeResponse, *serviceer
 	logger.Debug("Required inputs or action not available, prompting user",
 		log.Any("inputs", nodeResp.Inputs), log.Any("actions", nodeResp.Actions))
 
+	// On the prompt-out leg of a LOGIN_OPTIONS node, record the allowed action refs so the
+	// follow-up request can be validated without re-parsing authMethodMapping.
+	if n.variant == common.NodeVariantLoginOptions {
+		nodeResp.RuntimeData[common.RuntimeKeyAllowedLoginOptions] = joinActionRefs(effectivePrompts)
+	}
+
 	// Include meta in the response if verbose mode is enabled
 	if ctx.Verbose && n.GetMeta() != nil {
-		nodeResp.Meta = n.trimMetaToRequestedInputs(nodeResp.Inputs, nodeResp.Actions)
+		meta := n.meta
+		if n.variant == common.NodeVariantLoginOptions {
+			meta = n.filteredMeta(effectivePrompts)
+		}
+		nodeResp.Meta = n.trimMetaToRequestedInputs(meta, nodeResp.Inputs, nodeResp.Actions)
 	}
 
 	nodeResp.Status = common.NodeStatusIncomplete
@@ -200,22 +247,33 @@ func (n *promptNode) IsDisplayOnly() bool {
 	return n.nextNode != "" && len(n.prompts) == 0
 }
 
+// GetVariant returns the variant of the prompt node
+func (n *promptNode) GetVariant() string {
+	return n.variant
+}
+
+// SetVariant sets the variant of the prompt node
+func (n *promptNode) SetVariant(variant string) {
+	n.variant = variant
+}
+
 // resolvePromptInputs resolves the inputs and actions for the prompt node.
 // It checks for missing required inputs, validates action selection, attempts auto-selection
 // if applicable, and enriches inputs with dynamic data from ForwardedData.
 // Returns true if all required inputs are available and a valid action is selected, otherwise false.
-func (n *promptNode) resolvePromptInputs(ctx *NodeContext, nodeResp *common.NodeResponse) bool {
+func (n *promptNode) resolvePromptInputs(ctx *NodeContext, nodeResp *common.NodeResponse,
+	prompts []common.Prompt) bool {
 	// Check for required inputs and collect missing ones
-	hasAllInputs := n.hasRequiredInputs(ctx, nodeResp)
+	hasAllInputs := n.hasRequiredInputs(ctx, nodeResp, prompts)
 
 	// Enrich inputs from ForwardedData
 	n.enrichInputsFromForwardedData(ctx, nodeResp)
 
 	// Check for action selection
-	hasAction := n.hasSelectedAction(ctx, nodeResp)
+	hasAction := hasSelectedAction(ctx, nodeResp, prompts)
 
 	// If inputs are satisfied but no action selected, try to auto-select single action
-	if hasAllInputs && !hasAction && n.tryAutoSelectSingleAction(ctx) {
+	if hasAllInputs && !hasAction && n.tryAutoSelectSingleAction(ctx, prompts) {
 		hasAction = true
 		// Clear actions from response since we auto-selected
 		nodeResp.Actions = make([]common.Action, 0)
@@ -226,7 +284,8 @@ func (n *promptNode) resolvePromptInputs(ctx *NodeContext, nodeResp *common.Node
 
 // hasRequiredInputs checks if all required inputs are available in the context. Adds missing
 // inputs to the node response. Returns true if all required inputs are available, otherwise false.
-func (n *promptNode) hasRequiredInputs(ctx *NodeContext, nodeResp *common.NodeResponse) bool {
+func (n *promptNode) hasRequiredInputs(ctx *NodeContext, nodeResp *common.NodeResponse,
+	prompts []common.Prompt) bool {
 	logger := n.logger.With(log.String(log.LoggerKeyExecutionID, ctx.ExecutionID))
 
 	if nodeResp.Inputs == nil {
@@ -236,7 +295,7 @@ func (n *promptNode) hasRequiredInputs(ctx *NodeContext, nodeResp *common.NodeRe
 	// Check if an action is selected
 	if ctx.CurrentAction != "" {
 		// If the selected action matches a prompt, validate inputs for that prompt only
-		for _, prompt := range n.prompts {
+		for _, prompt := range prompts {
 			if prompt.Action != nil && prompt.Action.Ref == ctx.CurrentAction {
 				return !n.appendMissingInputs(ctx, nodeResp, prompt.Inputs)
 			}
@@ -328,8 +387,8 @@ func (n *promptNode) enrichInputsFromForwardedData(ctx *NodeContext, nodeResp *c
 // hasSelectedAction checks if a valid action has been selected when actions are defined. Adds actions
 // to the response if they haven't been selected yet.
 // Returns true if an action is already selected or no actions are defined, otherwise false.
-func (n *promptNode) hasSelectedAction(ctx *NodeContext, nodeResp *common.NodeResponse) bool {
-	actions := n.getAllActions()
+func hasSelectedAction(ctx *NodeContext, nodeResp *common.NodeResponse, prompts []common.Prompt) bool {
+	actions := getAllActionsFrom(prompts)
 	if len(actions) == 0 {
 		return true
 	}
@@ -349,17 +408,23 @@ func (n *promptNode) hasSelectedAction(ctx *NodeContext, nodeResp *common.NodeRe
 }
 
 // tryAutoSelectSingleAction attempts to auto-select the action when there's exactly one action
-// defined, no action has been selected, and inputs are defined. If no inputs are defined
-// (confirmation-only prompts), we should not auto-select as the prompt is meant to wait for
-// explicit user action.
+// defined, no action has been selected, and either inputs are defined or the node is a
+// login_options ACR chooser with an active acr_values filter. This ACR case executes
+// when acr_values narrows the chooser down to exactly one option, that option is selected
+// automatically so the user goes directly to the credential prompt. For all other nodes,
+// auto-select is skipped when no inputs are defined (confirmation-only prompts must wait for an
+// explicit user action).
 // Returns true if an action was auto-selected, otherwise false.
-func (n *promptNode) tryAutoSelectSingleAction(ctx *NodeContext) bool {
-	actions := n.getAllActions()
+func (n *promptNode) tryAutoSelectSingleAction(ctx *NodeContext, prompts []common.Prompt) bool {
+	actions := getAllActionsFrom(prompts)
 	allInputs := n.getAllInputs()
 
-	// Auto-select only when: single action, no action selected, and has inputs defined
-	// Skip auto-select for confirmation prompts (no inputs) - they should wait for explicit action
-	if len(actions) == 1 && ctx.CurrentAction == "" && len(allInputs) > 0 {
+	// ACR auto-select (AC-13): login_options node with an active acr_values filter
+	isACRAutoSelect := n.variant == common.NodeVariantLoginOptions &&
+		ctx.RuntimeData[common.RuntimeKeyRequestedAuthClasses] != ""
+
+	// Auto-select when: single action, no action selected, and has inputs defined OR ACR auto-select applies
+	if len(actions) == 1 && ctx.CurrentAction == "" && (len(allInputs) > 0 || isACRAutoSelect) {
 		ctx.CurrentAction = actions[0].Ref
 		n.logger.Debug("Auto-selected single action", log.String(log.LoggerKeyExecutionID, ctx.ExecutionID),
 			log.String("actionRef", actions[0].Ref))
@@ -384,10 +449,10 @@ func (n *promptNode) getAllInputs() []common.Input {
 	return inputs
 }
 
-// getAllActions returns all actions from prompts.
-func (n *promptNode) getAllActions() []common.Action {
+// getAllActionsFrom returns all actions from the given prompts.
+func getAllActionsFrom(prompts []common.Prompt) []common.Action {
 	actions := make([]common.Action, 0)
-	for _, prompt := range n.prompts {
+	for _, prompt := range prompts {
 		if prompt.Action != nil {
 			actions = append(actions, *prompt.Action)
 		}
@@ -396,8 +461,8 @@ func (n *promptNode) getAllActions() []common.Action {
 }
 
 // getNextNodeForActionRef finds the next node for the given action reference.
-func (n *promptNode) getNextNodeForActionRef(actionRef string, logger *log.Logger) string {
-	actions := n.getAllActions()
+func getNextNodeForActionRef(prompts []common.Prompt, actionRef string, logger *log.Logger) string {
+	actions := getAllActionsFrom(prompts)
 	for i := range actions {
 		if actions[i].Ref == actionRef {
 			logger.Debug("Action selected successfully", log.String("actionRef", actions[i].Ref),
@@ -418,13 +483,14 @@ func (n *promptNode) getActionTypeForRef(actionRef string) string {
 	return ""
 }
 
-// trimMetaToRequestedInputs returns a copy of n.meta with the "components" list trimmed to only
+// trimMetaToRequestedInputs returns a copy of meta with the "components" list trimmed to only
 // include components matching the given inputs and actions (plus structural components like TEXT
 // and BLOCK containers that are not themselves inputs or actions).
-func (n *promptNode) trimMetaToRequestedInputs(inputs []common.Input, actions []common.Action) interface{} {
-	metaMap, ok := n.meta.(map[string]interface{})
+func (n *promptNode) trimMetaToRequestedInputs(meta interface{}, inputs []common.Input,
+	actions []common.Action) interface{} {
+	metaMap, ok := meta.(map[string]interface{})
 	if !ok {
-		return n.meta
+		return meta
 	}
 
 	allowedRefs := make(map[string]struct{})
@@ -445,7 +511,7 @@ func (n *promptNode) trimMetaToRequestedInputs(inputs []common.Input, actions []
 			knownInputActionRefs[input.Ref] = struct{}{}
 		}
 	}
-	for _, action := range n.getAllActions() {
+	for _, action := range getAllActionsFrom(n.prompts) {
 		if action.Ref != "" {
 			knownInputActionRefs[action.Ref] = struct{}{}
 		}
@@ -498,4 +564,176 @@ func filterMetaComponents(comps []interface{}, allowedRefs, knownInputActionRefs
 		result = append(result, comp)
 	}
 	return result
+}
+
+// filterAndOrderPrompts returns a filtered and preference-ordered subset of n.prompts for a
+// login_options node. The acrToAction map (ACR → action ref) is read from the node's
+// authMethodMapping property at runtime. For each requested ACR, the prompt whose Action.Ref
+// matches the mapping target is included in preference order. Prompts whose action is not
+// covered by the mapping (or that have no action) are non-ACR-gated and are always appended.
+// If the filtered result is empty (flow misconfiguration), all prompts are returned as a
+// graceful fallback.
+func (n *promptNode) filterAndOrderPrompts(requestedACRs []string,
+	acrToAction map[string]string) []common.Prompt {
+	if len(requestedACRs) == 0 {
+		return n.prompts
+	}
+
+	actionToPrompt := make(map[string]common.Prompt)
+	gatedActions := make(map[string]struct{})
+	for _, p := range n.prompts {
+		if p.Action != nil && p.Action.Ref != "" {
+			actionToPrompt[p.Action.Ref] = p
+		}
+	}
+	for _, ref := range acrToAction {
+		gatedActions[ref] = struct{}{}
+	}
+
+	result := make([]common.Prompt, 0)
+	for _, acr := range requestedACRs {
+		ref, ok := acrToAction[acr]
+		if !ok {
+			continue
+		}
+		if p, ok := actionToPrompt[ref]; ok {
+			result = append(result, p)
+		}
+	}
+
+	// Prompts whose action is not part of the ACR mapping (or that have no action) are not
+	// ACR-gated and are always included after the matched ones.
+	for _, p := range n.prompts {
+		if p.Action == nil || p.Action.Ref == "" {
+			result = append(result, p)
+			continue
+		}
+		if _, gated := gatedActions[p.Action.Ref]; !gated {
+			result = append(result, p)
+		}
+	}
+
+	if len(result) == 0 {
+		return n.prompts // graceful fallback for misconfigured flows
+	}
+	return result
+}
+
+// acrToActionMapping reads the authMethodMapping property from the node and returns the
+// ACR → action ref map. Returns an empty map when the property is absent or malformed.
+func (n *promptNode) acrToActionMapping() map[string]string {
+	result := make(map[string]string)
+	props := n.GetProperties()
+	if props == nil {
+		return result
+	}
+	raw, ok := props[common.NodePropertyAuthMethodMapping]
+	if !ok {
+		return result
+	}
+	mapping, ok := raw.(map[string]interface{})
+	if !ok {
+		return result
+	}
+	for acr, refVal := range mapping {
+		if ref, ok := refVal.(string); ok {
+			result[acr] = ref
+		}
+	}
+	return result
+}
+
+// joinActionRefs returns a space-separated list of action refs from the given prompts.
+// Prompts without an action ref are skipped.
+func joinActionRefs(prompts []common.Prompt) string {
+	refs := make([]string, 0, len(prompts))
+	for _, p := range prompts {
+		if p.Action != nil && p.Action.Ref != "" {
+			refs = append(refs, p.Action.Ref)
+		}
+	}
+	return strings.Join(refs, " ")
+}
+
+// containsField reports whether target appears as a whitespace-separated field in raw.
+func containsField(raw, target string) bool {
+	for _, f := range strings.Fields(raw) {
+		if f == target {
+			return true
+		}
+	}
+	return false
+}
+
+// filteredMeta returns a copy of n.meta with ACTION components filtered and reordered to match
+// the given prompts. Non-ACTION components (display text, images, etc.) are always kept in their
+// original relative positions. ACTION components are replaced in-place with the next action in
+// ACR preference order — filtered-out actions are dropped. If meta cannot be interpreted as
+// expected, the original meta is returned unchanged.
+func (n *promptNode) filteredMeta(prompts []common.Prompt) interface{} {
+	metaMap, ok := n.meta.(map[string]interface{})
+	if !ok {
+		return n.meta
+	}
+	components, ok := metaMap["components"].([]interface{})
+	if !ok {
+		return n.meta
+	}
+
+	// Build map from action ref to ACTION component.
+	actionCompMap := make(map[string]interface{}, len(prompts))
+	for _, comp := range components {
+		compMap, ok := comp.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if compMap["type"] == "ACTION" {
+			if id, ok := compMap["id"].(string); ok {
+				actionCompMap[id] = comp
+			}
+		}
+	}
+
+	// Build ordered slice of ACTION components following the ACR-preference order of prompts.
+	orderedActions := make([]interface{}, 0, len(prompts))
+	for _, p := range prompts {
+		if p.Action != nil && p.Action.Ref != "" {
+			if comp, ok := actionCompMap[p.Action.Ref]; ok {
+				orderedActions = append(orderedActions, comp)
+			}
+		}
+	}
+
+	// Reconstruct the components list: non-ACTION components stay in their original positions;
+	// each ACTION slot is replaced by the next entry from orderedActions (filtered-out actions
+	// are simply dropped by consuming no slot in orderedActions).
+	actionIdx := 0
+	result := make([]interface{}, 0, len(components))
+	for _, comp := range components {
+		compMap, ok := comp.(map[string]interface{})
+		if !ok || compMap["type"] != "ACTION" {
+			result = append(result, comp)
+			continue
+		}
+		if actionIdx < len(orderedActions) {
+			result = append(result, orderedActions[actionIdx])
+			actionIdx++
+		}
+		// Filtered-out ACTION component: drop it by emitting nothing.
+	}
+
+	resultMap := make(map[string]interface{}, len(metaMap))
+	for k, v := range metaMap {
+		resultMap[k] = v
+	}
+	resultMap["components"] = result
+	return resultMap
+}
+
+// parseACRValues splits the space-separated ACR values string from RuntimeData into an ordered slice.
+func parseACRValues(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	return strings.Fields(raw)
 }

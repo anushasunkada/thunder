@@ -158,6 +158,7 @@ func (b *graphBuilder) processNode(nodeDef *NodeDefinition, allNodes []NodeDefin
 
 	b.configureNodeInputs(nodeDef, node)
 	b.configureNodeMeta(nodeDef, node)
+	b.configureNodeVariant(nodeDef, node)
 	b.configureNodeCondition(nodeDef, node)
 
 	if err := b.configureNodePrompts(nodeDef, node, edges); err != nil {
@@ -282,6 +283,18 @@ func (b *graphBuilder) configureNodeInputs(nodeDef *NodeDefinition, node core.No
 		}
 	}
 	executorNode.SetInputs(inputs)
+}
+
+// configureNodeVariant configures the variant for a prompt node by reading the explicit
+// Variant field from the node definition. The graph builder is a pure JSON-to-graph translator
+// and does not infer the variant from other properties.
+func (b *graphBuilder) configureNodeVariant(nodeDef *NodeDefinition, node core.NodeInterface) {
+	if nodeDef.Variant == "" {
+		return
+	}
+	if promptNode, ok := node.(core.PromptNodeInterface); ok {
+		promptNode.SetVariant(nodeDef.Variant)
+	}
 }
 
 // configureNodeMeta configures the meta object for a prompt node.

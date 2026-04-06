@@ -32,6 +32,7 @@ import (
 	"github.com/asgardeo/thunder/internal/flow/flowexec"
 	"github.com/asgardeo/thunder/internal/inboundclient"
 	inboundmodel "github.com/asgardeo/thunder/internal/inboundclient/model"
+	"github.com/asgardeo/thunder/internal/oauth/oauth2/authz/requestvalidator"
 	oauth2const "github.com/asgardeo/thunder/internal/oauth/oauth2/constants"
 	oauth2model "github.com/asgardeo/thunder/internal/oauth/oauth2/model"
 	"github.com/asgardeo/thunder/internal/oauth/oauth2/par"
@@ -219,6 +220,7 @@ func (as *authorizeService) handleStandardAuthorizationRequest(
 	claimsLocales := msg.RequestQueryParams[oauth2const.RequestParamClaimsLocales]
 
 	nonce := msg.RequestQueryParams[oauth2const.RequestParamNonce]
+	acrValues := msg.RequestQueryParams[oauth2const.RequestParamAcrValues]
 
 	// Parse the claims parameter if present.
 	var claimsRequest *oauth2model.ClaimsRequest
@@ -280,6 +282,7 @@ func (as *authorizeService) handleStandardAuthorizationRequest(
 		ClaimsRequest:       claimsRequest,
 		ClaimsLocales:       claimsLocales,
 		Nonce:               nonce,
+		AcrValues:           acrValues,
 	}
 
 	// Set the redirect URI if not provided in the request. Invalid cases are already handled at this point.
@@ -304,6 +307,7 @@ func (as *authorizeService) handleStandardAuthorizationRequest(
 func (as *authorizeService) initiateFlowAndStoreRequest(
 	ctx context.Context, oauthParams *oauth2model.OAuthParameters, app *inboundmodel.OAuthClient,
 ) (*AuthorizationInitResult, *AuthorizationError) {
+	effectiveAcrValues := requestvalidator.ResolveACRValues(oauthParams.AcrValues, app.AcrValues)
 	essentialAttributes, optionalAttributes := getRequiredAttributes(
 		oauthParams.StandardScopes, oauthParams.ClaimsRequest, oauthParams.ResponseType, app)
 
@@ -315,6 +319,10 @@ func (as *authorizeService) initiateFlowAndStoreRequest(
 		flowcm.RuntimeKeyRequiredOptionalAttributes:    optionalAttributes,
 		flowcm.RuntimeKeyRequiredLocales:               oauthParams.ClaimsLocales,
 		flowcm.RuntimeKeyUserAttributesCacheTTLSeconds: fmt.Sprintf("%d", resolveUserAttributesCacheTTL(app)),
+	}
+	// Store the effective acr_values string in runtime data for use by the flow engine.
+	if effectiveAcrValues != "" {
+		runtimeData[flowcm.RuntimeKeyRequestedAuthClasses] = effectiveAcrValues
 	}
 	flowInitCtx := &flowexec.FlowInitContext{
 		ApplicationID: app.AppID,
@@ -625,6 +633,13 @@ func decodeAttributesFromAssertion(assertion string) (assertionClaims, time.Time
 			claims.attributeCacheID = strValue
 			continue
 		}
+
+		if key == flowcm.ClaimCompletedAuthClass {
+			if strValue, ok := value.(string); ok {
+				claims.completedACR = strValue
+			}
+			continue
+		}
 	}
 
 	return claims, authTime, nil
@@ -689,6 +704,7 @@ func createAuthorizationCode(
 		ClaimsRequest:       authRequestCtx.OAuthParameters.ClaimsRequest,
 		ClaimsLocales:       authRequestCtx.OAuthParameters.ClaimsLocales,
 		Nonce:               authRequestCtx.OAuthParameters.Nonce,
+		CompletedACR:        claims.completedACR,
 	}, nil
 }
 

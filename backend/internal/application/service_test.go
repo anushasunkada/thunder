@@ -2647,5 +2647,129 @@ func (suite *ServiceTestSuite) TestValidateApplication_ErrorFromProcessInboundAu
 	assert.Equal(suite.T(), &ErrorInvalidInboundAuthConfig, svcErr)
 }
 
-// TestValidateApplication_ErrorFromValidateAuthFlowID tests error from validateAuthFlowID
-// when an invalid auth flow ID is provided.
+// ---------------------------------------------------------------------------
+// validateAcrValues
+// ---------------------------------------------------------------------------
+
+func TestValidateAcrValues_EmptyList(t *testing.T) {
+	err := validateAcrValues(nil)
+	assert.Nil(t, err)
+
+	err = validateAcrValues([]string{})
+	assert.Nil(t, err)
+}
+
+func TestValidateAcrValues_AllValid(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	err := validateAcrValues([]string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:generated-code",
+	})
+
+	assert.Nil(t, err)
+}
+
+func TestValidateAcrValues_SingleValid(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	err := validateAcrValues([]string{"urn:thunder:acr:password"})
+
+	assert.Nil(t, err)
+}
+
+func TestValidateAcrValues_UnknownACR(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	svcErr := validateAcrValues([]string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:unknown-method",
+	})
+
+	assert.NotNil(t, svcErr)
+	assert.Equal(t, "APP-1033", svcErr.Code)
+	assert.Contains(t, svcErr.ErrorDescription.DefaultValue, "urn:thunder:acr:unknown-method")
+}
+
+func TestValidateAcrValues_FirstEntryInvalid(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	svcErr := validateAcrValues([]string{"totally-invalid-acr"})
+
+	assert.NotNil(t, svcErr)
+	assert.Equal(t, "APP-1033", svcErr.Code)
+	assert.Contains(t, svcErr.ErrorDescription.DefaultValue, "totally-invalid-acr")
+}
+
+// ---------------------------------------------------------------------------
+// isValidACR
+// ---------------------------------------------------------------------------
+
+// initAcrRegistry initializes the Thunder runtime with the given ACR-AMR mapping for testing.
+// It resets the runtime after the test completes.
+func initAcrRegistry(t *testing.T, mapping config.AuthClassConfig) {
+	t.Helper()
+	config.ResetThunderRuntime()
+	require.NoError(t, config.InitializeThunderRuntime("", &config.Config{
+		OAuth: config.OAuthConfig{
+			AuthClass: mapping,
+		},
+	}))
+	t.Cleanup(config.ResetThunderRuntime)
+}
+
+var validAcrMapping = config.AuthClassConfig{
+	AMR: map[string]config.AMRFactor{
+		"Password": {Type: "PWD"},
+		"OTP":      {Type: "OTP"},
+	},
+	AcrAMR: map[string][]string{
+		"urn:thunder:acr:password":       {"Password"},
+		"urn:thunder:acr:generated-code": {"OTP"},
+	},
+}
+
+func TestIsValidACR_KnownACR(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	ok := isValidACR("urn:thunder:acr:password")
+
+	assert.True(t, ok)
+}
+
+func TestIsValidACR_UnknownACR(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	ok := isValidACR("urn:thunder:acr:unknown")
+
+	assert.False(t, ok)
+}
+
+func TestIsValidACR_EmptyString(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	ok := isValidACR("")
+
+	assert.False(t, ok)
+}
+
+func TestIsValidACR_AllMappedACRs(t *testing.T) {
+	initAcrRegistry(t, validAcrMapping)
+
+	knownACRs := []string{
+		"urn:thunder:acr:password",
+		"urn:thunder:acr:generated-code",
+	}
+	for _, acr := range knownACRs {
+		ok := isValidACR(acr)
+		assert.True(t, ok, "expected ACR %q to be valid", acr)
+	}
+}
+
+func TestIsValidACR_EmptyMapping(t *testing.T) {
+	initAcrRegistry(t, config.AuthClassConfig{})
+
+	ok := isValidACR("urn:thunder:acr:password")
+
+	assert.False(t, ok)
+}

@@ -420,6 +420,7 @@ func BuildOAuthClient(entityID, clientID, ouID string, oauthDAO *inboundmodel.OA
 		Token:                              p.Token,
 		UserInfo:                           p.UserInfo,
 		Certificate:                        p.Certificate,
+		AcrValues:                          p.AcrValues,
 	}
 	for _, gt := range p.GrantTypes {
 		client.GrantTypes = append(client.GrantTypes, oauth2const.GrantType(gt))

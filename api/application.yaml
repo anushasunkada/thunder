@@ -156,6 +156,7 @@ paths:
                     scopeClaims:
                       profile: ["name", "family_name", "given_name", "picture"]
                       employee: ["emp_id", "department"]
+                    acrValues: ["urn:thunder:silver", "urn:thunder:gold"]
       responses:
         "201":
           description: Application created
@@ -223,6 +224,7 @@ paths:
                       scopeClaims:
                         profile: ["name", "family_name", "given_name", "picture"]
                         employee: ["emp_id", "department"]
+                      acrValues: ["urn:thunder:silver", "urn:thunder:gold"]
         "400":
           description: Bad request
           content:
@@ -477,6 +479,7 @@ paths:
                     scopeClaims:
                       profile: ["name", "family_name", "given_name", "picture"]
                       employee: ["emp_id", "department"]
+                    acrValues: ["urn:thunder:silver", "urn:thunder:gold"]
       responses:
         "200":
           description: Application updated
@@ -546,6 +549,7 @@ paths:
                       scopeClaims:
                         profile: ["name", "family_name", "given_name", "picture"]
                         employee: ["emp_id", "department"]
+                      acrValues: ["urn:thunder:silver", "urn:thunder:gold"]
         "400":
           description: Bad request
           content:
@@ -1258,6 +1262,17 @@ components:
           example:
             profile: ["name", "family_name", "given_name", "picture"]
             employee: ["emp_id", "department"]
+        acrValues:
+          type: array
+          items:
+            type: string
+          description: |
+            ACR (Authentication Context Class Reference) values for the application.
+            Defines the allowed set of ACR values for authorization requests. When acr_values is
+            provided in an authorization request, only values present in this list are accepted;
+            unrecognised values are silently ignored. If filtering removes all requested ACRs,
+            the full list is used as a fallback.
+          example: ["urn:thunder:silver", "urn:thunder:gold"]
 
     OAuthAppConfigComplete:
       type: object
@@ -1336,6 +1351,17 @@ components:
           example:
             profile: ["name", "family_name", "given_name", "picture"]
             employee: ["emp_id", "department"]
+        acrValues:
+          type: array
+          items:
+            type: string
+          description: |
+            ACR (Authentication Context Class Reference) values for the application.
+            Defines the allowed set of ACR values for authorization requests. When acr_values is
+            provided in an authorization request, only values present in this list are accepted;
+            unrecognised values are silently ignored. If filtering removes all requested ACRs,
+            the full list is used as a fallback.
+          example: ["urn:thunder:silver", "urn:thunder:gold"]
 
     Error:
       type: object

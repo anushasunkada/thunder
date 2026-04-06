@@ -147,6 +147,11 @@ const (
 const DefaultHTTPTimeout = 5 * time.Second
 
 const (
+	// NodeVariantLoginOptions identifies a PROMPT node that presents login method choices to the user.
+	NodeVariantLoginOptions = "LOGIN_OPTIONS"
+)
+
+const (
 	// NodePropertyAllowAuthenticationWithoutLocalUser indicates whether authentication is allowed without a local user
 	NodePropertyAllowAuthenticationWithoutLocalUser = "allowAuthenticationWithoutLocalUser"
 	// NodePropertyAllowRegistrationWithExistingUser indicates whether registration is allowed with an existing user
@@ -158,6 +163,8 @@ const (
 	// NodePropertyOUResolveFrom specifies the strategy for resolving the organization unit.
 	// Supported values: "caller" (use the caller's OU).
 	NodePropertyOUResolveFrom = "resolveFrom"
+	// NodePropertyAuthMethodMapping maps authentication classes to action refs on login_options PROMPT nodes.
+	NodePropertyAuthMethodMapping = "authMethodMapping"
 )
 
 const (
@@ -197,6 +204,21 @@ const (
 	RuntimeKeySkipDelivery = "skipDelivery"
 	// RuntimeKeyCandidateUsers holds serialized candidate users during disambiguation in resolve mode.
 	RuntimeKeyCandidateUsers = "candidateUsers"
+	// RuntimeKeyRequestedAuthClasses holds the space-separated, ordered list of ACR values requested
+	// by the client in the acr_values authorization parameter.
+	RuntimeKeyRequestedAuthClasses = "requested_auth_classes"
+	// RuntimeKeySelectedAuthClass holds the ACR value of the authentication method actually used by the user.
+	// Set by the flow engine when a login_options prompt node resolves the chosen action.
+	RuntimeKeySelectedAuthClass = "selected_auth_class"
+	// RuntimeKeyAllowedLoginOptions holds the space-separated set of action refs the user is allowed
+	// to choose from on a LOGIN_OPTIONS prompt node, captured on the first execution after acr_values
+	// filtering. Used to validate the selected action on the follow-up request without re-parsing
+	// authMethodMapping.
+	RuntimeKeyAllowedLoginOptions = "allowed_login_options"
+	// ClaimCompletedAuthClass is the JWT claim key used in auth assertion tokens to record
+	// the ACR value that the user satisfied. The OAuth2 callback service reads this claim
+	// to populate the acr claim in the issued ID token.
+	ClaimCompletedAuthClass = "completed_auth_class"
 )
 
 // TODO: Define a go type for InputType when formalizing input types
