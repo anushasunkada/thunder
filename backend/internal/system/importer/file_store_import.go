@@ -192,9 +192,9 @@ func getThunderHome() (thunderHome string, err error) {
 	}()
 
 	runtime := config.GetServerRuntime()
-	if runtime == nil || strings.TrimSpace(runtime.ThunderHome) == "" {
+	if runtime == nil || strings.TrimSpace(runtime.ServerHome) == "" {
 		return "", fmt.Errorf("Server runtime is not initialized")
 	}
 
-	return runtime.ThunderHome, nil
+	return runtime.ServerHome, nil
 }

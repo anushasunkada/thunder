@@ -74,7 +74,7 @@ func (fs *FileSubscriber) Initialize() error {
 	// Determine file path
 	filePath := fileConfig.FilePath
 	if filePath == "" {
-		observability := filepath.Join(config.GetServerRuntime().ThunderHome, "logs", "observability")
+		observability := filepath.Join(config.GetServerRuntime().ServerHome, "logs", "observability")
 		filePath = filepath.Join(observability, "observability.log")
 	}
 

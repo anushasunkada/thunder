@@ -314,7 +314,7 @@ func (s *ThemeDeclarativeSuite) TestLoadDeclarativeResources_Integration() {
 }
 
 func (s *ThemeDeclarativeSuite) TestLoadDeclarativeResources_WithDBStore() {
-	thunderHome := config.GetServerRuntime().ThunderHome
+	thunderHome := config.GetServerRuntime().ServerHome
 	resourceDir := filepath.Join(thunderHome, "repository", "resources", "themes")
 	err := os.MkdirAll(resourceDir, 0o750)
 	s.Require().NoError(err)

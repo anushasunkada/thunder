@@ -24,7 +24,7 @@ import (
 
 // Server runtime holds the runtime configuration for the server.
 type ServerRuntime struct {
-	ThunderHome string `yaml:"thunder_home"`
+	ServerHome string `yaml:"server_home"`
 	Config      Config `yaml:"config"`
 }
 
@@ -37,7 +37,7 @@ var (
 func InitializeServerRuntime(thunderHome string, config *Config) error {
 	once.Do(func() {
 		runtimeConfig = &ServerRuntime{
-			ThunderHome: thunderHome,
+			ServerHome: thunderHome,
 			Config:      *config,
 		}
 	})

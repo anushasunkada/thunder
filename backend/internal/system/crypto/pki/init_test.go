@@ -68,7 +68,7 @@ func (suite *PKIInitTestSuite) TestInitialize_Success() {
 	certPath, keyPath := suite.createAndWriteFilesAbsolute(privateKey)
 	defer suite.cleanupFiles(certPath, keyPath)
 
-	// Create test config - use empty ThunderHome so absolute paths work
+	// Create test config - use empty server home so absolute paths work
 	cfg := &config.Config{
 		Crypto: config.CryptoConfig{
 			Keys: []config.KeyConfig{

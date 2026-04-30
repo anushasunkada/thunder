@@ -67,8 +67,8 @@ func newPKIService() (PKIServiceInterface, error) {
 			return nil, errors.New("key configuration has empty ID")
 		}
 
-		certFilePath := path.Join(thunderRuntime.ThunderHome, keyConfig.CertFile)
-		keyFilePath := path.Join(thunderRuntime.ThunderHome, keyConfig.KeyFile)
+		certFilePath := path.Join(thunderRuntime.ServerHome, keyConfig.CertFile)
+		keyFilePath := path.Join(thunderRuntime.ServerHome, keyConfig.KeyFile)
 
 		// Check if the certificate and key files exist.
 		if _, err := os.Stat(certFilePath); os.IsNotExist(err) {

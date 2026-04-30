@@ -301,7 +301,7 @@ func (d *dbProvider) getDBConfig(dataSource config.DataSource) dbConfig {
 		if options != "" && options[0] != '?' {
 			options = "?" + options
 		}
-		dbConfig.dsn = fmt.Sprintf("%s%s", path.Join(config.GetServerRuntime().ThunderHome, sl.Path), options)
+		dbConfig.dsn = fmt.Sprintf("%s%s", path.Join(config.GetServerRuntime().ServerHome, sl.Path), options)
 	}
 
 	return dbConfig
