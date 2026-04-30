@@ -47,7 +47,7 @@ func TestSMTPClientTestSuite(t *testing.T) {
 
 func (suite *SMTPClientTestSuite) SetupSuite() {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	if err != nil {
 		suite.T().Fatalf("Failed to initialize ThunderRuntime: %v", err)
 	}
@@ -743,7 +743,7 @@ func (suite *SMTPClientTestSuite) TestNewSMTPClientFromConfig_Defaults() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	suite.Require().NoError(err)
 
 	client, err := NewSMTPClientFromConfig()
@@ -781,7 +781,7 @@ func (suite *SMTPClientTestSuite) TestNewSMTPClientFromConfig_ExplicitFalse() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	suite.Require().NoError(err)
 
 	client, err := NewSMTPClientFromConfig()
@@ -812,7 +812,7 @@ func (suite *SMTPClientTestSuite) TestNewSMTPClientFromConfig_ExplicitTrue() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	suite.Require().NoError(err)
 
 	client, err := NewSMTPClientFromConfig()
@@ -1270,7 +1270,7 @@ func (suite *SMTPClientTestSuite) TestNewSMTPClientFromConfig_RuntimeNotInitiali
 
 	// Re-initialize the runtime for subsequent tests.
 	testConfig := &config.Config{}
-	initErr := config.InitializeThunderRuntime("", testConfig)
+	initErr := config.InitializeServerRuntime("", testConfig)
 	suite.Require().NoError(initErr)
 }
 
@@ -1295,7 +1295,7 @@ func (suite *SMTPClientTestSuite) TestSendLiveEmail() {
 	)
 	suite.Require().NoError(err, "Failed to load config")
 
-	err = config.InitializeThunderRuntime("", emailConfig)
+	err = config.InitializeServerRuntime("", emailConfig)
 	suite.Require().NoError(err, "Failed to initialize thunder runtime")
 	defer config.ResetServerRuntime()
 

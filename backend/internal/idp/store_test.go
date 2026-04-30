@@ -57,7 +57,7 @@ func (s *IDPStoreTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	s.mockDBProvider = &providermock.DBProviderInterfaceMock{}
 	s.mockDBClient = &providermock.DBClientInterfaceMock{}

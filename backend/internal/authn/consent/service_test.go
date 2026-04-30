@@ -56,7 +56,7 @@ func (s *ConsentEnforcerServiceTestSuite) SetupSuite() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 }
 
 func (s *ConsentEnforcerServiceTestSuite) SetupTest() {

@@ -49,7 +49,7 @@ func TestJWTUtilsSuite(t *testing.T) {
 }
 
 func (suite *JWTUtilsTestSuite) SetupTest() {
-	err := config.InitializeThunderRuntime("", &config.Config{
+	err := config.InitializeServerRuntime("", &config.Config{
 		JWT: config.JWTConfig{},
 	})
 	assert.NoError(suite.T(), err)

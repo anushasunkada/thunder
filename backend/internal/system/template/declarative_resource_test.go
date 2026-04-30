@@ -139,7 +139,7 @@ func (suite *TemplateDeclarativeResourceTestSuite) TestLoadDeclarativeResources_
 	tempDir := suite.T().TempDir()
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	suite.NoError(err)
 
 	runtime := config.GetServerRuntime()
@@ -196,7 +196,7 @@ func (suite *TemplateDeclarativeResourceTestSuite) TestLoadDeclarativeResources_
 	tempDir := suite.T().TempDir()
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	suite.NoError(err)
 
 	genericStore := declarativeresource.NewGenericFileBasedStoreForTest(entity.KeyTypeTemplate)
@@ -212,7 +212,7 @@ func (suite *TemplateDeclarativeResourceTestSuite) TestLoadDeclarativeResources_
 	tempDir := suite.T().TempDir()
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	suite.NoError(err)
 
 	runtime := config.GetServerRuntime()
@@ -248,7 +248,7 @@ func (suite *TemplateDeclarativeResourceTestSuite) TestLoadDeclarativeResources_
 	tempDir := suite.T().TempDir()
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	suite.NoError(err)
 
 	genericStore := declarativeresource.NewGenericFileBasedStoreForTest(entity.KeyTypeTemplate)

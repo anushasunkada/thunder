@@ -53,7 +53,7 @@ func (suite *DBProviderTestSuite) SetupTest() {
 			User:    config.DataSource{Type: "postgres", Postgres: config.PostgresDataSource{Name: "user"}},
 		},
 	}
-	err = config.InitializeThunderRuntime(".", dummyConfig)
+	err = config.InitializeServerRuntime(".", dummyConfig)
 	suite.Require().NoError(err)
 }
 

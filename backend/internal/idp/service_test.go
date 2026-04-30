@@ -63,7 +63,7 @@ func (s *IDPServiceTestSuite) SetupTest() {
 			Enabled: false,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 
 	s.mockStore = newIdpStoreInterfaceMock(s.T())
 	s.idpService = newIDPService(s.mockStore, &mockTransactioner{})
@@ -613,7 +613,7 @@ func (s *IDPServiceTestSuite) TestCreateIdentityProvider_DeclarativeModeEnabled(
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	defer config.ResetServerRuntime()
 
 	idp := &IDPDTO{
@@ -637,7 +637,7 @@ func (s *IDPServiceTestSuite) TestUpdateIdentityProvider_DeclarativeModeEnabled(
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	defer config.ResetServerRuntime()
 
 	idp := &IDPDTO{
@@ -661,7 +661,7 @@ func (s *IDPServiceTestSuite) TestDeleteIdentityProvider_DeclarativeModeEnabled(
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	defer config.ResetServerRuntime()
 
 	err := s.idpService.DeleteIdentityProvider(context.Background(), "idp-123")
@@ -744,7 +744,7 @@ func (s *IDPServiceTestSuite) TestUpdateIdentityProvider_FailsForDeclarativeIDP(
 			Store: "composite",
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 
 	idpID := declarativeIDPTestID
 	existingIDP := &IDPDTO{
@@ -795,7 +795,7 @@ func (s *IDPServiceTestSuite) TestUpdateIdentityProvider_SucceedsForMutableIDP()
 			Store: "composite",
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 
 	idpID := mutableIDPTestID
 	existingIDP := &IDPDTO{
@@ -845,7 +845,7 @@ func (s *IDPServiceTestSuite) TestDeleteIdentityProvider_FailsForDeclarativeIDP(
 			Store: "composite",
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 
 	idpID := "declarative-idp"
 	existingIDP := &IDPDTO{
@@ -882,7 +882,7 @@ func (s *IDPServiceTestSuite) TestDeleteIdentityProvider_SucceedsForMutableIDP()
 			Store: "composite",
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 
 	idpID := "mutable-idp"
 	existingIDP := &IDPDTO{

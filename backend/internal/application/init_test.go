@@ -141,7 +141,7 @@ func (suite *InitTestSuite) TestInitialize_WithDeclarativeResourcesDisabled() {
 		},
 		Database: newTestDBConfig(),
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 	createTestApplicationTables(suite.T())
 
@@ -177,7 +177,7 @@ func (suite *InitTestSuite) TestInitialize_WithMCPServer() {
 		},
 		Database: newTestDBConfig(),
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 	createTestApplicationTables(suite.T())
 
@@ -578,7 +578,7 @@ func TestInitialize_Standalone(t *testing.T) {
 
 	// Reset and initialize with test config
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(t, err)
 	createTestApplicationTables(t)
 
@@ -626,7 +626,7 @@ func TestInitialize_WithDeclarativeResources_Standalone(t *testing.T) {
 
 	// Reset and initialize with test config
 	config.ResetServerRuntime()
-	err = config.InitializeThunderRuntime(tmpDir, testConfig)
+	err = config.InitializeServerRuntime(tmpDir, testConfig)
 	assert.NoError(t, err)
 
 	defer config.ResetServerRuntime() // Clean up after test

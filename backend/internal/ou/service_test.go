@@ -57,7 +57,7 @@ func (suite *OrganizationUnitServiceTestSuite) SetupTest() {
 			Enabled: false,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 }
 
 func (suite *OrganizationUnitServiceTestSuite) TearDownTest() {

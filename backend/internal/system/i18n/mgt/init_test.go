@@ -46,7 +46,7 @@ func (suite *InitTestSuite) SetupTest() {
 			Enabled: false,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 }
 
 func (suite *InitTestSuite) TearDownTest() {
@@ -119,7 +119,7 @@ func (suite *InitTestSuite) TestInitialize_DeclarativeMode_LoadError() {
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime(tempDir, testConfig)
+	_ = config.InitializeServerRuntime(tempDir, testConfig)
 
 	mux := http.NewServeMux()
 

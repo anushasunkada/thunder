@@ -52,7 +52,7 @@ func (suite *InitTestSuite) SetupTest() {
 			User:    config.DataSource{Type: "sqlite", SQLite: config.SQLiteDataSource{Path: "thunder_test.db"}},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", testConfig)
+	_ = config.InitializeServerRuntime("", testConfig)
 }
 
 func (suite *InitTestSuite) TearDownTest() {

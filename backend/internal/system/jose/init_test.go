@@ -62,7 +62,7 @@ func (suite *JOSEInitTestSuite) SetupTest() {
 			Leeway:         300,
 		},
 	}
-	err = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err = config.InitializeServerRuntime("/tmp/test", testConfig)
 	assert.NoError(suite.T(), err)
 }
 

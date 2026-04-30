@@ -79,7 +79,7 @@ func (suite *RuntimeCryptoServiceTestSuite) SetupTest() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("/test/thunder/home", testConfig)
+	err := config.InitializeServerRuntime("/test/thunder/home", testConfig)
 	suite.NoError(err)
 }
 

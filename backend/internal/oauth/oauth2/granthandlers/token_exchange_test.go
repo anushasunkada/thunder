@@ -75,7 +75,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 			Audience:       "application", // Default audience for tests
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())

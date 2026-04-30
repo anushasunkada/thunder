@@ -55,7 +55,7 @@ func (s *DeclarativeResourceTestSuite) SetupSuite() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	s.Require().NoError(err, "Failed to initialize ThunderRuntime")
 }
 

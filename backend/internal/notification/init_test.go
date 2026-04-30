@@ -67,7 +67,7 @@ func (suite *InitTestSuite) SetupSuite() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	if err != nil {
 		suite.T().Fatalf("Failed to initialize ThunderRuntime: %v", err)
 	}
@@ -164,7 +164,7 @@ properties:
 			Enabled: true,
 		},
 	}
-	err = config.InitializeThunderRuntime(tmpDir, testConfig)
+	err = config.InitializeServerRuntime(tmpDir, testConfig)
 	suite.NoError(err)
 
 	// Verify files can be loaded using the file-based runtime
@@ -213,7 +213,7 @@ properties:
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", suiteConfig)
+	err = config.InitializeServerRuntime("", suiteConfig)
 	suite.NoError(err)
 }
 
@@ -509,7 +509,7 @@ func (suite *InitTestSuite) TestInitialize_WithDeclarativeResourcesEnabled_Inval
 			Enabled: true,
 		},
 	}
-	err = config.InitializeThunderRuntime(tmpDir, testConfig)
+	err = config.InitializeServerRuntime(tmpDir, testConfig)
 	suite.NoError(err)
 
 	mux := http.NewServeMux()
@@ -538,7 +538,7 @@ func (suite *InitTestSuite) TestInitialize_WithDeclarativeResourcesEnabled_Inval
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", suiteConfig)
+	err = config.InitializeServerRuntime("", suiteConfig)
 	suite.NoError(err)
 }
 
@@ -587,7 +587,7 @@ properties:
 			Enabled: true,
 		},
 	}
-	err = config.InitializeThunderRuntime(tmpDir, testConfig)
+	err = config.InitializeServerRuntime(tmpDir, testConfig)
 	suite.NoError(err)
 
 	mux := http.NewServeMux()
@@ -616,6 +616,6 @@ properties:
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", suiteConfig)
+	err = config.InitializeServerRuntime("", suiteConfig)
 	suite.NoError(err)
 }

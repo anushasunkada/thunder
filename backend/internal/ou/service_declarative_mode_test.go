@@ -44,7 +44,7 @@ func (suite *DeclarativeModeServiceTestSuite) SetupTest() {
 			Enabled: true,
 		},
 	}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	suite.Require().NoError(err)
 
 	// Create service with mock store and dependencies

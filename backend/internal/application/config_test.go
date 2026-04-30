@@ -37,7 +37,7 @@ type ConfigTestSuite struct {
 func (suite *ConfigTestSuite) SetupSuite() {
 	// Initialize runtime once for all tests in the suite
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		suite.Fail("Failed to initialize runtime", err)
 	}

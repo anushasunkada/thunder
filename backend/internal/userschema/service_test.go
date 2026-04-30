@@ -85,7 +85,7 @@ func TestCreateUserSchemaReturnsErrorWhenOrganizationUnitMissing(t *testing.T) {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(t, err)
 	defer config.ResetServerRuntime()
 
@@ -125,7 +125,7 @@ func TestCreateUserSchemaReturnsInternalErrorWhenOUValidationFails(t *testing.T)
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(t, err)
 	defer config.ResetServerRuntime()
 
@@ -165,7 +165,7 @@ func TestUpdateUserSchemaReturnsErrorWhenOrganizationUnitMissing(t *testing.T) {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(t, err)
 	defer config.ResetServerRuntime()
 
@@ -980,7 +980,7 @@ func TestDeleteUserSchema(t *testing.T) {
 				},
 			}
 			config.ResetServerRuntime()
-			err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+			err := config.InitializeServerRuntime("/tmp/test", testConfig)
 			require.NoError(t, err)
 			defer config.ResetServerRuntime()
 
@@ -1109,7 +1109,7 @@ func TestCreateUserSchemaReturnsErrorForInvalidDisplayAttribute(t *testing.T) {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(t, err)
 	defer config.ResetServerRuntime()
 
@@ -1141,7 +1141,7 @@ func TestUpdateUserSchemaReturnsErrorForInvalidDisplayAttribute(t *testing.T) {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(t, err)
 	defer config.ResetServerRuntime()
 

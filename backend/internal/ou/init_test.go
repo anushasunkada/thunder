@@ -52,7 +52,7 @@ func (suite *InitTestSuite) SetupTest() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime(tmpDir, testConfig)
+	err := config.InitializeServerRuntime(tmpDir, testConfig)
 	suite.Require().NoError(err)
 }
 

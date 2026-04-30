@@ -57,7 +57,7 @@ func TestInboundClientStoreTestSuite(t *testing.T) {
 }
 
 func (suite *InboundClientStoreTestSuite) SetupTest() {
-	_ = config.InitializeThunderRuntime("test", &config.Config{})
+	_ = config.InitializeServerRuntime("test", &config.Config{})
 	suite.mockDBProvider = providermock.NewDBProviderInterfaceMock(suite.T())
 	suite.mockDBClient = providermock.NewDBClientInterfaceMock(suite.T())
 	suite.store = &store{

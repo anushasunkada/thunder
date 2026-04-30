@@ -39,7 +39,7 @@ type InviteExecutorTestSuite struct {
 
 func (suite *InviteExecutorTestSuite) SetupTest() {
 	// Initialize runtime config for tests
-	err := config.InitializeThunderRuntime(".", &config.Config{
+	err := config.InitializeServerRuntime(".", &config.Config{
 		GateClient: config.GateClientConfig{
 			Scheme:   "https",
 			Hostname: "localhost",

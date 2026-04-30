@@ -538,7 +538,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_ApplicationNotFo
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -568,7 +568,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_ApplicationNilFr
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -597,7 +597,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_StoreError() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -627,7 +627,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_NameConflict() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -672,7 +672,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_NameCheckStoreEr
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -712,7 +712,7 @@ func (suite *ServiceTestSuite) TestValidateApplicationForUpdate_Success() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -749,7 +749,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_EmptyAppID() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -767,7 +767,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_NotFound() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -789,7 +789,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_StoreError() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -809,7 +809,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_Success() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -829,7 +829,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_CertError() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -856,7 +856,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_OAuthCertError() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -884,7 +884,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_OAuthCertError_ClientError(
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -914,7 +914,7 @@ func (suite *ServiceTestSuite) TestDeleteApplication_WithOAuthCert_Success() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1155,7 +1155,7 @@ func (suite *ServiceTestSuite) TestValidateApplication_StoreErrorNonNotFound() {
 func (suite *ServiceTestSuite) TestValidateApplication_InvalidURL() {
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1180,7 +1180,7 @@ func (suite *ServiceTestSuite) TestValidateApplication_InvalidURL() {
 func (suite *ServiceTestSuite) TestValidateApplication_InvalidLogoURL() {
 	testConfig := &config.Config{}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1217,7 +1217,7 @@ func (suite *ServiceTestSuite) runCreateApplicationStoreErrorTest() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1252,7 +1252,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_StoreErrorNonNotFound() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1282,7 +1282,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_StoreErrorWhenCheckingName(
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1322,7 +1322,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_StoreErrorWhenCheckingClien
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1381,7 +1381,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_StoreErrorWithRollback() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1425,7 +1425,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_ValidateApplicationError() 
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1450,7 +1450,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_CertificateCreationError() 
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1491,7 +1491,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_WithOAuthCertificate_Succes
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1544,7 +1544,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_StoreErrorWithOAuthCertRoll
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1592,7 +1592,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_StoreErrorWithBothAppAndOAu
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1644,7 +1644,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_NotFound() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1673,7 +1673,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_NameConflict() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1712,7 +1712,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_MetadataUpdate() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1762,7 +1762,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_AppCertificateUpdateError()
 		JWT:                  config.JWTConfig{ValidityPeriod: 3600},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1936,7 +1936,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_StoreFails_RollbackCertFail
 		JWT:                  config.JWTConfig{ValidityPeriod: 3600},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -1978,7 +1978,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_WithOAuthConfig_Success() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2053,7 +2053,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_AddOAuthConfig_Success() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2114,7 +2114,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_UpdateOAuthClientID_Success
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2185,7 +2185,7 @@ func (suite *ServiceTestSuite) runUpdateApplicationWithJWKSCert(jwksValue string
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2269,7 +2269,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_OAuthClientIDConflict() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2345,7 +2345,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_OAuthCertUpdateError() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2430,7 +2430,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_OAuthStoreErrorWithRollback
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2506,7 +2506,7 @@ func (suite *ServiceTestSuite) TestUpdateApplication_OAuthTokenConfigUpdate() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2586,7 +2586,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_NilApplication() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -2606,7 +2606,7 @@ func (suite *ServiceTestSuite) TestCreateApplication_DeclarativeMode() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 

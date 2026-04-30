@@ -64,7 +64,7 @@ func (suite *JWEServiceTestSuite) SetupTest() {
 			PreferredKeyID: "test-kid",
 		},
 	}
-	_ = config.InitializeThunderRuntime("", testConfig)
+	_ = config.InitializeServerRuntime("", testConfig)
 }
 
 func (suite *JWEServiceTestSuite) TestEncryptDecrypt_RSA() {

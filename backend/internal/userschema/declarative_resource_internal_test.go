@@ -345,7 +345,7 @@ func TestLoadDeclarativeResources(t *testing.T) {
 
 	t.Run("composite store", func(t *testing.T) {
 		config.ResetServerRuntime()
-		err := config.InitializeThunderRuntime("", testConfig)
+		err := config.InitializeServerRuntime("", testConfig)
 		assert.NoError(t, err)
 		defer config.ResetServerRuntime()
 
@@ -368,7 +368,7 @@ func TestLoadDeclarativeResources(t *testing.T) {
 
 	t.Run("file-based store", func(t *testing.T) {
 		config.ResetServerRuntime()
-		err := config.InitializeThunderRuntime("", testConfig)
+		err := config.InitializeServerRuntime("", testConfig)
 		assert.NoError(t, err)
 		defer config.ResetServerRuntime()
 
@@ -387,7 +387,7 @@ func TestLoadDeclarativeResources(t *testing.T) {
 
 	t.Run("invalid store type", func(t *testing.T) {
 		config.ResetServerRuntime()
-		err := config.InitializeThunderRuntime("", testConfig)
+		err := config.InitializeServerRuntime("", testConfig)
 		assert.NoError(t, err)
 		defer config.ResetServerRuntime()
 
@@ -440,7 +440,7 @@ func TestLoadDeclarativeResources_WithNilOUService(t *testing.T) {
 	}
 
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(t, err)
 	defer config.ResetServerRuntime()
 

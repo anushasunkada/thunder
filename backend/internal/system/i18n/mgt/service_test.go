@@ -53,7 +53,7 @@ func (suite *I18nMgtServiceTestSuite) SetupTest() {
 			Enabled: false,
 		},
 	}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	suite.mockStore = newI18nStoreInterfaceMock(suite.T())
 	suite.service = newI18nService(suite.mockStore)
 }

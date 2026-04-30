@@ -50,7 +50,7 @@ func setupMockObservability(t *testing.T) *observabilitymock.ObservabilityServic
 		},
 	}
 
-	err := config.InitializeThunderRuntime("/tmp/thunder-test-events", testConfig)
+	err := config.InitializeServerRuntime("/tmp/thunder-test-events", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize Thunder runtime: %v", err)
 	}
@@ -376,7 +376,7 @@ func TestObservabilityDisabled(t *testing.T) {
 		},
 	}
 
-	err := config.InitializeThunderRuntime("/tmp/thunder-test-disabled", testConfig)
+	err := config.InitializeServerRuntime("/tmp/thunder-test-disabled", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize Thunder runtime: %v", err)
 	}

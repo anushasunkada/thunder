@@ -113,7 +113,7 @@ func (suite *ResourceServiceTestSuite) SetupTest() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(suite.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -151,7 +151,7 @@ func (suite *ResourceServiceTestSuite) TestNewResourceService_InvalidDelimiter()
 			DefaultDelimiter: "\"", // Invalid character (0x22)
 		},
 	}
-	_ = config.InitializeThunderRuntime("test-invalid-delimiter", testConfig)
+	_ = config.InitializeServerRuntime("test-invalid-delimiter", testConfig)
 	defer config.ResetServerRuntime()
 
 	mockStore := newResourceStoreInterfaceMock(suite.T())
@@ -4209,7 +4209,7 @@ func (suite *ResourceServiceTestSuite) TestValidatePermissions() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test-validate-permissions", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test-validate-permissions", testConfig)
 	suite.Require().NoError(err)
 	defer config.ResetServerRuntime()
 

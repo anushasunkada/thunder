@@ -225,7 +225,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_Success() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -240,7 +240,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_NoKeyConfigs() {
 			Keys: []config.KeyConfig{},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -261,7 +261,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_MissingCertFile() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -282,7 +282,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_MissingKeyFile() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -303,7 +303,7 @@ func (suite *PKIServiceTestSuite) TestGetPrivateKey_Success() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -327,7 +327,7 @@ func (suite *PKIServiceTestSuite) TestGetPrivateKey_NotFound() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -351,7 +351,7 @@ func (suite *PKIServiceTestSuite) TestGetCertThumbprint_Success() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -373,7 +373,7 @@ func (suite *PKIServiceTestSuite) TestGetCertThumbprint_NotFound() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -441,7 +441,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_WithECDSAKey() {
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", testConfig)
+	err = config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -462,7 +462,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_SkipsEmptyIDButLoadsOthers() {
 			},
 		},
 	}
-	assert.NoError(suite.T(), config.InitializeThunderRuntime("", testConfig))
+	assert.NoError(suite.T(), config.InitializeServerRuntime("", testConfig))
 
 	pkiService, err := Initialize()
 	assert.Error(suite.T(), err)
@@ -490,7 +490,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_InvalidCertContent() {
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", testConfig)
+	err = config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -538,7 +538,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_UnsupportedCurve() {
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", testConfig)
+	err = config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -612,7 +612,7 @@ func (suite *PKIServiceTestSuite) TestInitialize_WithEd25519Key() {
 			},
 		},
 	}
-	err = config.InitializeThunderRuntime("", testConfig)
+	err = config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()

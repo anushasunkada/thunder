@@ -82,7 +82,7 @@ func (suite *DiscoveryTestSuite) SetupTest() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	suite.pkiService = &testPKIService{
 		algorithms: []string{"RS256"},
@@ -314,7 +314,7 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithPublicHostname() {
 			Issuer: "https://test.thunder.io",
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	service := newDiscoveryService(suite.pkiService)
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())
@@ -334,7 +334,7 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithHTTPOnly() {
 			Issuer: "https://test.thunder.io",
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	service := newDiscoveryService(suite.pkiService)
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())

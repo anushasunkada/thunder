@@ -152,7 +152,7 @@ func (suite *JWTServiceTestSuite) SetupTest() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 	suite.jwtService.httpClient = httpservice.NewHTTPClientWithTimeout(10 * time.Second)
 }
@@ -1523,7 +1523,7 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTSignatureWithJWKSUsesCache() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	jwksData := suite.createMockJWKSData()
@@ -2477,7 +2477,7 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTWithZeroLeeway() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	// Token expired 1 second ago should fail with zero leeway

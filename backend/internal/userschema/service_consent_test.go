@@ -474,7 +474,7 @@ func (s *UserSchemaServiceConsentTestSuite) TestCreateUserSchema_ConsentSyncFail
 		DeclarativeResources: config.DeclarativeResources{Enabled: false},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(s.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -521,7 +521,7 @@ func (s *UserSchemaServiceConsentTestSuite) TestUpdateUserSchema_ConsentSyncFail
 		DeclarativeResources: config.DeclarativeResources{Enabled: false},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(s.T(), err)
 	defer config.ResetServerRuntime()
 
@@ -576,7 +576,7 @@ func (s *UserSchemaServiceConsentTestSuite) TestDeleteUserSchema_ConsentEnabled_
 		DeclarativeResources: config.DeclarativeResources{Enabled: false},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	require.NoError(s.T(), err)
 	defer config.ResetServerRuntime()
 

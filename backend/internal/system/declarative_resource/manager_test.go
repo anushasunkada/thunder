@@ -60,7 +60,7 @@ func (suite *FileBasedRuntimeManagerTestSuite) SetupSuite() {
 
 	// Create temporary thunder home directory
 	tempDir := suite.T().TempDir()
-	err := config.InitializeThunderRuntime(tempDir, testConfig)
+	err := config.InitializeServerRuntime(tempDir, testConfig)
 	suite.Require().NoError(err, "Failed to initialize ThunderRuntime")
 }
 

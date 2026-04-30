@@ -62,7 +62,7 @@ func TestJWEUserInfoSuite(t *testing.T) {
 
 func (s *JWEUserInfoTestSuite) SetupTest() {
 	config.ResetServerRuntime()
-	_ = config.InitializeThunderRuntime("test-home", &config.Config{
+	_ = config.InitializeServerRuntime("test-home", &config.Config{
 		JWT: config.JWTConfig{Issuer: "test-issuer", ValidityPeriod: 600},
 	})
 }

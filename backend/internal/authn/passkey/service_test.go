@@ -63,7 +63,7 @@ func (suite *WebAuthnServiceTestSuite) SetupSuite() {
 			Audience:       "application",
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	if err != nil {
 		suite.T().Fatalf("Failed to initialize ThunderRuntime: %v", err)
 	}

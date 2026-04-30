@@ -36,7 +36,7 @@ func TestIsDeclarativeModeEnabled(t *testing.T) {
 				Enabled: true,
 			},
 		}
-		err := config.InitializeThunderRuntime("", testConfig)
+		err := config.InitializeServerRuntime("", testConfig)
 		assert.NoError(t, err)
 
 		result := IsDeclarativeModeEnabled()
@@ -51,7 +51,7 @@ func TestIsDeclarativeModeEnabled(t *testing.T) {
 				Enabled: false,
 			},
 		}
-		err := config.InitializeThunderRuntime("", testConfig)
+		err := config.InitializeServerRuntime("", testConfig)
 		assert.NoError(t, err)
 
 		result := IsDeclarativeModeEnabled()
@@ -96,7 +96,7 @@ func TestCheckDeclarativeOperations(t *testing.T) {
 						Enabled: true,
 					},
 				}
-				err := config.InitializeThunderRuntime("", testConfig)
+				err := config.InitializeServerRuntime("", testConfig)
 				assert.NoError(t, err)
 
 				result := tc.checkFunc()
@@ -112,7 +112,7 @@ func TestCheckDeclarativeOperations(t *testing.T) {
 						Enabled: false,
 					},
 				}
-				err := config.InitializeThunderRuntime("", testConfig)
+				err := config.InitializeServerRuntime("", testConfig)
 				assert.NoError(t, err)
 
 				result := tc.checkFunc()

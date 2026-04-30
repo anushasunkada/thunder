@@ -111,7 +111,7 @@ func (suite *InitTestSuite) TestInitialize_Success() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	// Create mock PKI service
@@ -144,7 +144,7 @@ func (suite *InitTestSuite) TestInitialize_PrivateKeyRetrievalError() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	// Create mock PKI service that returns error
@@ -179,7 +179,7 @@ func (suite *InitTestSuite) TestInitialize_WithoutPreferredKeyID() {
 			},
 		},
 	}
-	err := config.InitializeThunderRuntime("", testConfig)
+	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	// Create mock PKI service

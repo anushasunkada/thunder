@@ -281,7 +281,7 @@ func (s *DeclarativeResourceTestSuite) TestLoadDeclarativeResources_Success() {
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime(tempDir, testConfig)
+	_ = config.InitializeServerRuntime(tempDir, testConfig)
 	defer config.ResetServerRuntime()
 
 	// Create translations directory

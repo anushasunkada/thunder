@@ -49,7 +49,7 @@ func initConsentRuntime(t *testing.T, enabled bool, baseURL string) {
 		},
 	}
 	config.ResetServerRuntime()
-	require.NoError(t, config.InitializeThunderRuntime("/tmp/test", cfg))
+	require.NoError(t, config.InitializeServerRuntime("/tmp/test", cfg))
 	t.Cleanup(config.ResetServerRuntime)
 }
 

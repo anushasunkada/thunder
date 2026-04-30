@@ -45,7 +45,7 @@ func TestFlowStoreTestSuite(t *testing.T) {
 }
 
 func (s *FlowStoreTestSuite) SetupTest() {
-	_ = config.InitializeThunderRuntime("test", &config.Config{
+	_ = config.InitializeServerRuntime("test", &config.Config{
 		Server: config.ServerConfig{Identifier: "test-deployment"},
 		Flow:   config.FlowConfig{MaxVersionHistory: 5},
 	})
@@ -1144,7 +1144,7 @@ func (s *FlowStoreTestSuite) TestGetMaxVersionHistory() {
 		s.Run(tt.name, func() {
 			// Reset before reinitializing config for each test case
 			config.ResetServerRuntime()
-			err := config.InitializeThunderRuntime("test", &config.Config{
+			err := config.InitializeServerRuntime("test", &config.Config{
 				Server: config.ServerConfig{Identifier: "test-deployment"},
 				Flow:   config.FlowConfig{MaxVersionHistory: tt.config},
 			})

@@ -50,7 +50,7 @@ func TestInitTestSuite(t *testing.T) {
 // SetupSuite initializes the test suite once.
 func (suite *InitTestSuite) SetupSuite() {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		suite.Fail("Failed to initialize runtime", err)
 	}
@@ -221,7 +221,7 @@ func TestLoadDeclarativeResourcesTestSuite(t *testing.T) {
 // SetupSuite initializes the test suite once.
 func (suite *LoadDeclarativeResourcesTestSuite) SetupSuite() {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		suite.Fail("Failed to initialize runtime", err)
 	}
@@ -741,7 +741,7 @@ func (suite *InitTestSuite) TestInitialize_StoreInitError() {
 			Enabled: true,
 		},
 	}
-	_ = config.InitializeThunderRuntime(testDir, testConfig)
+	_ = config.InitializeServerRuntime(testDir, testConfig)
 	defer func() {
 		config.ResetServerRuntime()
 		suite.SetupSuite()

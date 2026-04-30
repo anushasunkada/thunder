@@ -60,7 +60,7 @@ func (suite *AuthorizationRequestStoreTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	suite.mockdbProvider = &providermock.DBProviderInterfaceMock{}
 	suite.mockDBClient = &providermock.DBClientInterfaceMock{}

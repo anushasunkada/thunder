@@ -53,7 +53,7 @@ func (suite *CORSMiddlewareTestSuite) initRuntime(allowedOriginsYAML string) {
 	}
 	cfg := &config.Config{CORS: config.CORSConfig{AllowedOrigins: entries}}
 	suite.Require().NoError(cors.InitializeMatcher(cfg.CORS.AllowedOrigins))
-	suite.Require().NoError(config.InitializeThunderRuntime("/tmp", cfg))
+	suite.Require().NoError(config.InitializeServerRuntime("/tmp", cfg))
 }
 
 func (suite *CORSMiddlewareTestSuite) SetupTest() {

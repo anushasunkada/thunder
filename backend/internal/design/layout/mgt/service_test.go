@@ -49,7 +49,7 @@ func (suite *LayoutServiceTestSuite) SetupTest() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		suite.Fail("Failed to initialize runtime", err)
 	}

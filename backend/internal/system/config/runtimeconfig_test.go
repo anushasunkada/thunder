@@ -51,7 +51,7 @@ func (suite *RuntimeConfigTestSuite) TestInitializeThunderRuntime() {
 		},
 	}
 
-	err := InitializeThunderRuntime("/test/thunder/home", config)
+	err := InitializeServerRuntime("/test/thunder/home", config)
 
 	assert.NoError(suite.T(), err)
 
@@ -72,7 +72,7 @@ func (suite *RuntimeConfigTestSuite) TestInitializeThunderRuntimeOnlyOnce() {
 		},
 	}
 
-	err := InitializeThunderRuntime("/first/path", firstConfig)
+	err := InitializeServerRuntime("/first/path", firstConfig)
 	assert.NoError(suite.T(), err)
 
 	// Try second initialization
@@ -83,7 +83,7 @@ func (suite *RuntimeConfigTestSuite) TestInitializeThunderRuntimeOnlyOnce() {
 		},
 	}
 
-	err = InitializeThunderRuntime("/second/path", secondConfig)
+	err = InitializeServerRuntime("/second/path", secondConfig)
 	assert.NoError(suite.T(), err) // Should not return error
 
 	// Verify that the first initialization remains
@@ -101,7 +101,7 @@ func (suite *RuntimeConfigTestSuite) TestGetThunderRuntime() {
 		},
 	}
 
-	err := InitializeThunderRuntime("/get/test/path", config)
+	err := InitializeServerRuntime("/get/test/path", config)
 	assert.NoError(suite.T(), err)
 
 	runtime := GetServerRuntime()

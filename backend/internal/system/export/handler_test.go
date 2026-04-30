@@ -74,7 +74,7 @@ func (suite *HandlerTestSuite) SetupTest() {
 		CORS: config.CORSConfig{AllowedOrigins: allowedOrigins},
 	}
 	suite.Require().NoError(cors.InitializeMatcher(testConfig.CORS.AllowedOrigins))
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	suite.Require().NoError(err)
 
 	// Setup services and handler
@@ -385,7 +385,7 @@ func TestGenerateAndSendZipResponse_Standalone(t *testing.T) {
 		CORS: config.CORSConfig{AllowedOrigins: allowedOrigins},
 	}
 	require.NoError(t, cors.InitializeMatcher(testConfig.CORS.AllowedOrigins))
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	assert.NoError(t, err)
 	defer config.ResetServerRuntime()
 
@@ -855,7 +855,7 @@ func BenchmarkGenerateAndSendZipResponse(b *testing.B) {
 	// Setup
 	config.ResetServerRuntime()
 	testConfig := &config.Config{}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	defer config.ResetServerRuntime()
 
 	mockAppService := applicationmock.NewApplicationServiceInterfaceMock(b)
@@ -895,7 +895,7 @@ func setupBenchmarkTest(b *testing.B) (*exportHandler, []byte) {
 	// Setup
 	config.ResetServerRuntime()
 	testConfig := &config.Config{}
-	_ = config.InitializeThunderRuntime("/tmp/test", testConfig)
+	_ = config.InitializeServerRuntime("/tmp/test", testConfig)
 	b.Cleanup(func() { config.ResetServerRuntime() })
 
 	mockAppService := applicationmock.NewApplicationServiceInterfaceMock(b)

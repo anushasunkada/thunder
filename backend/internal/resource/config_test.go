@@ -46,7 +46,7 @@ func TestResourceConfigTestSuite(t *testing.T) {
 func (s *ResourceConfigTestSuite) SetupSuite() {
 	// Initialize runtime once for all tests in the suite
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		s.Fail("Failed to initialize runtime", err)
 	}

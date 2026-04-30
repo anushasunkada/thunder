@@ -46,7 +46,7 @@ func TestOAuthClientTestSuite(t *testing.T) {
 
 func (suite *OAuthClientTestSuite) SetupTest() {
 	sysconfig.ResetServerRuntime()
-	suite.Require().NoError(sysconfig.InitializeThunderRuntime("/tmp/test", &sysconfig.Config{}))
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", &sysconfig.Config{}))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_AuthorizationCode() {
@@ -386,7 +386,7 @@ func TestOAuthHelperTestSuite(t *testing.T) {
 
 func (suite *OAuthHelperTestSuite) SetupTest() {
 	sysconfig.ResetServerRuntime()
-	suite.Require().NoError(sysconfig.InitializeThunderRuntime("/tmp/test", &sysconfig.Config{}))
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", &sysconfig.Config{}))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_ValidGrantType() {
@@ -557,7 +557,7 @@ func (suite *OAuthClientTestSuite) TestRequiresPAR_GlobalConfigEnabled() {
 	sysconfig.ResetServerRuntime()
 	cfg := &sysconfig.Config{}
 	cfg.OAuth.PAR.RequirePAR = true
-	suite.Require().NoError(sysconfig.InitializeThunderRuntime("/tmp/test", cfg))
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
 
 	c := &model.OAuthClient{RequirePushedAuthorizationRequests: false}
 	suite.True(c.RequiresPAR())
@@ -577,7 +577,7 @@ func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_WildcardEnable
 	sysconfig.ResetServerRuntime()
 	cfg := &sysconfig.Config{}
 	cfg.OAuth.AllowWildcardRedirectURI = true
-	suite.Require().NoError(sysconfig.InitializeThunderRuntime("/tmp/test", cfg))
+	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
 
 	err := model.ValidateRedirectURI(
 		[]string{"https://app.example.com/*"},

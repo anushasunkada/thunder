@@ -84,7 +84,7 @@ func (suite *RoleServiceTestSuite) SetupTest() {
 		},
 	}
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		suite.Fail("Failed to initialize runtime", err)
 	}
@@ -580,7 +580,7 @@ func (suite *RoleServiceTestSuite) TestCreateRole_DeclarativeMode_Denied() {
 		},
 	}
 	config.ResetServerRuntime()
-	initErr := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	initErr := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if initErr != nil {
 		suite.Fail("Failed to initialize runtime", initErr)
 	}
@@ -609,7 +609,7 @@ func (suite *RoleServiceTestSuite) TestUpdateRole_DeclarativeMode_Denied() {
 		},
 	}
 	config.ResetServerRuntime()
-	initErr := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	initErr := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if initErr != nil {
 		suite.Fail("Failed to initialize runtime", initErr)
 	}
@@ -1164,7 +1164,7 @@ func (suite *RoleServiceTestSuite) TestDeleteRole_DeclarativeMode_Denied() {
 		},
 	}
 	config.ResetServerRuntime()
-	initErr := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	initErr := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if initErr != nil {
 		suite.Fail("Failed to initialize runtime", initErr)
 	}
@@ -1655,7 +1655,7 @@ func (suite *RoleServiceTestSuite) TestAddAssignments_DeclarativeMode_Denied() {
 		},
 	}
 	config.ResetServerRuntime()
-	initErr := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	initErr := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if initErr != nil {
 		suite.Fail("Failed to initialize runtime", initErr)
 	}
@@ -1776,7 +1776,7 @@ func (suite *RoleServiceTestSuite) TestRemoveAssignments_DeclarativeMode_Denied(
 		},
 	}
 	config.ResetServerRuntime()
-	initErr := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	initErr := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if initErr != nil {
 		suite.Fail("Failed to initialize runtime", initErr)
 	}

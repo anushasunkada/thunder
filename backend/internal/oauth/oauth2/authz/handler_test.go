@@ -79,7 +79,7 @@ func (suite *AuthorizeHandlerTestSuite) BeforeTest(suiteName, testName string) {
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 }
 
 func (suite *AuthorizeHandlerTestSuite) SetupTest() {

@@ -54,7 +54,7 @@ func (s *ServiceTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", testConfig)
+	_ = config.InitializeServerRuntime("", testConfig)
 	s.ctx = context.Background()
 }
 

@@ -81,7 +81,7 @@ func (suite *OrganizationUnitHandlerTestSuite) TearDownTest() {
 
 func (suite *OrganizationUnitHandlerTestSuite) ensureRuntime() {
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime("", &config.Config{})
+	err := config.InitializeServerRuntime("", &config.Config{})
 	suite.Require().NoError(err)
 }
 

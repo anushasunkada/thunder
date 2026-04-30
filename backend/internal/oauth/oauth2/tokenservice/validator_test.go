@@ -64,7 +64,7 @@ func (suite *TokenValidatorTestSuite) SetupTest() {
 			Leeway:         30,            // 30 seconds leeway for clock skew
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.validator = &tokenValidator{
@@ -1638,7 +1638,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_Expiration
 					Leeway:         tc.leeway,
 				},
 			}
-			_ = config.InitializeThunderRuntime("test", testConfig)
+			_ = config.InitializeServerRuntime("test", testConfig)
 
 			now := time.Now().Unix()
 			claims := map[string]interface{}{
@@ -1671,7 +1671,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_ExpJustIns
 			Leeway:         30, // 30 seconds leeway
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	defaultAudience := suite.getDefaultAudience()
 

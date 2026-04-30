@@ -43,7 +43,7 @@ func (s *InitTestSuite) TestInitialize_ReturnsNonNilService() {
 		},
 	}
 	config.ResetServerRuntime()
-	require.NoError(s.T(), config.InitializeThunderRuntime("/tmp/test", cfg))
+	require.NoError(s.T(), config.InitializeServerRuntime("/tmp/test", cfg))
 	s.T().Cleanup(config.ResetServerRuntime)
 
 	svc := Initialize()
@@ -59,7 +59,7 @@ func (s *InitTestSuite) TestInitialize_DisabledConsent() {
 		},
 	}
 	config.ResetServerRuntime()
-	require.NoError(s.T(), config.InitializeThunderRuntime("/tmp/test", cfg))
+	require.NoError(s.T(), config.InitializeServerRuntime("/tmp/test", cfg))
 	s.T().Cleanup(config.ResetServerRuntime)
 
 	svc := Initialize()

@@ -33,8 +33,8 @@ var (
 	once          sync.Once
 )
 
-// InitializeThunderRuntime initializes the ThunderRuntime configuration.
-func InitializeThunderRuntime(thunderHome string, config *Config) error {
+// InitializeServerRuntime initializes the ThunderRuntime configuration.
+func InitializeServerRuntime(thunderHome string, config *Config) error {
 	once.Do(func() {
 		runtimeConfig = &ThunderRuntime{
 			ThunderHome: thunderHome,

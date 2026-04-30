@@ -74,7 +74,7 @@ func (suite *GoogleOIDCAuthnServiceTestSuite) SetupTest() {
 			Leeway: 30, // 30 seconds leeway for clock skew
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 }
 
 func (suite *GoogleOIDCAuthnServiceTestSuite) TestBuildAuthorizeURLSuccess() {
@@ -934,7 +934,7 @@ func (suite *GoogleOIDCAuthnServiceTestSuite) TestValidateIDToken_Leeway_ZeroLee
 			Leeway: 0, // No leeway
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	now := time.Now()
 	// Token expired 1 second ago - should fail with zero leeway
@@ -969,7 +969,7 @@ func (suite *GoogleOIDCAuthnServiceTestSuite) TestValidateIDToken_Leeway_IatExac
 			Leeway: 30, // 30 seconds leeway
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	now := time.Now()
 	// Token iat is exactly at leeway boundary (now + 30 seconds)
@@ -1004,7 +1004,7 @@ func (suite *GoogleOIDCAuthnServiceTestSuite) TestValidateIDToken_Leeway_IatJust
 			Leeway: 30, // 30 seconds leeway
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	now := time.Now()
 	// Token iat is just beyond leeway boundary (now + 31 seconds)

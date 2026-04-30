@@ -89,7 +89,7 @@ func (suite *ResourceLoaderTestSuite) SetupSuite() {
 			Port:     8080,
 		},
 	}
-	err := config.InitializeThunderRuntime(tempThunderHome, testConfig)
+	err := config.InitializeServerRuntime(tempThunderHome, testConfig)
 	suite.Require().NoError(err, "Failed to initialize ThunderRuntime")
 
 	// Create the resources directory structure

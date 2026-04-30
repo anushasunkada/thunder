@@ -30,7 +30,7 @@ import (
 func TestGetOrganizationUnitStoreMode(t *testing.T) {
 	// Initialize runtime with test config
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize runtime: %v", err)
 	}
@@ -113,7 +113,7 @@ func TestGetOrganizationUnitStoreMode(t *testing.T) {
 
 func TestIsCompositeModeEnabled(t *testing.T) {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize runtime: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestIsCompositeModeEnabled(t *testing.T) {
 
 func TestIsMutableModeEnabled(t *testing.T) {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize runtime: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestIsMutableModeEnabled(t *testing.T) {
 
 func TestIsDeclarativeModeEnabled(t *testing.T) {
 	testConfig := &config.Config{}
-	err := config.InitializeThunderRuntime("/tmp/test", testConfig)
+	err := config.InitializeServerRuntime("/tmp/test", testConfig)
 	if err != nil {
 		t.Fatalf("Failed to initialize runtime: %v", err)
 	}

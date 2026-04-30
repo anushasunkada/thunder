@@ -74,7 +74,7 @@ func (suite *LayoutInitTestSuite) TestInitializeStore_CompositeMode() {
 	// Initialize runtime with temp home
 	tempDir := suite.T().TempDir()
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, &config.Config{})
+	err := config.InitializeServerRuntime(tempDir, &config.Config{})
 	suite.Require().NoError(err)
 
 	runtime := config.GetServerRuntime()
@@ -91,7 +91,7 @@ func (suite *LayoutInitTestSuite) TestInitializeStore_DeclarativeMode() {
 	// Initialize runtime with temp home
 	tempDir := suite.T().TempDir()
 	config.ResetServerRuntime()
-	err := config.InitializeThunderRuntime(tempDir, &config.Config{})
+	err := config.InitializeServerRuntime(tempDir, &config.Config{})
 	suite.Require().NoError(err)
 
 	runtime := config.GetServerRuntime()

@@ -1230,7 +1230,7 @@ func TestImportResources_FileTargetReturnsError(t *testing.T) {
 
 	config.ResetServerRuntime()
 	t.Cleanup(config.ResetServerRuntime)
-	require.NoError(t, config.InitializeThunderRuntime(tempHome, &config.Config{
+	require.NoError(t, config.InitializeServerRuntime(tempHome, &config.Config{
 		DeclarativeResources: config.DeclarativeResources{Enabled: true},
 	}))
 
@@ -1252,7 +1252,7 @@ func TestDeleteResource_RemovesDeclarativeFile(t *testing.T) {
 
 	config.ResetServerRuntime()
 	t.Cleanup(config.ResetServerRuntime)
-	require.NoError(t, config.InitializeThunderRuntime(tempHome, &config.Config{
+	require.NoError(t, config.InitializeServerRuntime(tempHome, &config.Config{
 		DeclarativeResources: config.DeclarativeResources{Enabled: true},
 	}))
 

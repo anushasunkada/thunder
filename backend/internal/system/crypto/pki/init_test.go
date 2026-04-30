@@ -81,7 +81,7 @@ func (suite *PKIInitTestSuite) TestInitialize_Success() {
 		},
 	}
 
-	err = config.InitializeThunderRuntime("", cfg)
+	err = config.InitializeServerRuntime("", cfg)
 	assert.NoError(suite.T(), err)
 
 	// Initialize PKI service
@@ -148,7 +148,7 @@ func (suite *PKIInitTestSuite) TestInitialize_NoKeyConfigs() {
 		},
 	}
 
-	err := config.InitializeThunderRuntime("", cfg)
+	err := config.InitializeServerRuntime("", cfg)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -170,7 +170,7 @@ func (suite *PKIInitTestSuite) TestInitialize_MissingCertFile() {
 		},
 	}
 
-	err := config.InitializeThunderRuntime("", cfg)
+	err := config.InitializeServerRuntime("", cfg)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -198,7 +198,7 @@ func (suite *PKIInitTestSuite) TestInitialize_MissingKeyFile() {
 		},
 	}
 
-	err = config.InitializeThunderRuntime("", cfg)
+	err = config.InitializeServerRuntime("", cfg)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()
@@ -226,7 +226,7 @@ func (suite *PKIInitTestSuite) TestInitialize_WithECDSAKey() {
 		},
 	}
 
-	err = config.InitializeThunderRuntime("", cfg)
+	err = config.InitializeServerRuntime("", cfg)
 	assert.NoError(suite.T(), err)
 
 	pkiService, err := Initialize()

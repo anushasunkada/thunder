@@ -85,7 +85,7 @@ func (s *UserInfoServiceTestSuite) SetupTest() {
 
 	// Initialize server runtime for tests
 	config.ResetServerRuntime()
-	_ = config.InitializeThunderRuntime(
+	_ = config.InitializeServerRuntime(
 		"test-home",
 		&config.Config{
 			JWT: config.JWTConfig{

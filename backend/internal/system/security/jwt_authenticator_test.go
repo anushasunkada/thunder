@@ -48,7 +48,7 @@ func (suite *JWTAuthenticatorTestSuite) SetupTest() {
 	// Initialize an empty runtime so verifyFederatedToken sees an unconfigured trusted issuer
 	// and returns false cleanly. Tests that need a specific trusted issuer config override this.
 	config.ResetServerRuntime()
-	_ = config.InitializeThunderRuntime("", &config.Config{})
+	_ = config.InitializeServerRuntime("", &config.Config{})
 }
 
 func (suite *JWTAuthenticatorTestSuite) TearDownTest() {
@@ -475,7 +475,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_Disabled() {
 	defer config.ResetServerRuntime()
 
 	cfg := &config.Config{}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -501,7 +501,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_IssuerMismatch(
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -531,7 +531,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_JWKSVerificatio
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -566,7 +566,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_JWKSVerificatio
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -662,7 +662,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_RequiredClaims(
 					},
 				},
 			}
-			_ = config.InitializeThunderRuntime("", cfg)
+			_ = config.InitializeServerRuntime("", cfg)
 
 			token := buildFakeJWT(
 				map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -733,7 +733,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_InvalidPayload(
 					},
 				},
 			}
-			_ = config.InitializeThunderRuntime("", cfg)
+			_ = config.InitializeServerRuntime("", cfg)
 
 			mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
 			auth := newJWTAuthenticator(mockJWT)
@@ -767,7 +767,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_FederatedTokenFailure()
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},
@@ -815,7 +815,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_FederatedTokenSuccess()
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("", cfg)
+	_ = config.InitializeServerRuntime("", cfg)
 
 	token := buildFakeJWT(
 		map[string]interface{}{"alg": "RS256", "kid": "test-kid"},

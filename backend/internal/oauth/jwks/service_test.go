@@ -50,7 +50,7 @@ func (suite *JWKSServiceTestSuite) SetupTest() {
 	// Reset runtime
 	config.ResetServerRuntime()
 	testConfig := &config.Config{}
-	_ = config.InitializeThunderRuntime("", testConfig)
+	_ = config.InitializeServerRuntime("", testConfig)
 
 	// Create PKI mock and service under test
 	suite.pkiMock = pkimock.NewPKIServiceInterfaceMock(suite.T())

@@ -47,7 +47,7 @@ func (suite *InitEntityProviderTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 }
 
 func (suite *InitEntityProviderTestSuite) TearDownTest() {

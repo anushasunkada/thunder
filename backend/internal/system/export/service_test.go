@@ -79,7 +79,7 @@ func (suite *ExportServiceTestSuite) SetupTest() {
 	tempDir := suite.T().TempDir()
 
 	// Initialize ThunderRuntime with declarative mode disabled
-	// Use just the filename since InitializeThunderRuntime will prepend the base path
+	// Use just the filename since InitializeServerRuntime will prepend the base path
 	config.ResetServerRuntime()
 	testConfig := &config.Config{
 		Crypto: config.CryptoConfig{
@@ -91,7 +91,7 @@ func (suite *ExportServiceTestSuite) SetupTest() {
 			Enabled: false,
 		},
 	}
-	_ = config.InitializeThunderRuntime(tempDir, testConfig)
+	_ = config.InitializeServerRuntime(tempDir, testConfig)
 
 	suite.appServiceMock = applicationmock.NewApplicationServiceInterfaceMock(suite.T())
 	suite.idpServiceMock = idpmock.NewIDPServiceInterfaceMock(suite.T())

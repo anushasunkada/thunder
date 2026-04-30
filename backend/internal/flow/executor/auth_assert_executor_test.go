@@ -116,7 +116,7 @@ func initializeTestRuntime() error {
 			ValidityPeriod: 3600,
 		},
 	}
-	return config.InitializeThunderRuntime("/tmp/test", testConfig)
+	return config.InitializeServerRuntime("/tmp/test", testConfig)
 }
 
 func (suite *AuthAssertExecutorTestSuite) TestNewAuthAssertExecutor() {

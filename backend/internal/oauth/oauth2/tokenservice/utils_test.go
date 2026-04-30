@@ -54,7 +54,7 @@ func (suite *UtilsTestSuite) SetupTest() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 }
 
 func (suite *UtilsTestSuite) TestGetValidIssuers_WithNilOAuthApp() {
@@ -739,7 +739,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_RefreshToken_WithServerLevel
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	oauthApp := &inboundmodel.OAuthClient{
 		ClientID: "test-client",
@@ -766,7 +766,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_RefreshToken_WithoutServerLe
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	oauthApp := &inboundmodel.OAuthClient{
 		ClientID: "test-client",
@@ -793,7 +793,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_RefreshToken_WithNilOAuthApp
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// oauthApp is nil
 	result := ResolveTokenConfig(nil, TokenTypeRefresh)
@@ -818,7 +818,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_RefreshToken_WithTokenConfig
 			},
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	oauthApp := &inboundmodel.OAuthClient{
 		ClientID: "test-client",
@@ -840,7 +840,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_AccessToken_WithNilOAuthApp(
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// oauthApp is nil - should use default config
 	result := ResolveTokenConfig(nil, TokenTypeAccess)
@@ -858,7 +858,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_AccessToken_WithNilToken() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// oauthApp.Token is nil - should use default config
 	oauthApp := &inboundmodel.OAuthClient{
@@ -881,7 +881,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_AccessToken_WithAppLevelConf
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	oauthApp := &inboundmodel.OAuthClient{
 		ClientID: "test-client",
@@ -906,7 +906,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_IDToken_WithNilOAuthApp() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// oauthApp is nil - should use default config
 	result := ResolveTokenConfig(nil, TokenTypeID)
@@ -924,7 +924,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_IDToken_WithNilToken() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// oauthApp.Token is nil - should use default config
 	oauthApp := &inboundmodel.OAuthClient{
@@ -947,7 +947,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_IDToken_WithAppLevelConfig()
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	oauthApp := &inboundmodel.OAuthClient{
 		ClientID: "test-client",
@@ -972,7 +972,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_WithCustomIssuer_NilOAuthApp
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// With nil oauthApp, should use default issuer
 	result := ResolveTokenConfig(nil, TokenTypeAccess)
@@ -989,7 +989,7 @@ func (suite *UtilsTestSuite) TestResolveTokenConfig_WithTokenConfig_UsesThunderI
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeThunderRuntime("test", testConfig)
+	_ = config.InitializeServerRuntime("test", testConfig)
 
 	// OAuthApp with token config always uses server-level issuer from config
 	oauthApp := &inboundmodel.OAuthClient{

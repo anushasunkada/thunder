@@ -47,7 +47,7 @@ func TestGraphBuilderTestSuite(t *testing.T) {
 }
 
 func (s *GraphBuilderTestSuite) SetupTest() {
-	_ = config.InitializeThunderRuntime("test", &config.Config{
+	_ = config.InitializeServerRuntime("test", &config.Config{
 		Server: config.ServerConfig{Identifier: "test-deployment"},
 	})
 

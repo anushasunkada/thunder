@@ -58,7 +58,7 @@ func (suite *FileBasedStoreTestSuite) SetupSuite() {
 		},
 	}
 	config.ResetServerRuntime()
-	_ = config.InitializeThunderRuntime(tempDir, testConfig)
+	_ = config.InitializeServerRuntime(tempDir, testConfig)
 }
 
 func (suite *FileBasedStoreTestSuite) TearDownSuite() {
