@@ -243,6 +243,26 @@ export default function App(): JSX.Element {
             <Route index element={<LoginFlowBuilderPage />} />
           </Route>
           <Route
+            path="/flows/recovery"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<LoginFlowBuilderPage />} />
+          </Route>
+          <Route
+            path="/flows/recovery/:flowId"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<LoginFlowBuilderPage />} />
+          </Route>
+          <Route
             path="/export"
             element={
               <ProtectedRoute>
