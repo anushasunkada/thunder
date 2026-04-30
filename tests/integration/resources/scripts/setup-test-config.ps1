@@ -120,6 +120,24 @@ $footer = @"
 
 flow:
   max_version_history: 3
+
+oauth:
+  allow_wildcard_redirect_uri: true
+  auth_class:
+    amr:
+      Password:
+        type: PWD
+      OTP:
+        type: OTP
+      L1-bio-device:
+        type: BIO
+    acr_amr:
+      "urn:thunder:acr:password":
+        - Password
+      "urn:thunder:acr:generated-code":
+        - OTP
+      "urn:thunder:acr:biometrics":
+        - L1-bio-device
 "@
 
 $content = $header + "`n" + $dbConfig + $footer
