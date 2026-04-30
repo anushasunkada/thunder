@@ -150,7 +150,7 @@ Go backend guidelines for the Thunder project.
 
 - HTTP: `HTTPClient` from `internal/system/http`
 - Cache: Extend `BaseCache` from `internal/system/cache`
-- Config: `ThunderRuntime` from `internal/system/config`
+- Config: `ServerRuntime` from `internal/system/config`
 - Constants: `internal/system/constants`
 - Middleware: `middleware.WithCORS` from `internal/system/middleware`
 

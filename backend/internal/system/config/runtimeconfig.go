@@ -23,20 +23,20 @@ import (
 )
 
 // Server runtime holds the runtime configuration for the server.
-type ThunderRuntime struct {
+type ServerRuntime struct {
 	ThunderHome string `yaml:"thunder_home"`
 	Config      Config `yaml:"config"`
 }
 
 var (
-	runtimeConfig *ThunderRuntime
+	runtimeConfig *ServerRuntime
 	once          sync.Once
 )
 
 // InitializeServerRuntime initializes the server runtime configurations.
 func InitializeServerRuntime(thunderHome string, config *Config) error {
 	once.Do(func() {
-		runtimeConfig = &ThunderRuntime{
+		runtimeConfig = &ServerRuntime{
 			ThunderHome: thunderHome,
 			Config:      *config,
 		}
@@ -46,7 +46,7 @@ func InitializeServerRuntime(thunderHome string, config *Config) error {
 }
 
 // GetServerRuntime returns the server runtime configurations.
-func GetServerRuntime() *ThunderRuntime {
+func GetServerRuntime() *ServerRuntime {
 	if runtimeConfig == nil {
 		panic("Server runtime is not initialized")
 	}
