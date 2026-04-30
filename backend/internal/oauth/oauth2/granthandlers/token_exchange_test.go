@@ -117,7 +117,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 func (suite *TokenExchangeGrantHandlerTestSuite) getDefaultAudience() string {
 	runtime := config.GetServerRuntime()
 	if runtime == nil {
-		suite.T().Skip("ThunderRuntime not initialized")
+		suite.T().Skip("Server runtime not initialized")
 		return ""
 	}
 	defaultAudience := runtime.Config.JWT.Audience

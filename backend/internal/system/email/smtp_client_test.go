@@ -1264,7 +1264,7 @@ func (suite *SMTPClientTestSuite) TestNewSMTPClientFromConfig_RuntimeNotInitiali
 	defer config.ResetServerRuntime()
 
 	// Should panic if runtime is not initialized.
-	suite.PanicsWithValue("ThunderRuntime is not initialized", func() {
+	suite.PanicsWithValue("Server runtime is not initialized", func() {
 		_, _ = NewSMTPClientFromConfig()
 	})
 

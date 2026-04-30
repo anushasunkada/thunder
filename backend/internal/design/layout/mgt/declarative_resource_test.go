@@ -48,7 +48,7 @@ func (s *DeclarativeResourceTestSuite) SetupSuite() {
 	// Create temporary directory for tests
 	tempDir := s.T().TempDir()
 
-	// Initialize ThunderRuntime once for all tests
+	// Initialize server runtime once for all tests
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{
 			Enabled: false,
@@ -60,7 +60,7 @@ func (s *DeclarativeResourceTestSuite) SetupSuite() {
 }
 
 func (s *DeclarativeResourceTestSuite) TearDownSuite() {
-	// Clean up ThunderRuntime after all tests
+	// Clean up server runtime after all tests
 	config.ResetServerRuntime()
 }
 

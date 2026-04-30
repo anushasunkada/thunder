@@ -88,7 +88,7 @@ func NewHTTPClientWithTimeout(timeout time.Duration) HTTPClientInterface {
 
 // NewHTTPClientWithCheckRedirect creates an HTTPClient with a custom redirect policy.
 // Use this when redirect behavior must be controlled, e.g. to prevent HTTPS→HTTP downgrades.
-// Requires ThunderRuntime to be initialized before calling (reads TLS config at construction time).
+// Requires server runtime to be initialized before calling (reads TLS config at construction time).
 // ssrfSafeDialContext is wired in to block hostnames that DNS-resolve to private/loopback addresses
 // and to pin the TCP connection to the first validated IP (prevents DNS rebinding).
 func NewHTTPClientWithCheckRedirect(checkRedirect func(*http.Request, []*http.Request) error) HTTPClientInterface {

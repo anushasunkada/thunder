@@ -112,7 +112,7 @@ func (suite *SessionStoreTestSuite) SetupTest() {
 }
 
 func (suite *SessionStoreTestSuite) TestNewSessionStore() {
-	// Initialize ThunderRuntime for the test
+	// Initialize server runtime for the test
 	testConfig := &config.Config{
 		Server: config.ServerConfig{
 			Identifier: "test-deployment-id",

@@ -50,7 +50,7 @@ func TestOUService_OrganizationUnitServiceTestSuite_Run(t *testing.T) {
 }
 
 func (suite *OrganizationUnitServiceTestSuite) SetupTest() {
-	// Initialize ThunderRuntime with declarative mode disabled by default
+	// Initialize server runtime with declarative mode disabled by default
 	config.ResetServerRuntime()
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{

@@ -70,7 +70,7 @@ func TestRefreshTokenGrantHandlerSuite(t *testing.T) {
 }
 
 func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
-	// Reset ThunderRuntime before initializing with test config
+	// Reset server runtime before initializing with test config
 	config.ResetServerRuntime()
 
 	// Initialize Runtime config with basic test config

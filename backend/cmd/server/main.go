@@ -155,7 +155,7 @@ func initThunderConfigurations(logger *log.Logger, thunderHome string) *config.C
 
 	// Initialize runtime configurations.
 	if err := config.InitializeServerRuntime(thunderHome, cfg); err != nil {
-		logger.Fatal("Failed to initialize Server Runtime", log.Error(err))
+		logger.Fatal("Failed to initialize server runtime", log.Error(err))
 	}
 
 	return cfg

@@ -46,7 +46,7 @@ func (suite *FileBasedStoreTestSuite) SetupSuite() {
 	// Create temporary directory and crypto key file
 	tempDir := suite.T().TempDir()
 
-	// Initialize ThunderRuntime once for all tests
+	// Initialize server runtime once for all tests
 	testConfig := &config.Config{
 		Crypto: config.CryptoConfig{
 			Encryption: config.EncryptionConfig{
@@ -62,7 +62,7 @@ func (suite *FileBasedStoreTestSuite) SetupSuite() {
 }
 
 func (suite *FileBasedStoreTestSuite) TearDownSuite() {
-	// Clean up ThunderRuntime after all tests
+	// Clean up server runtime after all tests
 	config.ResetServerRuntime()
 }
 

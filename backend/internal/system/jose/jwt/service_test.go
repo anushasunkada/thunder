@@ -118,7 +118,7 @@ func (suite *JWTServiceTestSuite) AfterTest(_, _ string) {
 }
 
 func (suite *JWTServiceTestSuite) SetupTest() {
-	// Reset ThunderRuntime before each test
+	// Reset server runtime before each test
 	config.ResetServerRuntime()
 
 	// Create PKI mock

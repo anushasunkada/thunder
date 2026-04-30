@@ -56,7 +56,7 @@ func TestIDPServiceTestSuite(t *testing.T) {
 }
 
 func (s *IDPServiceTestSuite) SetupTest() {
-	// Initialize ThunderRuntime with declarative mode disabled by default
+	// Initialize server runtime with declarative mode disabled by default
 	config.ResetServerRuntime()
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{

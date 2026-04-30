@@ -39,7 +39,7 @@ func TestConsentServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ConsentServiceTestSuite))
 }
 
-// initConsentRuntime initializes a minimal ThunderRuntime for service tests.
+// initConsentRuntime initializes a minimal server runtime for service tests.
 func initConsentRuntime(t *testing.T, enabled bool, baseURL string) {
 	t.Helper()
 	cfg := &config.Config{

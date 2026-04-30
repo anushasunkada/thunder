@@ -78,7 +78,7 @@ func newConsentServiceMockDisabled(t interface {
 }
 
 func TestCreateUserSchemaReturnsErrorWhenOrganizationUnitMissing(t *testing.T) {
-	// Initialize ThunderRuntime with default config
+	// Initialize server runtime with default config
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{
 			Enabled: false,
@@ -118,7 +118,7 @@ func TestCreateUserSchemaReturnsErrorWhenOrganizationUnitMissing(t *testing.T) {
 }
 
 func TestCreateUserSchemaReturnsInternalErrorWhenOUValidationFails(t *testing.T) {
-	// Initialize ThunderRuntime with default config
+	// Initialize server runtime with default config
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{
 			Enabled: false,
@@ -158,7 +158,7 @@ func TestCreateUserSchemaReturnsInternalErrorWhenOUValidationFails(t *testing.T)
 }
 
 func TestUpdateUserSchemaReturnsErrorWhenOrganizationUnitMissing(t *testing.T) {
-	// Initialize ThunderRuntime with default config
+	// Initialize server runtime with default config
 	testConfig := &config.Config{
 		DeclarativeResources: config.DeclarativeResources{
 			Enabled: false,

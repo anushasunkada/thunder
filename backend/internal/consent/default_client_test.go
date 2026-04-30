@@ -47,7 +47,7 @@ func TestDefaultClientTestSuite(t *testing.T) {
 	suite.Run(t, new(DefaultClientTestSuite))
 }
 
-// initClientRuntime initializes a ThunderRuntime for default client tests.
+// initClientRuntime initializes a server runtime for default client tests.
 func initClientRuntime(t *testing.T) {
 	t.Helper()
 	cfg := &config.Config{

@@ -78,7 +78,7 @@ func (suite *ExportServiceTestSuite) SetupTest() {
 	// Create temporary directory
 	tempDir := suite.T().TempDir()
 
-	// Initialize ThunderRuntime with declarative mode disabled
+	// Initialize server runtime with declarative mode disabled
 	// Use just the filename since InitializeServerRuntime will prepend the base path
 	config.ResetServerRuntime()
 	testConfig := &config.Config{

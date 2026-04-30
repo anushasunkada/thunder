@@ -97,7 +97,7 @@ func (suite *TokenValidatorTestSuite) createTestJWT(claims map[string]interface{
 func (suite *TokenValidatorTestSuite) getDefaultAudience() string {
 	runtime := config.GetServerRuntime()
 	if runtime == nil {
-		suite.T().Skip("ThunderRuntime not initialized")
+		suite.T().Skip("Server runtime not initialized")
 		return ""
 	}
 	defaultAudience := runtime.Config.JWT.Audience
@@ -579,7 +579,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_EdgeCase_VeryLong
 	// Get the configured default audience from runtime
 	runtime := config.GetServerRuntime()
 	if runtime == nil {
-		suite.T().Skip("ThunderRuntime not initialized")
+		suite.T().Skip("Server runtime not initialized")
 		return
 	}
 	defaultAudience := runtime.Config.JWT.Audience
