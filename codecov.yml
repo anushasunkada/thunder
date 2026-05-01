@@ -59,7 +59,7 @@ flags:
   frontend-apps-gate-unit:
     carryforward: false
     paths:
-      - frontend/apps/thunder-gate/
+      - frontend/apps/gate/
 
 coverage:
   status:

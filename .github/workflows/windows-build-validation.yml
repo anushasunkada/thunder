@@ -127,7 +127,7 @@ jobs:
       #   run: pnpm test:coverage
 
       # - name: 🧪 Run Gate Tests
-      #   working-directory: frontend/apps/thunder-gate
+      #   working-directory: frontend/apps/gate
       #   run: pnpm test:coverage
 
       - name: 📦 Upload Windows Distribution

@@ -461,7 +461,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 ### Gate App
 
-Similar integration for `apps/thunder-gate/src/main.tsx`:
+Similar integration for `apps/gate/src/main.tsx`:
 
 ```tsx
 import {StrictMode} from 'react';
