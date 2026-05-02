@@ -16,12 +16,12 @@
  * under the License.
  */
 
-import {createRoot, type Root} from 'react-dom/client';
 import {act} from 'react';
+import {createRoot, type Root} from 'react-dom/client';
 import {describe, it, expect, beforeEach, afterEach} from 'vitest';
 import ConfigProvider from '../ConfigProvider';
-import useConfig from '../useConfig';
 import type {ThunderConfig} from '../types';
+import useConfig from '../useConfig';
 
 function buildConfig(overrides?: Partial<ThunderConfig>): ThunderConfig {
   return {
