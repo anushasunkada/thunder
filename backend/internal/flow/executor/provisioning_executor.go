@@ -140,7 +140,9 @@ func (p *provisioningExecutor) Execute(ctx *core.NodeContext) (*common.ExecutorR
 	}
 
 	// Create the user in the store.
-	p.appendNonIdentifyingAttributes(ctx, &userAttributes)
+	if err := p.appendCredentialAttributes(ctx, &userAttributes); err != nil {
+		return nil, err
+	}
 	createdEntity, err := p.createUserInStore(ctx, userAttributes)
 	if err != nil {
 		logger.Error("Failed to create user in the store", log.Error(err))
@@ -526,14 +528,62 @@ func (p *provisioningExecutor) fetchAllNonCredentialAttributes(
 	return attrs, nil
 }
 
-// appendNonIdentifyingAttributes appends non-identifying attributes to the provided attributes map.
-func (p *provisioningExecutor) appendNonIdentifyingAttributes(ctx *core.NodeContext,
-	attributes *map[string]interface{}) {
-	if value, exists := ctx.UserInputs[userAttributePassword]; exists {
-		(*attributes)[userAttributePassword] = value
-	} else if runtimeValue, exists := ctx.RuntimeData[userAttributePassword]; exists {
-		(*attributes)[userAttributePassword] = runtimeValue
+// appendCredentialAttributes appends credential attributes defined in the user schema to the provided
+// attributes map. If the node declares specific credential inputs, only those are collected; otherwise
+// all schema credential attributes are collected. Values are resolved from UserInputs then RuntimeData.
+func (p *provisioningExecutor) appendCredentialAttributes(ctx *core.NodeContext,
+	attributes *map[string]interface{}) error {
+	schemaCredAttrs, err := p.fetchCredentialAttributes(ctx)
+	if err != nil {
+		return err
 	}
+	if len(schemaCredAttrs) == 0 {
+		return nil
+	}
+
+	credentialAttrSet := make(map[string]struct{}, len(schemaCredAttrs))
+	for _, attr := range schemaCredAttrs {
+		credentialAttrSet[attr] = struct{}{}
+	}
+
+	var nodeCredentialInputs []string
+	for _, input := range ctx.NodeInputs {
+		if _, ok := credentialAttrSet[input.Identifier]; ok {
+			nodeCredentialInputs = append(nodeCredentialInputs, input.Identifier)
+		}
+	}
+
+	attrsToPopulate := schemaCredAttrs
+	if len(nodeCredentialInputs) > 0 {
+		attrsToPopulate = nodeCredentialInputs
+	}
+
+	for _, attr := range attrsToPopulate {
+		if value, exists := ctx.UserInputs[attr]; exists {
+			(*attributes)[attr] = value
+		} else if runtimeValue, exists := ctx.RuntimeData[attr]; exists {
+			(*attributes)[attr] = runtimeValue
+		}
+	}
+
+	return nil
+}
+
+// fetchCredentialAttributes retrieves credential attribute names from the user schema service.
+func (p *provisioningExecutor) fetchCredentialAttributes(ctx *core.NodeContext) ([]string, error) {
+	if p.userSchemaService == nil {
+		return nil, nil
+	}
+	userType := p.getUserType(ctx)
+	if userType == "" {
+		return nil, fmt.Errorf("user type not found")
+	}
+	attrs, svcErr := p.userSchemaService.GetCredentialAttributes(ctx.Context, userType)
+	if svcErr != nil {
+		return nil, fmt.Errorf("failed to fetch credential attributes for user type %q: %s",
+			userType, svcErr.Error.DefaultValue)
+	}
+	return attrs, nil
 }
 
 // createUserInStore creates a new user in the user store with the provided attributes.

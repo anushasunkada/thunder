@@ -88,6 +88,7 @@ func (suite *ProvisioningExecutorTestSuite) SetupTest() {
 // GetRequiredNonCredentialAttributes returns empty (no schema prompting needed).
 // GetNonCredentialAttributes returns a broad required-attr set covering all Execute test contexts;
 // only attrs that actually have values in the test context will be collected.
+// GetCredentialAttributes returns ["password"] as the default credential attribute.
 func (suite *ProvisioningExecutorTestSuite) expectSchemaForProvisioning() {
 	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
 		Return([]model.AttributeInfo{}, nil).Maybe()
@@ -97,6 +98,8 @@ func (suite *ProvisioningExecutorTestSuite) expectSchemaForProvisioning() {
 			{Attribute: "email", Required: true},
 			{Attribute: "sub", Required: true},
 		}, nil).Maybe()
+	suite.mockUserSchemaService.On("GetCredentialAttributes", mock.Anything, testUserType).
+		Return([]string{"password"}, nil).Maybe()
 }
 
 func (suite *ProvisioningExecutorTestSuite) createMockIdentifyingExecutor() core.ExecutorInterface {
@@ -785,64 +788,112 @@ func (suite *ProvisioningExecutorTestSuite) TestExecute_UserAutoProvisionedFlag_
 	suite.mockEntityProvider.AssertExpectations(suite.T())
 }
 
-func (suite *ProvisioningExecutorTestSuite) TestAppendNonIdentifyingAttributes() {
+func (suite *ProvisioningExecutorTestSuite) TestAppendCredentialAttributes() {
 	tests := []struct {
-		name               string
-		userInputs         map[string]string
-		runtimeData        map[string]string
-		expectedPassword   string
-		shouldHavePassword bool
+		name            string
+		schemaCredAttrs []string
+		schemaErr       *serviceerror.ServiceError
+		nodeInputs      []common.Input
+		userInputs      map[string]string
+		runtimeData     map[string]string
+		expectedAttrs   map[string]interface{}
+		expectError     bool
 	}{
 		{
-			name: "PasswordInUserInput",
-			userInputs: map[string]string{
-				"username": "testuser",
-				"password": "secure123",
-			},
-			runtimeData:        map[string]string{},
-			expectedPassword:   "secure123",
-			shouldHavePassword: true,
+			name:            "PasswordFromUserInputs",
+			schemaCredAttrs: []string{"password"},
+			nodeInputs:      []common.Input{},
+			userInputs:      map[string]string{"username": "testuser", "password": "secure123"},
+			runtimeData:     map[string]string{userTypeKey: testUserType},
+			expectedAttrs:   map[string]interface{}{"username": "testuser", "password": "secure123"},
 		},
 		{
-			name: "PasswordInRuntimeData",
-			userInputs: map[string]string{
-				"username": "testuser",
-			},
-			runtimeData: map[string]string{
-				"password": "runtime-password",
-			},
-			expectedPassword:   "runtime-password",
-			shouldHavePassword: true,
+			name:            "PasswordFromRuntimeData",
+			schemaCredAttrs: []string{"password"},
+			nodeInputs:      []common.Input{},
+			userInputs:      map[string]string{"username": "testuser"},
+			runtimeData:     map[string]string{userTypeKey: testUserType, "password": "runtime-pass"},
+			expectedAttrs:   map[string]interface{}{"username": "testuser", "password": "runtime-pass"},
 		},
 		{
-			name: "NoPassword",
-			userInputs: map[string]string{
-				"username": "testuser",
+			name:            "NoValueForCredentialAttr_NotAdded",
+			schemaCredAttrs: []string{"password"},
+			nodeInputs:      []common.Input{},
+			userInputs:      map[string]string{"username": "testuser"},
+			runtimeData:     map[string]string{userTypeKey: testUserType},
+			expectedAttrs:   map[string]interface{}{"username": "testuser"},
+		},
+		{
+			name:            "MultipleCredentialAttrs_NoNodeInputs_AllAdded",
+			schemaCredAttrs: []string{"password", "pin"},
+			nodeInputs:      []common.Input{},
+			userInputs:      map[string]string{"password": "pass123", "pin": "1234"},
+			runtimeData:     map[string]string{userTypeKey: testUserType},
+			expectedAttrs:   map[string]interface{}{"username": "testuser", "password": "pass123", "pin": "1234"},
+		},
+		{
+			name:            "MultipleCredentialAttrs_NodeInputsFilter_OnlyDeclaredAdded",
+			schemaCredAttrs: []string{"password", "pin"},
+			nodeInputs: []common.Input{
+				{Identifier: "password", Type: common.InputTypePassword, Required: true},
 			},
-			runtimeData:        map[string]string{},
-			shouldHavePassword: false,
+			userInputs:    map[string]string{"password": "pass123", "pin": "1234"},
+			runtimeData:   map[string]string{userTypeKey: testUserType},
+			expectedAttrs: map[string]interface{}{"username": "testuser", "password": "pass123"},
+		},
+		{
+			name:            "SchemaReturnsNoCredentials_NothingAdded",
+			schemaCredAttrs: []string{},
+			nodeInputs:      []common.Input{},
+			userInputs:      map[string]string{"password": "pass123"},
+			runtimeData:     map[string]string{userTypeKey: testUserType},
+			expectedAttrs:   map[string]interface{}{"username": "testuser"},
+		},
+		{
+			name:        "SchemaServiceError_ReturnsError",
+			schemaErr:   &serviceerror.ServiceError{Error: i18ncore.I18nMessage{DefaultValue: "service error"}},
+			nodeInputs:  []common.Input{},
+			userInputs:  map[string]string{},
+			runtimeData: map[string]string{userTypeKey: testUserType},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
+			mockSvc := userschemamock.NewUserSchemaServiceInterfaceMock(suite.T())
+			if tt.schemaErr != nil {
+				mockSvc.On("GetCredentialAttributes", mock.Anything, testUserType).
+					Return(nil, tt.schemaErr).Once()
+			} else {
+				mockSvc.On("GetCredentialAttributes", mock.Anything, testUserType).
+					Return(tt.schemaCredAttrs, nil).Once()
+			}
+
+			exec := &provisioningExecutor{
+				ExecutorInterface:            suite.executor.ExecutorInterface,
+				identifyingExecutorInterface: suite.executor.identifyingExecutorInterface,
+				entityProvider:               suite.executor.entityProvider,
+				groupService:                 suite.executor.groupService,
+				roleService:                  suite.executor.roleService,
+				userSchemaService:            mockSvc,
+				logger:                       suite.executor.logger,
+			}
+
 			ctx := &core.NodeContext{
 				UserInputs:  tt.userInputs,
 				RuntimeData: tt.runtimeData,
+				NodeInputs:  tt.nodeInputs,
 			}
 
-			attributes := map[string]interface{}{
-				"username": "testuser",
-			}
+			attributes := map[string]interface{}{"username": "testuser"}
+			err := exec.appendCredentialAttributes(ctx, &attributes)
 
-			suite.executor.appendNonIdentifyingAttributes(ctx, &attributes)
-
-			if tt.shouldHavePassword {
-				assert.Contains(suite.T(), attributes, "password")
-				assert.Equal(suite.T(), tt.expectedPassword, attributes["password"])
+			if tt.expectError {
+				assert.Error(suite.T(), err)
 			} else {
-				assert.NotContains(suite.T(), attributes, "password")
-				assert.Equal(suite.T(), 1, len(attributes)) // Only username
+				assert.NoError(suite.T(), err)
+				assert.Equal(suite.T(), tt.expectedAttrs, attributes)
 			}
 		})
 	}
@@ -2670,6 +2721,76 @@ func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_MaxPerPrompt_F
 	assert.False(suite.T(), result)
 	assert.Len(suite.T(), execResp.Inputs, 1,
 		"float64 maxPerPrompt value (from JSON) must be handled correctly")
+}
+
+// TestExecute_AppendCredentialAttributesFails_ReturnsServerError verifies that when
+// fetchCredentialAttributes fails (schema service error), Execute propagates it as a server error.
+func (suite *ProvisioningExecutorTestSuite) TestExecute_AppendCredentialAttributesFails_ReturnsServerError() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{}, nil).Once()
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "username", Required: true},
+		}, nil).Once()
+	suite.mockUserSchemaService.On("GetCredentialAttributes", mock.Anything, testUserType).
+		Return(nil, &serviceerror.ServiceError{Error: i18ncore.I18nMessage{DefaultValue: "schema unavailable"}}).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		FlowType:    common.FlowTypeRegistration,
+		UserInputs:  map[string]string{"username": "newuser"},
+		RuntimeData: map[string]string{ouIDKey: testOUID, userTypeKey: testUserType},
+		NodeInputs:  []common.Input{{Identifier: "username", Type: "string", Required: true}},
+	}
+
+	suite.mockEntityProvider.On("IdentifyEntity", map[string]interface{}{"username": "newuser"}).
+		Return(nil, entityprovider.NewEntityProviderError(entityprovider.ErrorCodeEntityNotFound, "", ""))
+
+	resp, err := suite.executor.Execute(ctx)
+
+	assert.Nil(suite.T(), resp)
+	assert.Error(suite.T(), err)
+	suite.mockEntityProvider.AssertNotCalled(suite.T(), "CreateEntity")
+}
+
+// TestFetchCredentialAttributes_NilService_ReturnsNil verifies that when userSchemaService is nil,
+// appendCredentialAttributes is a no-op and returns no error.
+func (suite *ProvisioningExecutorTestSuite) TestFetchCredentialAttributes_NilService_ReturnsNil() {
+	pe := &provisioningExecutor{
+		ExecutorInterface:            suite.executor.ExecutorInterface,
+		identifyingExecutorInterface: suite.executor.identifyingExecutorInterface,
+		entityProvider:               suite.executor.entityProvider,
+		groupService:                 suite.executor.groupService,
+		roleService:                  suite.executor.roleService,
+		userSchemaService:            nil,
+		logger:                       suite.executor.logger,
+	}
+
+	ctx := &core.NodeContext{
+		UserInputs:  map[string]string{"password": "secret"},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+	}
+
+	attrs := map[string]interface{}{"username": "testuser"}
+	err := pe.appendCredentialAttributes(ctx, &attrs)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), map[string]interface{}{"username": "testuser"}, attrs)
+}
+
+// TestFetchCredentialAttributes_MissingUserType_ReturnsError verifies that when userType is absent
+// from runtime data, appendCredentialAttributes propagates the error.
+func (suite *ProvisioningExecutorTestSuite) TestFetchCredentialAttributes_MissingUserType_ReturnsError() {
+	ctx := &core.NodeContext{
+		UserInputs:  map[string]string{"password": "secret"},
+		RuntimeData: map[string]string{},
+	}
+
+	attrs := map[string]interface{}{"username": "testuser"}
+	err := suite.executor.appendCredentialAttributes(ctx, &attrs)
+
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "user type not found")
 }
 
 // TestHasRequiredInputs_NoProperties_DefaultBehavior verifies that when no properties are set the
