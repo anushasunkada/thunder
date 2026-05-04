@@ -57,7 +57,7 @@
     "@thunder/contexts": "workspace:^",
     "@thunderid/design": "workspace:^",
     "@thunderid/hooks": "workspace:^",
-    "@thunder/configure-users": "workspace:^",
+    "@thunderid/configure-users": "workspace:^",
     "@thunderid/configure-organization-units": "workspace:^",
     "@thunderid/configure-translations": "workspace:^",
     "@thunderid/utils": "workspace:^",

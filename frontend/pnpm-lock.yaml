@@ -328,7 +328,7 @@ importers:
       '@thunderid/configure-translations':
         specifier: workspace:^
         version: link:../../packages/configure-translations
-      '@thunder/configure-users':
+      '@thunderid/configure-users':
         specifier: workspace:^
         version: link:../../packages/configure-users
       '@thunder/contexts':

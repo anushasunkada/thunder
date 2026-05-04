@@ -65,7 +65,7 @@ vi.mock('@wso2/oxygen-ui', async () => {
 
 const mockUseGetUsers = vi.fn();
 const mockUseGetApplications = vi.fn();
-vi.mock('@thunder/configure-users', () => ({
+vi.mock('@thunderid/configure-users', () => ({
   useGetUsers: (...args: unknown[]): unknown => mockUseGetUsers(...args),
 }));
 vi.mock('../../../applications/api/useGetApplications', () => ({

@@ -47,7 +47,7 @@ vi.mock('framer-motion', async () => {
 });
 
 const mockUseGetUsers = vi.fn();
-vi.mock('@thunder/configure-users', () => ({
+vi.mock('@thunderid/configure-users', () => ({
   useGetUsers: (args: unknown) => mockUseGetUsers(args) as unknown,
 }));
 
