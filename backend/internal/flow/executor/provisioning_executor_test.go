@@ -1928,8 +1928,8 @@ func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_SchemaAttrSati
 func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_SchemaAttrMissing_AppendedToInputsAndForwardedData() {
 	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
 		Return([]model.AttributeInfo{
-			{Attribute: "email", DisplayName: "Email Address"},
-			{Attribute: "firstName", DisplayName: ""},
+			{Attribute: "email", DisplayName: "Email Address", Required: true},
+			{Attribute: "firstName", DisplayName: "", Required: true},
 		}, nil).Once()
 
 	ctx := &core.NodeContext{
@@ -1951,7 +1951,7 @@ func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_SchemaAttrMiss
 
 	emailInput, ok := inputMap["email"]
 	assert.True(suite.T(), ok)
-	assert.True(suite.T(), emailInput.Required)
+	assert.True(suite.T(), emailInput.Required, "required schema attr must have Required=true in the built input")
 	assert.Equal(suite.T(), "Email Address", emailInput.DisplayName)
 
 	firstNameInput, ok := inputMap["firstName"]
@@ -1962,6 +1962,131 @@ func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_SchemaAttrMiss
 	fwdInputs, ok := execResp.ForwardedData[common.ForwardedDataKeyInputs].([]common.Input)
 	assert.True(suite.T(), ok)
 	assert.Len(suite.T(), fwdInputs, 2)
+}
+
+// TestHasRequiredInputs_IncludeOptionalTrue_OptionalRenderedAsNotRequired verifies that when
+// includeOptional=true, optional schema attrs are forwarded with Required=false.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalTrue_OptionalRenderedAsNotRequired() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", DisplayName: "Email", Required: true},
+			{Attribute: "nickname", DisplayName: "Nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	inputMap := make(map[string]common.Input, len(execResp.Inputs))
+	for _, inp := range execResp.Inputs {
+		inputMap[inp.Identifier] = inp
+	}
+	assert.True(suite.T(), inputMap["email"].Required, "required attr must be marked required")
+	assert.False(suite.T(), inputMap["nickname"].Required,
+		"optional attr must be marked not-required so the UI does not force the user to fill it")
+}
+
+// TestHasRequiredInputs_IncludeOptionalTrue_SkipsOptionalAlreadyPresented verifies that when
+// includeOptional=true an optional attr recorded as already presented in RuntimeData
+// is not re-prompted, even if the user left it empty.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalTrue_SkipsOptionalAlreadyPresented() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", DisplayName: "Email", Required: true},
+			{Attribute: "nickname", DisplayName: "Nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		UserInputs:  map[string]string{"email": "user@example.com"},
+		RuntimeData: map[string]string{
+			userTypeKey: testUserType,
+			// nickname was presented in the previous iteration and the user left it blank.
+			common.RuntimeKeyPresentedOptionalAttrs: "nickname",
+		},
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.True(suite.T(), result,
+		"must not block when all required attrs are satisfied and optional was already presented")
+	assert.Empty(suite.T(), execResp.Inputs,
+		"nickname must not be re-prompted once it appears in the presented list")
+}
+
+// TestHasRequiredInputs_IncludeOptionalTrue_StoresPresentedOptionals verifies that optional attrs
+// included in the prompt batch are written to RuntimeData for tracking across iterations.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalTrue_StoresPresentedOptionals() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", DisplayName: "Email", Required: true},
+			{Attribute: "nickname", DisplayName: "Nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	suite.executor.HasRequiredInputs(ctx, execResp)
+
+	stored := execResp.RuntimeData[common.RuntimeKeyPresentedOptionalAttrs]
+	assert.Contains(suite.T(), stored, "nickname",
+		"presented optional attrs must be written to RuntimeData for subsequent iterations")
+	assert.NotContains(suite.T(), stored, "email",
+		"required attrs must not be written to the presented-optionals tracking key")
+}
+
+// TestHasRequiredInputs_IncludeOptionalTrue_RequiredBeforeOptional verifies that required missing
+// attrs always appear before optional ones in the prompted list.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalTrue_RequiredBeforeOptional() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "nickname", DisplayName: "Nickname", Required: false},
+			{Attribute: "email", DisplayName: "Email", Required: true},
+			{Attribute: "phone", DisplayName: "Phone", Required: false},
+			{Attribute: "firstName", DisplayName: "First Name", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	suite.executor.HasRequiredInputs(ctx, execResp)
+
+	require := true
+	for _, inp := range execResp.Inputs {
+		if inp.Required {
+			assert.True(suite.T(), require,
+				"required attr %q must come before optional attrs", inp.Identifier)
+		} else {
+			require = false
+		}
+	}
 }
 
 func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_SchemaAttrCoveredByNodeInput_NotDuplicated() {
@@ -2345,4 +2470,235 @@ func (suite *ProvisioningExecutorTestSuite) TestCreateUserInStore_MissingUserTyp
 	assert.Nil(suite.T(), result)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "user type not found")
+}
+
+// TestHasRequiredInputs_IncludeOptionalTrue_PromptsOptionals verifies that when
+// includeOptional=true, missing optional schema attributes are also requested via prompt.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalTrue_PromptsOptionals() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", DisplayName: "Email", Required: true},
+			{Attribute: "nickname", DisplayName: "Nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		FlowType:    common.FlowTypeRegistration,
+		UserInputs:  map[string]string{"email": "user@example.com"},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	identifiers := make([]string, 0, len(execResp.Inputs))
+	for _, inp := range execResp.Inputs {
+		identifiers = append(identifiers, inp.Identifier)
+	}
+	assert.Contains(suite.T(), identifiers, "nickname",
+		"optional attr must be prompted when includeOptional=true")
+	assert.NotContains(suite.T(), identifiers, "email", "already-satisfied attr must not be re-prompted")
+}
+
+// TestHasRequiredInputs_IncludeOptionalFalse_SkipsOptionals verifies the default
+// behavior: optional schema attrs are not prompted when includeOptional is absent or false.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_IncludeOptionalFalse_SkipsOptionals() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", DisplayName: "Email", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID:    "flow-123",
+		FlowType:       common.FlowTypeRegistration,
+		UserInputs:     map[string]string{"email": "user@example.com"},
+		RuntimeData:    map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.True(suite.T(), result)
+	assert.Empty(suite.T(), execResp.Inputs)
+}
+
+// TestHasRequiredInputs_MaxPerPrompt_LimitsPromptedAttrs verifies that when maxPerPrompt=1,
+// only one missing schema attribute is prompted per iteration.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_MaxPerPrompt_LimitsPromptedAttrs() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{
+			{Attribute: "firstName", DisplayName: "First Name", Required: true},
+			{Attribute: "lastName", DisplayName: "Last Name", Required: true},
+			{Attribute: "phone", DisplayName: "Phone", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		FlowType:    common.FlowTypeRegistration,
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyMaxDynamicInputsPerPrompt: 1,
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	assert.Len(suite.T(), execResp.Inputs, 1, "only one input should be prompted per iteration")
+	assert.Equal(suite.T(), "firstName", execResp.Inputs[0].Identifier)
+}
+
+// TestHasRequiredInputs_MaxPerPrompt_Zero_PromptsAllMissingAttrs verifies that maxPerPrompt=0
+// (the default) prompts all missing attributes at once.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_MaxPerPrompt_Zero_PromptsAllMissingAttrs() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{
+			{Attribute: "firstName", DisplayName: "First Name", Required: true},
+			{Attribute: "lastName", DisplayName: "Last Name", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID:    "flow-123",
+		FlowType:       common.FlowTypeRegistration,
+		UserInputs:     map[string]string{},
+		RuntimeData:    map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	assert.Len(suite.T(), execResp.Inputs, 2, "all missing inputs should be prompted when maxPerPrompt is not set")
+}
+
+// TestGetAttributesForProvisioning_IncludeOptionalTrue_CollectsOptionals verifies that when
+// includeOptional=true, optional schema attrs are collected even when node inputs are set.
+func (suite *ProvisioningExecutorTestSuite) TestGetAttributesForProvisioning_IncludeOptionalTrue_CollectsOptionals() {
+	nodeInputs := []common.Input{
+		{Identifier: "email", Type: "EMAIL_INPUT", Required: true},
+	}
+	exec := suite.newExecutorWithNodeInputs(nodeInputs)
+
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", Required: true},
+			{Attribute: "nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		UserInputs: map[string]string{
+			"email":    "user@example.com",
+			"nickname": "nick",
+		},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeInputs:  nodeInputs,
+		NodeProperties: map[string]interface{}{
+			propertyKeyDynamicInputsIncludeOptional: true,
+		},
+	}
+
+	result, err := exec.getAttributesForProvisioning(ctx)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "user@example.com", result["email"])
+	assert.Equal(suite.T(), "nick", result["nickname"],
+		"optional attr must be collected when includeOptional=true")
+}
+
+// TestGetAttributesForProvisioning_IncludeOptionalFalse_ExcludesOptionals verifies the default
+// behavior: optional attrs not in node inputs are excluded when includeOptional=false.
+func (suite *ProvisioningExecutorTestSuite) TestGetAttributesForProvisioning_IncludeOptionalFalse_ExcludesOptionals() {
+	nodeInputs := []common.Input{
+		{Identifier: "email", Type: "EMAIL_INPUT", Required: true},
+	}
+	exec := suite.newExecutorWithNodeInputs(nodeInputs)
+
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, false).
+		Return([]model.AttributeInfo{
+			{Attribute: "email", Required: true},
+			{Attribute: "nickname", Required: false},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		UserInputs: map[string]string{
+			"email":    "user@example.com",
+			"nickname": "nick",
+		},
+		RuntimeData:    map[string]string{userTypeKey: testUserType},
+		NodeInputs:     nodeInputs,
+		NodeProperties: map[string]interface{}{},
+	}
+
+	result, err := exec.getAttributesForProvisioning(ctx)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "user@example.com", result["email"])
+	assert.NotContains(suite.T(), result, "nickname",
+		"optional attr not in node inputs must be excluded when includeOptional=false")
+}
+
+// TestHasRequiredInputs_MaxPerPrompt_Float64_LimitsPromptedAttrs verifies that maxPerPrompt
+// supplied as float64 (the type JSON unmarshalling produces) is handled correctly.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_MaxPerPrompt_Float64_LimitsPromptedAttrs() {
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{
+			{Attribute: "firstName", DisplayName: "First Name", Required: true},
+			{Attribute: "lastName", DisplayName: "Last Name", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		FlowType:    common.FlowTypeRegistration,
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+		NodeProperties: map[string]interface{}{
+			propertyKeyMaxDynamicInputsPerPrompt: float64(1),
+		},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	assert.Len(suite.T(), execResp.Inputs, 1,
+		"float64 maxPerPrompt value (from JSON) must be handled correctly")
+}
+
+// TestHasRequiredInputs_NoProperties_DefaultBehavior verifies that when no properties are set the
+// executor falls back to prompting only required schema attributes, all at once.
+func (suite *ProvisioningExecutorTestSuite) TestHasRequiredInputs_NoProperties_DefaultBehavior() {
+	// requiredOnly=true: service returns only required attrs (optional ones are filtered by the service).
+	suite.mockUserSchemaService.On("GetNonCredentialAttributes", mock.Anything, testUserType, true).
+		Return([]model.AttributeInfo{
+			{Attribute: "firstName", DisplayName: "First Name", Required: true},
+			{Attribute: "lastName", DisplayName: "Last Name", Required: true},
+		}, nil).Once()
+
+	ctx := &core.NodeContext{
+		ExecutionID: "flow-123",
+		FlowType:    common.FlowTypeRegistration,
+		UserInputs:  map[string]string{},
+		RuntimeData: map[string]string{userTypeKey: testUserType},
+	}
+	execResp := &common.ExecutorResponse{RuntimeData: make(map[string]string)}
+
+	result := suite.executor.HasRequiredInputs(ctx, execResp)
+
+	assert.False(suite.T(), result)
+	ids := make([]string, 0, len(execResp.Inputs))
+	for _, inp := range execResp.Inputs {
+		ids = append(ids, inp.Identifier)
+	}
+	assert.Contains(suite.T(), ids, "firstName")
+	assert.Contains(suite.T(), ids, "lastName")
+	assert.Len(suite.T(), execResp.Inputs, 2,
+		"all required missing inputs must be prompted at once when maxPerPrompt is absent")
 }

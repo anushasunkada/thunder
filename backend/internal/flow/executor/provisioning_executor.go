@@ -23,6 +23,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	authncm "github.com/asgardeo/thunder/internal/authn/common"
 	"github.com/asgardeo/thunder/internal/entityprovider"
@@ -285,30 +287,54 @@ func (p *provisioningExecutor) HasRequiredInputs(ctx *core.NodeContext,
 		return nodeInputsSatisfied
 	}
 
-	schemaMissingAttrs := make([]common.Input, 0, len(schemaAttrs))
+	// Load the set of optional attrs already prompted in previous iterations so they are not
+	// re-prompted even when the user left them empty.
+	alreadyPromptedOptionalAttrs := p.getPresentedOptionalAttrs(ctx)
+
+	// Build required and optional missing lists separately so required ones are always shown first.
+	requiredMissing := make([]common.Input, 0, len(schemaAttrs))
+	optionalMissing := make([]common.Input, 0, len(schemaAttrs))
 	for _, attr := range schemaAttrs {
 		if p.isAttrSatisfied(ctx, attr.Attribute) {
 			continue
 		}
-
-		schemaMissingAttrs = append(schemaMissingAttrs, common.Input{
+		if !attr.Required && alreadyPromptedOptionalAttrs[attr.Attribute] {
+			continue
+		}
+		input := common.Input{
 			Identifier:  attr.Attribute,
 			Type:        common.InputTypeText,
-			Required:    true,
+			Required:    attr.Required,
 			DisplayName: attr.DisplayName,
-		})
+		}
+		if attr.Required {
+			requiredMissing = append(requiredMissing, input)
+		} else {
+			optionalMissing = append(optionalMissing, input)
+		}
 	}
 
+	schemaMissingAttrs := make([]common.Input, 0, len(requiredMissing)+len(optionalMissing))
+	schemaMissingAttrs = append(schemaMissingAttrs, requiredMissing...)
+	schemaMissingAttrs = append(schemaMissingAttrs, optionalMissing...)
 	if len(schemaMissingAttrs) == 0 {
 		return nodeInputsSatisfied
 	}
+
+	if maxInputs := p.getMaxDynamicInputs(ctx); maxInputs > 0 && len(schemaMissingAttrs) > maxInputs {
+		schemaMissingAttrs = schemaMissingAttrs[:maxInputs]
+	}
+
+	// Record which optional attrs are being presented in this iteration so future iterations
+	// know not to re-prompt them even if the user left the value empty.
+	p.storePresentedOptionalAttrs(execResp, schemaMissingAttrs, alreadyPromptedOptionalAttrs)
 
 	execResp.Inputs = upsertInputs(execResp.Inputs, schemaMissingAttrs)
 	if execResp.ForwardedData == nil {
 		execResp.ForwardedData = make(map[string]interface{})
 	}
 	execResp.ForwardedData[common.ForwardedDataKeyInputs] = schemaMissingAttrs
-	logger.Debug("Schema-required attributes are missing, requesting via prompt",
+	logger.Debug("Schema attributes are missing, requesting via prompt",
 		log.Int("missingCount", len(schemaMissingAttrs)))
 	return false
 }
@@ -340,7 +366,8 @@ func (p *provisioningExecutor) checkNodeInputs(ctx *core.NodeContext,
 	return len(remaining) == 0
 }
 
-// fetchSchemaAttributes retrieves required non-credential attributes from the user schema service.
+// fetchSchemaAttributes retrieves non-credential attributes from the user schema service.
+// When promptOptionalAttributes is true it fetches all attributes; otherwise only required ones.
 func (p *provisioningExecutor) fetchSchemaAttributes(
 	ctx *core.NodeContext, logger *log.Logger,
 ) ([]userschema.AttributeInfo, error) {
@@ -351,13 +378,78 @@ func (p *provisioningExecutor) fetchSchemaAttributes(
 	if userType == "" {
 		return nil, fmt.Errorf("user type not found")
 	}
-	attrs, svcErr := p.userSchemaService.GetNonCredentialAttributes(ctx.Context, userType, true)
+	requiredOnly := !p.isPromptOptionalAttributesEnabled(ctx)
+	attrs, svcErr := p.userSchemaService.GetNonCredentialAttributes(ctx.Context, userType, requiredOnly)
 	if svcErr != nil {
 		logger.Warn("Failed to fetch schema attributes for provisioning, skipping schema check",
 			log.Any("error", svcErr))
 		return nil, nil
 	}
 	return attrs, nil
+}
+
+// isPromptOptionalAttributesEnabled reads the includeOptional node property.
+// Returns false when the property is absent, preserving the default behavior of prompting only required attributes.
+func (p *provisioningExecutor) isPromptOptionalAttributesEnabled(ctx *core.NodeContext) bool {
+	if val, ok := ctx.NodeProperties[propertyKeyDynamicInputsIncludeOptional]; ok {
+		if boolVal, ok := val.(bool); ok {
+			return boolVal
+		}
+	}
+	return false
+}
+
+// getMaxDynamicInputs reads the maxPerPrompt node property.
+// Returns 0 when absent, meaning all missing inputs are prompted at once (current default behavior).
+func (p *provisioningExecutor) getMaxDynamicInputs(ctx *core.NodeContext) int {
+	if val, ok := ctx.NodeProperties[propertyKeyMaxDynamicInputsPerPrompt]; ok {
+		switch v := val.(type) {
+		case int:
+			return v
+		case float64:
+			return int(v)
+		}
+	}
+	return 0
+}
+
+// getPresentedOptionalAttrs returns the set of optional attr identifiers that have already been
+// prompted to the user in previous iterations, loaded from RuntimeData.
+func (p *provisioningExecutor) getPresentedOptionalAttrs(ctx *core.NodeContext) map[string]bool {
+	result := make(map[string]bool)
+	raw, ok := ctx.RuntimeData[common.RuntimeKeyPresentedOptionalAttrs]
+	if !ok || raw == "" {
+		return result
+	}
+	for _, id := range strings.Split(raw, " ") {
+		if id != "" {
+			result[id] = true
+		}
+	}
+	return result
+}
+
+// storePresentedOptionalAttrs accumulates the optional attrs being shown in this iteration into
+// RuntimeData so the next iteration can skip them.
+func (p *provisioningExecutor) storePresentedOptionalAttrs(
+	execResp *common.ExecutorResponse,
+	toPrompt []common.Input,
+	alreadyPresented map[string]bool,
+) {
+	for _, inp := range toPrompt {
+		if !inp.Required {
+			alreadyPresented[inp.Identifier] = true
+		}
+	}
+	if len(alreadyPresented) == 0 {
+		return
+	}
+	ids := make([]string, 0, len(alreadyPresented))
+	for id := range alreadyPresented {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	execResp.RuntimeData[common.RuntimeKeyPresentedOptionalAttrs] = strings.Join(ids, " ")
 }
 
 // isAttrSatisfied returns true if the attribute has a non-empty usable value in any context source.
@@ -377,7 +469,8 @@ func (p *provisioningExecutor) isAttrSatisfied(ctx *core.NodeContext, attr strin
 }
 
 // getAttributesForProvisioning returns the user profile attributes to store.
-// Schema is the whitelist: required attrs always collected, optional attrs only if in node inputs.
+// Schema is the whitelist: required attrs always collected, optional attrs only if in node inputs
+// or if promptOptionalAttributes is enabled.
 func (p *provisioningExecutor) getAttributesForProvisioning(ctx *core.NodeContext) (map[string]interface{}, error) {
 	nodeInputAttrs := p.GetRequiredInputs(ctx)
 	schemaAttrs, err := p.fetchAllNonCredentialAttributes(ctx)
@@ -391,11 +484,12 @@ func (p *provisioningExecutor) getAttributesForProvisioning(ctx *core.NodeContex
 	for _, inp := range nodeInputAttrs {
 		nodeInputSet[inp.Identifier] = struct{}{}
 	}
+	promptOptional := p.isPromptOptionalAttributesEnabled(ctx)
 
 	attributesMap := make(map[string]interface{})
 	for _, a := range schemaAttrs {
 		_, inNodeInputs := nodeInputSet[a.Attribute]
-		if len(nodeInputSet) > 0 && !a.Required && !inNodeInputs {
+		if len(nodeInputSet) > 0 && !a.Required && !inNodeInputs && !promptOptional {
 			continue
 		}
 

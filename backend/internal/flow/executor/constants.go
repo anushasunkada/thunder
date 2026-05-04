@@ -77,9 +77,6 @@ const (
 	ouIDKey        = "ouId"
 	defaultOUIDKey = "defaultOUID"
 	userTypeKey    = "userType"
-	// TODO: Revisit when the generic OTP executor is implemented.
-	runtimeKeySMSOTPMobileNumber = "smsOTPMobileNumber"
-	runtimeKeySMSOTPPhoneAttr    = "smsOTPPhoneAttr"
 
 	dataValueTrue  = "true"
 	dataValueFalse = "false"
@@ -87,13 +84,15 @@ const (
 
 // Executor property keys
 const (
-	propertyKeyAssignGroup          = "assignGroup"
-	propertyKeyAssignRole           = "assignRole"
-	propertyKeyRequiredScopes       = "requiredScopes"
-	propertyKeyEmailTemplate        = "emailTemplate"
-	propertyKeySMSTemplate          = "smsTemplate"
-	propertyKeyAllowedUserTypes     = "allowedUserTypes"
-	propertyKeyNotificationSenderID = "senderId"
+	propertyKeyAssignGroup                  = "assignGroup"
+	propertyKeyAssignRole                   = "assignRole"
+	propertyKeyRequiredScopes               = "requiredScopes"
+	propertyKeyEmailTemplate                = "emailTemplate"
+	propertyKeySMSTemplate                  = "smsTemplate"
+	propertyKeyAllowedUserTypes             = "allowedUserTypes"
+	propertyKeyNotificationSenderID         = "senderId"
+	propertyKeyDynamicInputsIncludeOptional = "includeOptional"
+	propertyKeyMaxDynamicInputsPerPrompt    = "maxPerPrompt"
 )
 
 // nonSearchableInputs contains the list of user inputs/ attributes that are non-searchable.
