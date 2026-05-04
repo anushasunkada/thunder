@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {useGetTranslations, useCreateTranslations, I18nDefaultConstants} from '@thunder/i18n';
+import {useGetTranslations, useCreateTranslations, I18nDefaultConstants} from '@thunderid/i18n';
 import {useLogger} from '@thunderid/logger/react';
 import {Alert, Box, Breadcrumbs, Button, IconButton, LinearProgress, Typography} from '@wso2/oxygen-ui';
 import {ChevronRight, X} from '@wso2/oxygen-ui-icons-react';

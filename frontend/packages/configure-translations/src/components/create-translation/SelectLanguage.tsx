@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import {buildLocaleOptions} from '@thunder/i18n';
-import type {CountryOption, LocaleOption} from '@thunder/i18n';
+import {buildLocaleOptions} from '@thunderid/i18n';
+import type {CountryOption, LocaleOption} from '@thunderid/i18n';
 import {Autocomplete, Box, Chip, FormControl, FormLabel, Stack, TextField, Typography, useTheme} from '@wso2/oxygen-ui';
 import {Lightbulb} from '@wso2/oxygen-ui-icons-react';
 import {useEffect, useMemo, type JSX} from 'react';

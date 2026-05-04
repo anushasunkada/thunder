@@ -35,7 +35,7 @@ const mockLocales = [
   {code: 'fr-CA', displayName: 'French (Canada)', flag: '🇨🇦'},
 ];
 
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   buildLocaleOptions: vi.fn(() => mockLocales),
 }));
 
@@ -129,7 +129,7 @@ describe('SelectLanguage', () => {
 
   describe('buildLocaleOptions', () => {
     it('calls buildLocaleOptions with the selected country regionCode', async () => {
-      const {buildLocaleOptions} = await import('@thunder/i18n');
+      const {buildLocaleOptions} = await import('@thunderid/i18n');
 
       render(<SelectLanguage {...defaultProps} />);
 

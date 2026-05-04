@@ -54,7 +54,7 @@ vi.mock('@thunder/hooks', () => ({
   }),
 }));
 
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   NamespaceConstants: {
     CUSTOM_NAMESPACE: 'custom',
   },

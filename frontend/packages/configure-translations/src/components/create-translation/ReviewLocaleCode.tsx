@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import {getDisplayNameForCode, toFlagEmoji} from '@thunder/i18n';
-import type {LocaleOption} from '@thunder/i18n';
+import {getDisplayNameForCode, toFlagEmoji} from '@thunderid/i18n';
+import type {LocaleOption} from '@thunderid/i18n';
 import {Box, Chip, FormControl, FormLabel, Stack, TextField, Typography, useTheme} from '@wso2/oxygen-ui';
 import {Lightbulb} from '@wso2/oxygen-ui-icons-react';
 import {useEffect, useMemo, type JSX} from 'react';

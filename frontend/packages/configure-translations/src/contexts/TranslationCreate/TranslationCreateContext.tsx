@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import type {CountryOption, LocaleOption} from '@thunder/i18n';
+import type {CountryOption, LocaleOption} from '@thunderid/i18n';
 import type {Context} from 'react';
 import {createContext} from 'react';
 import type {TranslationCreateFlowStep} from '@/models/translation-create-flow';

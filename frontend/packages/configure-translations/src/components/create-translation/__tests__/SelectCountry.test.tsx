@@ -35,7 +35,7 @@ const mockCountries = [
   {name: 'Japan', regionCode: 'JP', flag: '🇯🇵'},
 ];
 
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   buildCountryOptions: () => mockCountries,
 }));
 

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import type {CountryOption, LocaleOption} from '@thunder/i18n';
+import type {CountryOption, LocaleOption} from '@thunderid/i18n';
 import type {PropsWithChildren} from 'react';
 import {useState, useMemo, useCallback} from 'react';
 import TranslationCreateContext, {

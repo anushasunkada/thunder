@@ -32,7 +32,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({t: (key: string) => key, i18n: {language: 'en-US', changeLanguage: vi.fn()}}),
 }));
 
-vi.mock('@thunder/i18n/locales/en-US', () => ({
+vi.mock('@thunderid/i18n/locales/en-US', () => ({
   default: {common: {}, navigation: {}},
 }));
 

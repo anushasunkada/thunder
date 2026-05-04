@@ -27,7 +27,7 @@ vi.mock('i18next', () => ({
   },
 }));
 
-vi.mock('@thunder/i18n/locales/en-US', () => ({
+vi.mock('@thunderid/i18n/locales/en-US', () => ({
   default: {common: {}, navigation: {}},
 }));
 

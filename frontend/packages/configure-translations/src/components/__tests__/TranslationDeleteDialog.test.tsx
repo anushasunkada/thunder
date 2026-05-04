@@ -30,7 +30,7 @@ vi.mock('react-i18next', async () => {
 });
 
 const mockMutate = vi.fn();
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   useDeleteTranslations: () => ({mutate: mockMutate, isPending: false}),
   getDisplayNameForCode: (code: string) => `DisplayName(${code})`,
 }));

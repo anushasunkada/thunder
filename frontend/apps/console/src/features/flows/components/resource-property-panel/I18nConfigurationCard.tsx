@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {useGetLanguages, useGetTranslations, useUpdateTranslation} from '@thunder/i18n';
+import {useGetLanguages, useGetTranslations, useUpdateTranslation} from '@thunderid/i18n';
 import {
   Alert,
   Autocomplete,

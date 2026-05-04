@@ -40,7 +40,7 @@ vi.mock('@thunder/contexts', () => ({
 }));
 
 // Mock the API hooks used by I18nConfigurationCard from i18n
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   NamespaceConstants: {CUSTOM_NAMESPACE: 'custom'},
   I18nDefaultConstants: {FALLBACK_LANGUAGE: 'en-US'},
   useUpdateTranslation: () => ({

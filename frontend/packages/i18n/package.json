@@ -1,5 +1,5 @@
 {
-  "name": "@thunder/i18n",
+  "name": "@thunderid/i18n",
   "version": "0.0.0",
   "description": "Translation resources for Thunder applications",
   "type": "module",

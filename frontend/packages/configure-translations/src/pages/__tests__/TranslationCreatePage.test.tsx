@@ -45,7 +45,7 @@ const {mockRefetch, mockCreateTranslationsMutateAsync} = vi.hoisted(() => ({
   mockCreateTranslationsMutateAsync: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   useGetTranslations: vi.fn().mockReturnValue({data: undefined, isLoading: false, refetch: mockRefetch}),
   useCreateTranslations: vi.fn().mockReturnValue({mutateAsync: mockCreateTranslationsMutateAsync}),
   I18nDefaultConstants: {

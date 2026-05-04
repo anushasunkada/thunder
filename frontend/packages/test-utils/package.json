@@ -69,7 +69,7 @@
     "@tanstack/react-query": "catalog:",
     "@thunder/contexts": "workspace:^",
     "@thunderid/eslint-plugin-thunder": "workspace:^",
-    "@thunder/i18n": "workspace:^",
+    "@thunderid/i18n": "workspace:^",
     "@thunderid/logger": "workspace:^",
     "@thunderid/prettier-config": "workspace:^",
     "@types/node": "catalog:",
@@ -91,7 +91,7 @@
   "peerDependencies": {
     "@tanstack/react-query": "catalog:",
     "@thunder/contexts": "workspace:^",
-    "@thunder/i18n": "workspace:^",
+    "@thunderid/i18n": "workspace:^",
     "@thunderid/logger": "workspace:^",
     "@wso2/oxygen-ui": "catalog:",
     "i18next": "catalog:",

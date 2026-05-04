@@ -340,7 +340,7 @@ importers:
       '@thunder/hooks':
         specifier: workspace:^
         version: link:../../packages/hooks
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../../packages/i18n
       '@thunderid/logger':
@@ -524,7 +524,7 @@ importers:
       '@thunder/hooks':
         specifier: workspace:^
         version: link:../../packages/hooks
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../../packages/i18n
       '@thunderid/logger':
@@ -721,7 +721,7 @@ importers:
       '@thunder/hooks':
         specifier: workspace:^
         version: link:../hooks
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../i18n
       '@thunderid/logger':
@@ -824,7 +824,7 @@ importers:
       '@thunder/hooks':
         specifier: workspace:^
         version: link:../hooks
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../i18n
       '@thunderid/logger':
@@ -918,7 +918,7 @@ importers:
       '@thunder/hooks':
         specifier: workspace:^
         version: link:../hooks
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../i18n
       '@thunderid/logger':
@@ -1507,7 +1507,7 @@ importers:
       '@thunderid/eslint-plugin-thunder':
         specifier: workspace:^
         version: link:../eslint-plugin
-      '@thunder/i18n':
+      '@thunderid/i18n':
         specifier: workspace:^
         version: link:../i18n
       '@thunderid/logger':

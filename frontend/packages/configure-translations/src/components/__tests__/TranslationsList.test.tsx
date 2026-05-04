@@ -43,7 +43,7 @@ vi.mock('../../../../hooks/useDataGridLocaleText', () => ({
 }));
 
 const mockMutate = vi.fn();
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   useGetLanguages: vi.fn().mockReturnValue({
     data: {languages: ['fr-FR', 'de-DE']},
     isLoading: false,

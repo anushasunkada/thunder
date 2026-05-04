@@ -1,4 +1,4 @@
-# @thunder/i18n
+# @thunderid/i18n
 
 Internationalization (i18n) package for Thunder applications using react-i18next with full TypeScript support.
 
@@ -26,7 +26,7 @@ Add the package to your app's `package.json`:
 ```json
 {
   "dependencies": {
-    "@thunder/i18n": "workspace:^"
+    "@thunderid/i18n": "workspace:^"
   }
 }
 ```
@@ -38,7 +38,7 @@ In your app's entry point (e.g., `main.tsx`):
 ```tsx
 import i18n from 'i18next';
 import {initReactI18next} from 'react-i18next';
-import enUS from '@thunder/i18n/locales/en-US';
+import enUS from '@thunderid/i18n/locales/en-US';
 
 // Initialize i18n before rendering your app
 await i18n.use(initReactI18next).init({
@@ -392,8 +392,8 @@ Add the new locale to `package.json`:
 ### 3. Use in your app
 
 ```tsx
-import enUS from '@thunder/i18n/locales/en-US';
-import siLK from '@thunder/i18n/locales/si-LK';
+import enUS from '@thunderid/i18n/locales/en-US';
+import siLK from '@thunderid/i18n/locales/si-LK';
 
 await i18n.use(initReactI18next).init({
   resources: {
@@ -433,7 +433,7 @@ import {StrictMode} from 'react';
 import {ConfigProvider} from '@thunder/contexts';
 import i18n from 'i18next';
 import {initReactI18next} from 'react-i18next';
-import enUS from '@thunder/i18n/locales/en-US';
+import enUS from '@thunderid/i18n/locales/en-US';
 import AppWithConfig from './AppWithConfig';
 
 // Initialize i18n before rendering the app
@@ -468,7 +468,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import i18n from 'i18next';
 import {initReactI18next} from 'react-i18next';
-import enUS from '@thunder/i18n/locales/en-US';
+import enUS from '@thunderid/i18n/locales/en-US';
 import App from './App';
 import './index.css';
 
@@ -594,7 +594,7 @@ Use consistent naming conventions:
 
 ### TypeScript Errors
 
-1. Rebuild the i18n package: `pnpm build --filter @thunder/i18n`
+1. Rebuild the i18n package: `pnpm build --filter @thunderid/i18n`
 2. Restart your TypeScript server in VSCode
 3. Ensure the package is listed in dependencies
 4. Check that types are being exported correctly
@@ -630,9 +630,9 @@ Apache-2.0
 
 If migrating from a manual i18n setup:
 
-1. Install the `@thunder/i18n` package
+1. Install the `@thunderid/i18n` package
 2. Remove local translation files
-3. Import translations from `@thunder/i18n/locales/en-US`
+3. Import translations from `@thunderid/i18n/locales/en-US`
 4. Update all `useTranslation()` calls to use the correct namespaces
 5. Update translation keys to match the new structure
 

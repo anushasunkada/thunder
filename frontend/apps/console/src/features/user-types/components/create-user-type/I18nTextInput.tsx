@@ -23,7 +23,7 @@ import {
   useUpdateTranslation,
   NamespaceConstants,
   I18nDefaultConstants,
-} from '@thunder/i18n';
+} from '@thunderid/i18n';
 import {isI18nTemplatePattern, I18N_KEY_PATTERN} from '@thunderid/utils';
 import {
   Alert,

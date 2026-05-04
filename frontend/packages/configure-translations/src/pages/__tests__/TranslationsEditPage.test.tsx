@@ -53,7 +53,7 @@ const {mockMutateAsync, mockUseGetTranslations, mockUseUpdateTranslation} = vi.h
   mockUseUpdateTranslation: vi.fn(),
 }));
 
-vi.mock('@thunder/i18n', () => ({
+vi.mock('@thunderid/i18n', () => ({
   useGetTranslations: mockUseGetTranslations,
   useUpdateTranslation: mockUseUpdateTranslation,
   NamespaceConstants: {

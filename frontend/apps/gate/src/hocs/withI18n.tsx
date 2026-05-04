@@ -17,8 +17,8 @@
  */
 
 import {useAsgardeo} from '@asgardeo/react';
-import {I18nDefaultConstants} from '@thunder/i18n';
-import enUS from '@thunder/i18n/locales/en-US';
+import {I18nDefaultConstants} from '@thunderid/i18n';
+import enUS from '@thunderid/i18n/locales/en-US';
 import i18next from 'i18next';
 import type {JSX, ComponentType} from 'react';
 import {useEffect} from 'react';

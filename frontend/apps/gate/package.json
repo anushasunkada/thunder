@@ -42,7 +42,7 @@
     "@thunder/contexts": "workspace:^",
     "@thunderid/logger": "workspace:^",
     "@thunder/design": "workspace:^",
-    "@thunder/i18n": "workspace:^",
+    "@thunderid/i18n": "workspace:^",
     "@thunder/hooks": "workspace:^",
     "@thunderid/utils": "workspace:^",
     "@wso2/oxygen-ui": "catalog:",

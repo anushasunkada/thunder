@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {I18nDefaultConstants, NamespaceConstants} from '@thunder/i18n';
+import {I18nDefaultConstants, NamespaceConstants} from '@thunderid/i18n';
 
 /**
  * i18n namespace constants for flow feature translations.

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {I18nDefaultConstants} from '@thunder/i18n';
+import {I18nDefaultConstants} from '@thunderid/i18n';
 import {Stack, Typography} from '@wso2/oxygen-ui';
 import {Settings} from '@wso2/oxygen-ui-icons-react';
 import {type EdgeTypes, type Node, type NodeTypes, ReactFlowProvider} from '@xyflow/react';
