@@ -366,8 +366,8 @@ configureTestUtils({
 
 ### Tests Failing with Provider Errors
 
-Make sure you're using `renderWithProviders` or the default `render` from `@thunderid/test-utils`, not the raw render from
-`@testing-library/react`:
+Make sure you're using `renderWithProviders` or the default `render` from `@thunderid/test-utils`, not the raw render
+from `@testing-library/react`:
 
 ```tsx
 // ✅ Good

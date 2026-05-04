@@ -39,12 +39,18 @@ async function main(): Promise<void> {
   intro(
     '\n' +
       [
-        colors.blueBright('████████╗██╗  ██╗██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ') + colors.magentaBright('██╗██████╗'),
-        colors.blueBright('╚══██╔══╝██║  ██║██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗') + colors.magentaBright('██║██╔══██╗'),
-        colors.blueBright('   ██║   ███████║██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝') + colors.magentaBright('██║██║  ██║'),
-        colors.cyanBright('   ██║   ██╔══██║██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗') + colors.magentaBright('██║██║  ██║'),
-        colors.cyanBright('   ██║   ██║  ██║╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║') + colors.magentaBright('██║██████╔╝'),
-        colors.cyanBright('   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝') + colors.magentaBright('╚═╝╚═════╝'),
+        colors.blueBright('████████╗██╗  ██╗██╗   ██╗███╗   ██╗██████╗ ███████╗██████╗ ') +
+          colors.magentaBright('██╗██████╗'),
+        colors.blueBright('╚══██╔══╝██║  ██║██║   ██║████╗  ██║██╔══██╗██╔════╝██╔══██╗') +
+          colors.magentaBright('██║██╔══██╗'),
+        colors.blueBright('   ██║   ███████║██║   ██║██╔██╗ ██║██║  ██║█████╗  ██████╔╝') +
+          colors.magentaBright('██║██║  ██║'),
+        colors.cyanBright('   ██║   ██╔══██║██║   ██║██║╚██╗██║██║  ██║██╔══╝  ██╔══██╗') +
+          colors.magentaBright('██║██║  ██║'),
+        colors.cyanBright('   ██║   ██║  ██║╚██████╔╝██║ ╚████║██████╔╝███████╗██║  ██║') +
+          colors.magentaBright('██║██████╔╝'),
+        colors.cyanBright('   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝') +
+          colors.magentaBright('╚═╝╚═════╝'),
       ].join('\n') +
       '\n\n' +
       `          ${colors.yellow('⚡')} ${colors.bold(colors.white('ThunderID'))}${colors.dim(
