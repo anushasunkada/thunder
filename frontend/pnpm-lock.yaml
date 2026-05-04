@@ -325,7 +325,7 @@ importers:
       '@thunderid/configure-organization-units':
         specifier: workspace:^
         version: link:../../packages/configure-organization-units
-      '@thunder/configure-translations':
+      '@thunderid/configure-translations':
         specifier: workspace:^
         version: link:../../packages/configure-translations
       '@thunder/configure-users':

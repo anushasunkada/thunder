@@ -28,7 +28,7 @@ import {
   TranslationCreatePage,
   TranslationsEditPage,
   TranslationsListPage,
-} from '@thunder/configure-translations';
+} from '@thunderid/configure-translations';
 import {
   UserCreateProvider,
   UserCreatePage,

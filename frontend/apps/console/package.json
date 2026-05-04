@@ -59,7 +59,7 @@
     "@thunder/hooks": "workspace:^",
     "@thunder/configure-users": "workspace:^",
     "@thunderid/configure-organization-units": "workspace:^",
-    "@thunder/configure-translations": "workspace:^",
+    "@thunderid/configure-translations": "workspace:^",
     "@thunder/utils": "workspace:^",
     "@wso2/oxygen-ui": "catalog:",
     "@wso2/oxygen-ui-icons-react": "catalog:",
