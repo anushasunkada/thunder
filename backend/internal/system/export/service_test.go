@@ -1517,7 +1517,7 @@ func (suite *ExportServiceTestSuite) TestExportNotificationSenders_WildcardParti
 // TestExportEntityTypes_Success tests successful export of entity types.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_Success() {
 	request := &ExportRequest{
-		EntityTypes: []string{"schema1"},
+		UserTypes: []string{"schema1"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1550,7 +1550,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_Success() {
 // TestExportEntityTypes_Multiple tests exporting multiple entity types.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_Multiple() {
 	request := &ExportRequest{
-		EntityTypes: []string{"schema1", "schema2"},
+		UserTypes: []string{"schema1", "schema2"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1591,7 +1591,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_Multiple() {
 // TestExportEntityTypes_Wildcard tests exporting all entity types using wildcard.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_Wildcard() {
 	request := &ExportRequest{
-		EntityTypes: []string{"*"},
+		UserTypes: []string{"*"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1642,7 +1642,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_Wildcard() {
 // TestExportEntityTypes_NotFound tests error handling when schema not found.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_NotFound() {
 	request := &ExportRequest{
-		EntityTypes: []string{"non-existent-schema"},
+		UserTypes: []string{"non-existent-schema"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1668,7 +1668,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_NotFound() {
 // TestExportEntityTypes_EmptyName tests validation for schema with empty name.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_EmptyName() {
 	request := &ExportRequest{
-		EntityTypes: []string{"schema-no-name"},
+		UserTypes: []string{"schema-no-name"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1697,7 +1697,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_EmptyName() {
 // TestExportEntityTypes_NoSchema tests exporting schema with no schema definition.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_NoSchema() {
 	request := &ExportRequest{
-		EntityTypes: []string{"schema-no-def"},
+		UserTypes: []string{"schema-no-def"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -1729,7 +1729,7 @@ func (suite *ExportServiceTestSuite) TestExportEntityTypes_NoSchema() {
 // TestExportEntityTypes_WildcardPartialFailure tests wildcard export with partial failures.
 func (suite *ExportServiceTestSuite) TestExportEntityTypes_WildcardPartialFailure() {
 	request := &ExportRequest{
-		EntityTypes: []string{"*"},
+		UserTypes: []string{"*"},
 		Options: &ExportOptions{
 			Format: "yaml",
 		},
@@ -2148,7 +2148,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_EntityType(
 		GetEntityType(mock.Anything, mock.Anything, schemaID, mock.Anything).
 		Return(mockSchema, nil)
 
-	exporter, exists := suite.exportService.(*exportService).registry.Get(resourceTypeEntityType)
+	exporter, exists := suite.exportService.(*exportService).registry.Get(resourceTypeUserType)
 	assert.True(suite.T(), exists, "Entity type exporter should be registered")
 
 	options := &ExportOptions{Format: formatYAML}
@@ -2159,7 +2159,7 @@ func (suite *ExportServiceTestSuite) TestExportResourcesWithExporter_EntityType(
 	assert.Len(suite.T(), files, 1)
 	assert.Len(suite.T(), errors, 0)
 	assert.Equal(suite.T(), "Test_Schema.yaml", files[0].FileName)
-	assert.Equal(suite.T(), resourceTypeEntityType, files[0].ResourceType)
+	assert.Equal(suite.T(), resourceTypeUserType, files[0].ResourceType)
 	assert.Equal(suite.T(), schemaID, files[0].ResourceID)
 	assert.Empty(suite.T(), variables)
 }
