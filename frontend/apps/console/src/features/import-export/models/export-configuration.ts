@@ -63,6 +63,14 @@ export interface ExportRequest {
    */
   themes?: string[];
   /**
+   * List of resource server IDs to export. Use `["*"]` to export all.
+   */
+  resourceServers?: string[];
+  /**
+   * List of role IDs to export. Use `["*"]` to export all.
+   */
+  roles?: string[];
+  /**
    * Optional configuration for export behavior
    */
   options?: ExportOptions;

@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
+	"github.com/asgardeo/thunder/internal/resource"
 	declarativeresource "github.com/asgardeo/thunder/internal/system/declarative_resource"
 )
 
@@ -1879,4 +1880,69 @@ func TestUserSchemaExportFormat(t *testing.T) {
 		"Schema should NOT be exported as a nested YAML structure")
 	assert.NotContains(t, yamlOutput, "schema:\n  - ",
 		"Schema should NOT be exported as a YAML array")
+}
+
+// =============================================================================
+// Resource Server Export Scenario Tests
+// =============================================================================
+
+// TestResourceServerExport_IdentifierAndOUIDNotParameterized verifies that when
+// GetResourceRules() returns nil, the identifier and ou_id fields are emitted as
+// literal values and NOT replaced with Go template placeholders ({{.…}}).
+func TestResourceServerExport_IdentifierAndOUIDNotParameterized(t *testing.T) {
+	rs := &resource.ResourceServer{
+		ID:         "019ddcf3-c67c-7521-a3a1-6744abb241a7",
+		Name:       "System",
+		Identifier: "system",
+		OUID:       "019ddcf3-c5d8-7375-80e3-c5bf524257c8",
+		Delimiter:  ":",
+	}
+
+	p := newParameterizer(templatingRules{})
+	// nil rules mirrors what GetResourceRules() returns for resource servers
+	result, vars, err := p.ToParameterizedYAML(rs, "ResourceServer", "System", nil)
+	require.NoError(t, err)
+
+	// identifier must be the literal value, not a template variable
+	assert.Contains(t, result, "identifier: system",
+		"identifier should be emitted as a literal value")
+	assert.NotContains(t, result, "{{.SYSTEM_IDENTIFIER}}",
+		"identifier must not be parameterized")
+
+	// ou_id must be the literal value, not a template variable
+	assert.Contains(t, result, "ou_id: 019ddcf3-c5d8-7375-80e3-c5bf524257c8",
+		"ou_id should be emitted as a literal value")
+	assert.NotContains(t, result, "{{.SYSTEM_OU_ID}}",
+		"ou_id must not be parameterized")
+
+	// no variables should be extracted since rules are nil
+	assert.Empty(t, vars)
+}
+
+// TestResourceServerExport_DelimiterIsQuoted verifies that the delimiter field is
+// wrapped in double quotes in the exported YAML (yamlfmt:"quoted" tag).
+func TestResourceServerExport_DelimiterIsQuoted(t *testing.T) {
+	rs := &resource.ResourceServer{
+		ID:         "019ddcf3-c67c-7521-a3a1-6744abb241a7",
+		Name:       "System",
+		Identifier: "system",
+		OUID:       "019ddcf3-c5d8-7375-80e3-c5bf524257c8",
+		Delimiter:  ":",
+	}
+
+	p := newParameterizer(templatingRules{})
+	result, _, err := p.ToParameterizedYAML(rs, "ResourceServer", "System", nil)
+	require.NoError(t, err)
+
+	// delimiter must be quoted so bare ":" is not parsed as a YAML mapping indicator
+	assert.Contains(t, result, `delimiter: ":"`,
+		"delimiter should be wrapped in double quotes")
+	assert.NotContains(t, result, "delimiter: :",
+		"bare unquoted colon must not appear as the delimiter value")
+
+	// Verify the output round-trips: the parsed delimiter value must equal ":"
+	var parsed resource.ResourceServer
+	require.NoError(t, yaml.Unmarshal([]byte(result), &parsed))
+	assert.Equal(t, ":", parsed.Delimiter,
+		"round-tripped delimiter should equal \":\"")
 }

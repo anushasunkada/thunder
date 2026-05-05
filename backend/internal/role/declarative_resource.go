@@ -102,12 +102,17 @@ func (e *roleExporter) GetResourceByID(
 		return nil, "", err
 	}
 
-	role := &RoleWithPermissionsAndAssignments{
+	perms := make([]roleDeclarativePermission, 0, len(roleWithPermissions.Permissions))
+	for _, p := range roleWithPermissions.Permissions {
+		perms = append(perms, roleDeclarativePermission(p))
+	}
+
+	role := &roleDeclarativeResource{
 		ID:          roleWithPermissions.ID,
 		Name:        roleWithPermissions.Name,
 		Description: roleWithPermissions.Description,
 		OUID:        roleWithPermissions.OUID,
-		Permissions: roleWithPermissions.Permissions,
+		Permissions: perms,
 		Assignments: assignments,
 	}
 
@@ -118,7 +123,7 @@ func (e *roleExporter) GetResourceByID(
 func (e *roleExporter) ValidateResource(
 	resource interface{}, id string, logger *log.Logger,
 ) (string, *declarativeresource.ExportError) {
-	role, ok := resource.(*RoleWithPermissionsAndAssignments)
+	role, ok := resource.(*roleDeclarativeResource)
 	if !ok {
 		return "", declarativeresource.CreateTypeError(resourceTypeRole, id)
 	}

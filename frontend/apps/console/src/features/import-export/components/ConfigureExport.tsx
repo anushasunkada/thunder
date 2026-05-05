@@ -24,11 +24,13 @@ import {
   Building,
   Copy,
   FileDown,
+  Key,
   Languages,
   Layers,
   LayoutGrid,
   Layout as LayoutIcon,
   Palette,
+  Server,
   Terminal,
   UserRoundCog,
   UsersRound,
@@ -107,6 +109,8 @@ export default function ConfigureExport({
   const [expandedSchemas, setExpandedSchemas] = useState(false);
   const [expandedTranslations, setExpandedTranslations] = useState(false);
   const [expandedLayouts, setExpandedLayouts] = useState(false);
+  const [expandedResourceServers, setExpandedResourceServers] = useState(false);
+  const [expandedRoles, setExpandedRoles] = useState(false);
 
   const nextSteps = [
     t('importExport:configureExport.nextSteps.startWithConfig', {productName}),
@@ -302,6 +306,10 @@ export default function ConfigureExport({
   const translationsCount =
     resourceCounts?.translation ?? (Array.isArray(configData?.translation) ? configData.translation.length : 0);
   const layoutsCount = resourceCounts?.layout ?? (Array.isArray(configData?.layout) ? configData.layout.length : 0);
+  const resourceServersCount =
+    resourceCounts?.resource_server ??
+    (Array.isArray(configData?.resource_server) ? configData.resource_server.length : 0);
+  const rolesCount = resourceCounts?.role ?? (Array.isArray(configData?.role) ? configData.role.length : 0);
 
   const items: ConfigSummaryItem[] = [];
 
@@ -883,6 +891,125 @@ export default function ConfigureExport({
                   size="small"
                   variant="outlined"
                   onClick={() => setExpandedLayouts(!expandedLayouts)}
+                  sx={{cursor: 'pointer'}}
+                />
+              </Box>
+            )}
+          </Stack>
+        </Box>
+      ),
+    });
+  }
+
+  // Add resource servers if present
+  if (resourceServersCount > 0) {
+    const resourceServers =
+      (configData?.resource_server as {name?: string; handle?: string; description?: string}[]) ?? [];
+    const displayedResourceServers = expandedResourceServers ? resourceServers : resourceServers.slice(0, 5);
+    const remainingCount = resourceServers.length - 5;
+
+    items.push({
+      id: 'resource-servers',
+      label: t('importExport:configureExport.labels.resourceServers'),
+      icon: <Server size={16} />,
+      value: resourceServersCount,
+      status: 'ready',
+      dependencyCount: 0,
+      content: (
+        <Box sx={{px: 3, py: 2, bgcolor: 'background.default'}}>
+          <Stack spacing={2}>
+            <Stack spacing={2} divider={<Box sx={{borderBottom: 1, borderColor: 'divider'}} />}>
+              {displayedResourceServers.map((rs, idx) => (
+                <Stack key={rs.handle ?? rs.name ?? `rs-${idx}`} spacing={0.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Server size={14} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {rs.name ?? rs.handle ?? t('importExport:configureExport.fallback.unnamedResourceServer')}
+                    </Typography>
+                  </Stack>
+                  {rs.description && (
+                    <Typography variant="caption" color="text.secondary" sx={{pl: 2.5}}>
+                      {rs.description}
+                    </Typography>
+                  )}
+                  {rs.handle && rs.name !== rs.handle && (
+                    <Typography variant="caption" color="text.secondary" sx={{pl: 2.5, fontFamily: 'monospace'}}>
+                      {rs.handle}
+                    </Typography>
+                  )}
+                </Stack>
+              ))}
+            </Stack>
+            {remainingCount > 0 && (
+              <Box sx={{pt: 1, textAlign: 'center'}}>
+                <Chip
+                  label={
+                    expandedResourceServers
+                      ? t('importExport:configureExport.actions.showLess')
+                      : t('importExport:configureExport.actions.more', {count: remainingCount})
+                  }
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setExpandedResourceServers(!expandedResourceServers)}
+                  sx={{cursor: 'pointer'}}
+                />
+              </Box>
+            )}
+          </Stack>
+        </Box>
+      ),
+    });
+  }
+
+  // Add roles if present
+  if (rolesCount > 0) {
+    const roles = (configData?.role as {name?: string; handle?: string; description?: string}[]) ?? [];
+    const displayedRoles = expandedRoles ? roles : roles.slice(0, 5);
+    const remainingCount = roles.length - 5;
+
+    items.push({
+      id: 'roles',
+      label: t('importExport:configureExport.labels.roles'),
+      icon: <Key size={16} />,
+      value: rolesCount,
+      status: 'ready',
+      dependencyCount: 0,
+      content: (
+        <Box sx={{px: 3, py: 2, bgcolor: 'background.default'}}>
+          <Stack spacing={2}>
+            <Stack spacing={2} divider={<Box sx={{borderBottom: 1, borderColor: 'divider'}} />}>
+              {displayedRoles.map((role, idx) => (
+                <Stack key={role.handle ?? role.name ?? `role-${idx}`} spacing={0.5}>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Key size={14} />
+                    <Typography variant="body2" fontWeight={600}>
+                      {role.name ?? role.handle ?? t('importExport:configureExport.fallback.unnamedRole')}
+                    </Typography>
+                  </Stack>
+                  {role.description && (
+                    <Typography variant="caption" color="text.secondary" sx={{pl: 2.5}}>
+                      {role.description}
+                    </Typography>
+                  )}
+                  {role.handle && role.name !== role.handle && (
+                    <Typography variant="caption" color="text.secondary" sx={{pl: 2.5, fontFamily: 'monospace'}}>
+                      {role.handle}
+                    </Typography>
+                  )}
+                </Stack>
+              ))}
+            </Stack>
+            {remainingCount > 0 && (
+              <Box sx={{pt: 1, textAlign: 'center'}}>
+                <Chip
+                  label={
+                    expandedRoles
+                      ? t('importExport:configureExport.actions.showLess')
+                      : t('importExport:configureExport.actions.more', {count: remainingCount})
+                  }
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setExpandedRoles(!expandedRoles)}
                   sx={{cursor: 'pointer'}}
                 />
               </Box>
