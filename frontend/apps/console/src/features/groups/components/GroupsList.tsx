@@ -173,8 +173,8 @@ export default function GroupsList(): JSX.Element {
             pageSizeOptions={[5, 10, 25]}
             disableRowSelectionOnClick
             localeText={dataGridLocaleText}
+            autoHeight
             sx={{
-              height: 'auto',
               '& .MuiDataGrid-row': {
                 cursor: 'pointer',
               },

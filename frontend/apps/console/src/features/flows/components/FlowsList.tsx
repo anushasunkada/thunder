@@ -188,8 +188,8 @@ export default function FlowsList(): JSX.Element {
             pageSizeOptions={[5, 10, 25, 50]}
             disableRowSelectionOnClick
             localeText={dataGridLocaleText}
+            autoHeight
             sx={{
-              height: 'auto',
               '& .MuiDataGrid-row.row-clickable': {
                 cursor: 'pointer',
               },

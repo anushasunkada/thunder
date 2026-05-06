@@ -209,8 +209,8 @@ export default function UserTypesList() {
             pageSizeOptions={[5, 10, 25, 50]}
             disableRowSelectionOnClick
             localeText={dataGridLocaleText}
+            autoHeight
             sx={{
-              height: 'auto',
               '& .MuiDataGrid-row': {
                 cursor: 'pointer',
               },

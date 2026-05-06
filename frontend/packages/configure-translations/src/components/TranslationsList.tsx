@@ -159,8 +159,8 @@ export default function TranslationsList(): JSX.Element {
             rowHeight={56}
             disableRowSelectionOnClick
             localeText={dataGridLocaleText}
+            autoHeight
             sx={{
-              height: 'auto',
               '& .MuiDataGrid-row': {
                 cursor: 'pointer',
               },
