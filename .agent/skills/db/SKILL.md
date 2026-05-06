@@ -1,3 +1,8 @@
+---
+name: db
+description: Database schema and query conventions for Thunder. Use when changing schema scripts, defining SQL queries, updating store constants, or reviewing deployment-scoped persistence rules.
+---
+
 # Database Schema Design Principles and Conventions
 
 This document explains the database schema design principles and conventions used in Thunder. AI agents and contributors should follow these conventions when generating or modifying database schemas and queries.
@@ -31,7 +36,7 @@ Do not use composite names such as `USER_ID` or `APPLICATION_ID` for a primary k
 
 ```sql
 -- Correct
-CREATE TABLE APPLICATION (
+CREATE TABLE "APPLICATION" (
     ID VARCHAR(36) PRIMARY KEY,
     ...
 );
@@ -49,7 +54,7 @@ Association (join) tables that model many-to-many relationships use composite pr
 
 ```sql
 -- Example: role assignments use a composite primary key
-CREATE TABLE ROLE_ASSIGNMENT (
+CREATE TABLE "ROLE_ASSIGNMENT" (
     DEPLOYMENT_ID   VARCHAR(255) NOT NULL,
     ROLE_ID         VARCHAR(36) NOT NULL,
     ASSIGNEE_TYPE   VARCHAR(5)  NOT NULL CHECK (ASSIGNEE_TYPE IN ('user', 'group')),
@@ -91,7 +96,7 @@ Thunder supports multi-deployment scenarios where a single database instance may
 Every table includes a `DEPLOYMENT_ID` column defined as `VARCHAR(255) NOT NULL`.
 
 ```sql
-CREATE TABLE IDP (
+CREATE TABLE "IDP" (
     DEPLOYMENT_ID VARCHAR(255) NOT NULL,
     ID VARCHAR(36) PRIMARY KEY,
     NAME VARCHAR(255) NOT NULL,
@@ -105,12 +110,21 @@ Although UUID v7 identifiers are globally unique, queries must still filter by `
 
 `DEPLOYMENT_ID` is the last parameter in all parameterized queries. Follow these patterns consistently.
 
+### Identifier Casing and Quoting
+
+Use uppercase table names wrapped in double quotes in schema scripts and embedded SQL.
+
+- Write table names as `"TABLE_NAME"`, not bare identifiers.
+- Apply this consistently in `CREATE TABLE`, `CREATE INDEX ... ON`, `FOREIGN KEY ... REFERENCES`, and all `SELECT` / `INSERT` / `UPDATE` / `DELETE` statements.
+- Keep Go query strings aligned with the schema scripts; do not mix quoted uppercase names with unquoted identifiers for the same table.
+- This avoids PostgreSQL case-folding surprises and keeps reserved-word tables such as `"ROLE"` and `"GROUP"` consistent with the rest of the schema.
+
 #### INSERT
 
 Add `DEPLOYMENT_ID` as the last column in the column list and the last parameter in `VALUES`.
 
 ```sql
-INSERT INTO IDP (ID, NAME, DESCRIPTION, TYPE, PROPERTIES, DEPLOYMENT_ID)
+INSERT INTO "IDP" (ID, NAME, DESCRIPTION, TYPE, PROPERTIES, DEPLOYMENT_ID)
 VALUES ($1, $2, $3, $4, $5, $6)
 ```
 
@@ -120,7 +134,7 @@ Add `AND DEPLOYMENT_ID = $N` as the final condition in the `WHERE` clause.
 
 ```sql
 SELECT ID, NAME, DESCRIPTION, TYPE, PROPERTIES
-FROM IDP
+FROM "IDP"
 WHERE ID = $1 AND DEPLOYMENT_ID = $2
 ```
 
@@ -129,7 +143,7 @@ WHERE ID = $1 AND DEPLOYMENT_ID = $2
 Add `AND DEPLOYMENT_ID = $N` as the last condition in the `WHERE` clause.
 
 ```sql
-UPDATE IDP
+UPDATE "IDP"
 SET NAME = $2, DESCRIPTION = $3, TYPE = $4, PROPERTIES = $5
 WHERE ID = $1 AND DEPLOYMENT_ID = $6
 ```
@@ -139,7 +153,7 @@ WHERE ID = $1 AND DEPLOYMENT_ID = $6
 Add `AND DEPLOYMENT_ID = $N` as the last condition in the `WHERE` clause.
 
 ```sql
-DELETE FROM IDP
+DELETE FROM "IDP"
 WHERE ID = $1 AND DEPLOYMENT_ID = $2
 ```
 
@@ -149,8 +163,8 @@ Include `DEPLOYMENT_ID` in `JOIN` conditions and `WHERE` clauses.
 
 ```sql
 SELECT f.ID, f.HANDLE, f.NAME, fv.NODES
-FROM FLOW f
-INNER JOIN FLOW_VERSION fv
+FROM "FLOW" f
+INNER JOIN "FLOW_VERSION" fv
     ON f.ID = fv.FLOW_ID
     AND f.DEPLOYMENT_ID = fv.DEPLOYMENT_ID
     AND f.ACTIVE_VERSION = fv.VERSION
@@ -188,7 +202,7 @@ CREATE INDEX idx_user_ou_deployment ON "USER" (DEPLOYMENT_ID, OU_ID);
 Tables in `runtimedb` that include an `EXPIRY_TIME` column should have a dedicated index on that column to support efficient cleanup queries.
 
 ```sql
-CREATE INDEX idx_authz_code_expiry_time ON AUTHORIZATION_CODE (EXPIRY_TIME);
+CREATE INDEX idx_authz_code_expiry_time ON "AUTHORIZATION_CODE" (EXPIRY_TIME);
 ```
 
 ## Runtime Database Expiry Handling
@@ -219,7 +233,7 @@ When selecting runtime data, compare `EXPIRY_TIME` with current time and keep `D
 
 ```sql
 SELECT AUTH_ID, REQUEST_DATA, EXPIRY_TIME
-FROM AUTHORIZATION_REQUEST
+FROM "AUTHORIZATION_REQUEST"
 WHERE AUTH_ID = $1 AND EXPIRY_TIME > $2 AND DEPLOYMENT_ID = $3
 ```
 
@@ -239,11 +253,11 @@ AS $$
 DECLARE
     v_now TIMESTAMP := NOW() AT TIME ZONE 'UTC';
 BEGIN
-    DELETE FROM FLOW_CONTEXT          WHERE EXPIRY_TIME < v_now;
-    DELETE FROM AUTHORIZATION_CODE    WHERE EXPIRY_TIME < v_now;
-    DELETE FROM AUTHORIZATION_REQUEST WHERE EXPIRY_TIME < v_now;
-    DELETE FROM WEBAUTHN_SESSION      WHERE EXPIRY_TIME < v_now;
-    DELETE FROM ATTRIBUTE_CACHE       WHERE EXPIRY_TIME < v_now;
+    DELETE FROM "FLOW_CONTEXT"          WHERE EXPIRY_TIME < v_now;
+    DELETE FROM "AUTHORIZATION_CODE"    WHERE EXPIRY_TIME < v_now;
+    DELETE FROM "AUTHORIZATION_REQUEST" WHERE EXPIRY_TIME < v_now;
+    DELETE FROM "WEBAUTHN_SESSION"      WHERE EXPIRY_TIME < v_now;
+    DELETE FROM "ATTRIBUTE_CACHE"       WHERE EXPIRY_TIME < v_now;
 END;
 $$;
 ```
@@ -257,7 +271,7 @@ Queries are defined as `DBQuery` values from `internal/system/database/model`. E
 ```go
 var queryGetIDPByID = model.DBQuery{
     ID:    "IPQ-IDP_MGT-02",
-    Query: "SELECT ID, NAME, DESCRIPTION, TYPE, PROPERTIES FROM IDP WHERE ID = $1 AND DEPLOYMENT_ID = $2",
+    Query: "SELECT ID, NAME, DESCRIPTION, TYPE, PROPERTIES FROM \"IDP\" WHERE ID = $1 AND DEPLOYMENT_ID = $2",
 }
 ```
 
@@ -268,11 +282,11 @@ When query syntax differs between PostgreSQL and SQLite, define both variants us
 ```go
 var queryUpsertTranslation = dbmodel.DBQuery{
     ID:    "I18N-06",
-    Query: `INSERT INTO TRANSLATION (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID)
+    Query: `INSERT INTO "TRANSLATION" (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (DEPLOYMENT_ID, NAMESPACE, MESSAGE_KEY, LANGUAGE_CODE)
             DO UPDATE SET VALUE = excluded.VALUE, UPDATED_AT = NOW()`,
-    SQLiteQuery: `INSERT INTO TRANSLATION (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID)
+    SQLiteQuery: `INSERT INTO "TRANSLATION" (MESSAGE_KEY, LANGUAGE_CODE, NAMESPACE, VALUE, DEPLOYMENT_ID)
                   VALUES ($1, $2, $3, $4, $5)
                   ON CONFLICT (DEPLOYMENT_ID, NAMESPACE, MESSAGE_KEY, LANGUAGE_CODE)
                   DO UPDATE SET VALUE = excluded.VALUE, UPDATED_AT = datetime('now')`,
@@ -311,3 +325,4 @@ Use a consistent prefix per store and increment the sequence number for each new
 | Association table expiry column | Omit `EXPIRY_TIME` when lifecycle is inherited via `ON DELETE CASCADE`; add it only if association rows expire independently. |
 | Expired data cleanup | Use `backend/dbscripts/runtimedb/postgres-cleanup.sql` and `backend/scripts/cleanup_runtime_db.sh`; keep both updated when runtime tables change. |
 | Query declaration format | Define queries as `DBQuery` values with unique query IDs. |
+| Table identifier format | Use uppercase table names in double quotes in schema scripts and embedded SQL. |
