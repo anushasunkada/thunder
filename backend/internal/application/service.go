@@ -1228,6 +1228,8 @@ func translateInboundClientFKError(err error) *serviceerror.ServiceError {
 		return &ErrorInvalidUserType
 	case errors.Is(err, inboundclient.ErrUserSchemaLookupFailed):
 		return &serviceerror.InternalServerError
+	case errors.Is(err, inboundclient.ErrInvalidUserAttribute):
+		return &ErrorInvalidUserAttribute
 	default:
 		return nil
 	}

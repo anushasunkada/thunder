@@ -133,6 +133,10 @@ func (s *inboundClientService) CreateInboundClient(ctx context.Context, client *
 	if fkErr := s.validateFKs(ctx, client); fkErr != nil {
 		return fkErr
 	}
+	if err := s.validateUserAttributesAgainstAllowedTypes(
+		ctx, client.AllowedUserTypes, client.Assertion, oauthProfile); err != nil {
+		return err
+	}
 	if oauthProfile != nil {
 		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
 			return vErr
@@ -202,6 +206,10 @@ func (s *inboundClientService) UpdateInboundClient(ctx context.Context, client *
 	if fkErr := s.validateFKs(ctx, client); fkErr != nil {
 		return fkErr
 	}
+	if err := s.validateUserAttributesAgainstAllowedTypes(
+		ctx, client.AllowedUserTypes, client.Assertion, oauthProfile); err != nil {
+		return err
+	}
 	if oauthProfile != nil {
 		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
 			return vErr
@@ -264,6 +272,10 @@ func (s *inboundClientService) Validate(ctx context.Context, client *inboundmode
 	}
 	if fkErr := s.validateFKs(ctx, client); fkErr != nil {
 		return fkErr
+	}
+	if err := s.validateUserAttributesAgainstAllowedTypes(
+		ctx, client.AllowedUserTypes, client.Assertion, oauthProfile); err != nil {
+		return err
 	}
 	if oauthProfile != nil {
 		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
@@ -996,6 +1008,100 @@ func (s *inboundClientService) validateAllowedUserTypes(
 		}
 	}
 	return nil
+}
+
+// validateUserAttributesAgainstAllowedTypes validates that every user attribute specified in the
+// assertion, token, and userinfo configs is a non-credential attribute defined in at least one
+// of the application's allowed entity types. Returns ErrInvalidUserAttribute when any attribute
+// fails the check.
+func (s *inboundClientService) validateUserAttributesAgainstAllowedTypes(
+	ctx context.Context,
+	allowedEntityTypes []string,
+	assertion *inboundmodel.AssertionConfig,
+	oauthProfile *inboundmodel.OAuthProfile,
+) error {
+	if len(allowedEntityTypes) == 0 || s.entityType == nil {
+		return nil
+	}
+
+	attrs := collectConfiguredUserAttributes(assertion, oauthProfile)
+	if len(attrs) == 0 {
+		return nil
+	}
+
+	validAttrs := make(map[string]bool)
+	for _, entityTypeName := range allowedEntityTypes {
+		attrInfos, svcErr := s.entityType.GetNonCredentialAttributes(
+			security.WithRuntimeContext(ctx), entitytype.TypeCategoryUser, entityTypeName, false)
+		if svcErr != nil {
+			if svcErr.Type == serviceerror.ServerErrorType {
+				return ErrUserSchemaLookupFailed
+			}
+			return ErrFKInvalidUserType
+		}
+		for _, info := range attrInfos {
+			validAttrs[info.Attribute] = true
+		}
+	}
+
+	for attr := range attrs {
+		if isComputedAttribute(attr) {
+			continue
+		}
+		if !validAttrs[attr] {
+			return ErrInvalidUserAttribute
+		}
+	}
+	return nil
+}
+
+// isComputedAttribute returns true for attributes that are derived at runtime (e.g. from group
+// memberships or OU associations) and are not defined in the entity type schema.
+func isComputedAttribute(attr string) bool {
+	switch attr {
+	case oauth2const.UserAttributeGroups,
+		oauth2const.UserAttributeRoles,
+		oauth2const.ClaimOUID,
+		oauth2const.ClaimOUName,
+		oauth2const.ClaimOUHandle,
+		oauth2const.ClaimUserType:
+		return true
+	}
+	return false
+}
+
+// collectConfiguredUserAttributes returns the distinct set of user attribute names explicitly
+// configured across assertion, access token, ID token, and userinfo configs.
+func collectConfiguredUserAttributes(
+	assertion *inboundmodel.AssertionConfig,
+	oauthProfile *inboundmodel.OAuthProfile,
+) map[string]bool {
+	attrs := make(map[string]bool)
+	if assertion != nil {
+		for _, a := range assertion.UserAttributes {
+			attrs[a] = true
+		}
+	}
+	if oauthProfile != nil {
+		if oauthProfile.Token != nil {
+			if oauthProfile.Token.AccessToken != nil {
+				for _, a := range oauthProfile.Token.AccessToken.UserAttributes {
+					attrs[a] = true
+				}
+			}
+			if oauthProfile.Token.IDToken != nil {
+				for _, a := range oauthProfile.Token.IDToken.UserAttributes {
+					attrs[a] = true
+				}
+			}
+		}
+		if oauthProfile.UserInfo != nil {
+			for _, a := range oauthProfile.UserInfo.UserAttributes {
+				attrs[a] = true
+			}
+		}
+	}
+	return attrs
 }
 
 // applyInboundDefaults fills default values for assertion, OAuth tokens, user info, and scope claims.

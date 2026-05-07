@@ -70,9 +70,9 @@ func newServiceWithCert(certService cert.CertificateServiceInterface) *inboundCl
 	return svc.(*inboundClientService)
 }
 
-func validInboundClient(id string) inboundmodel.InboundClient {
+func validInboundClient() inboundmodel.InboundClient {
 	return inboundmodel.InboundClient{
-		ID:                        id,
+		ID:                        "p1",
 		AuthFlowID:                "flow-1",
 		RegistrationFlowID:        "reg-1",
 		IsRegistrationFlowEnabled: true,
@@ -80,11 +80,20 @@ func validInboundClient(id string) inboundmodel.InboundClient {
 }
 
 func ptrInboundClient() *inboundmodel.InboundClient {
-	c := validInboundClient("p1")
+	c := validInboundClient()
 	return &c
 }
 
 func validOAuthProfile() *inboundmodel.OAuthProfile {
+	return &inboundmodel.OAuthProfile{
+		RedirectURIs:            []string{"https://app.example.com/cb"},
+		GrantTypes:              []string{"authorization_code"},
+		ResponseTypes:           []string{"code"},
+		TokenEndpointAuthMethod: "client_secret_basic",
+	}
+}
+
+func validOAuthProfileData() *inboundmodel.OAuthProfile {
 	return &inboundmodel.OAuthProfile{
 		RedirectURIs:            []string{"https://app.example.com/cb"},
 		GrantTypes:              []string{"authorization_code"},
@@ -165,7 +174,7 @@ func (suite *InboundClientServiceTestSuite) TestDeleteInboundClient_RefusesDecla
 func (suite *InboundClientServiceTestSuite) TestDelegatesPlainReads() {
 	store := newInboundClientStoreInterfaceMock(suite.T())
 	store.EXPECT().GetInboundClientList(mock.Anything, mock.Anything).
-		Return([]inboundmodel.InboundClient{validInboundClient("p1")}, nil)
+		Return([]inboundmodel.InboundClient{validInboundClient()}, nil)
 	store.EXPECT().IsDeclarative(mock.Anything, "p1").Return(true)
 
 	svc := newServiceForTest(store)
@@ -1703,4 +1712,315 @@ func (suite *InboundClientServiceTestSuite) TestGetOAuthClientByClientID_StoreEr
 	got, err := svc.GetOAuthClientByClientID(context.Background(), "x")
 	assert.ErrorIs(suite.T(), err, storeErr)
 	assert.Nil(suite.T(), got)
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_AllNil() {
+	out := collectConfiguredUserAttributes(nil, nil)
+	assert.Empty(suite.T(), out)
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_AssertionOnly() {
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email", "name"}}
+	out := collectConfiguredUserAttributes(assertion, nil)
+	assert.Len(suite.T(), out, 2)
+	assert.True(suite.T(), out["email"])
+	assert.True(suite.T(), out["name"])
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_AccessTokenOnly() {
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			AccessToken: &inboundmodel.AccessTokenConfig{UserAttributes: []string{"email"}},
+		},
+	}
+	out := collectConfiguredUserAttributes(nil, p)
+	assert.Len(suite.T(), out, 1)
+	assert.True(suite.T(), out["email"])
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_IDTokenOnly() {
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			IDToken: &inboundmodel.IDTokenConfig{UserAttributes: []string{"sub"}},
+		},
+	}
+	out := collectConfiguredUserAttributes(nil, p)
+	assert.Len(suite.T(), out, 1)
+	assert.True(suite.T(), out["sub"])
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_UserInfoOnly() {
+	p := &inboundmodel.OAuthProfile{
+		UserInfo: &inboundmodel.UserInfoConfig{UserAttributes: []string{"phone"}},
+	}
+	out := collectConfiguredUserAttributes(nil, p)
+	assert.Len(suite.T(), out, 1)
+	assert.True(suite.T(), out["phone"])
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_DedupsAcrossAllSources() {
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			AccessToken: &inboundmodel.AccessTokenConfig{UserAttributes: []string{"email", "name"}},
+			IDToken:     &inboundmodel.IDTokenConfig{UserAttributes: []string{"name", "phone"}},
+		},
+		UserInfo: &inboundmodel.UserInfoConfig{UserAttributes: []string{"email", "picture"}},
+	}
+	out := collectConfiguredUserAttributes(assertion, p)
+	assert.Len(suite.T(), out, 4)
+	assert.True(suite.T(), out["email"])
+	assert.True(suite.T(), out["name"])
+	assert.True(suite.T(), out["phone"])
+	assert.True(suite.T(), out["picture"])
+}
+
+func (suite *InboundClientServiceTestSuite) TestCollectConfiguredUserAttributes_NilSubFields() {
+	p := &inboundmodel.OAuthProfile{
+		Token:    &inboundmodel.OAuthTokenConfig{},
+		UserInfo: nil,
+	}
+	out := collectConfiguredUserAttributes(nil, p)
+	assert.Empty(suite.T(), out)
+}
+
+// ----- validateUserAttributesAgainstAllowedTypes -----
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_NoOpWhenNoAllowedTypes() {
+	svc := &inboundClientService{}
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), nil, assertion, nil))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_NoOpWhenNoEntityTypeService() {
+	svc := &inboundClientService{}
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, assertion, nil))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_NoOpWhenNoAttributesConfigured() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, nil))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_ValidAssertionAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}, {Attribute: "name"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, assertion, nil))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_InvalidAssertionAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"banana"}}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, assertion, nil), ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_ValidAccessTokenAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			AccessToken: &inboundmodel.AccessTokenConfig{UserAttributes: []string{"email"}},
+		},
+	}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, p))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_InvalidAccessTokenAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			AccessToken: &inboundmodel.AccessTokenConfig{UserAttributes: []string{"unknown_attr"}},
+		},
+	}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, p), ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_InvalidIDTokenAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			IDToken: &inboundmodel.IDTokenConfig{UserAttributes: []string{"ghost"}},
+		},
+	}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, p), ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_InvalidUserInfoAttribute() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	p := &inboundmodel.OAuthProfile{
+		UserInfo: &inboundmodel.UserInfoConfig{UserAttributes: []string{"ghost"}},
+	}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, p), ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_ClientErrorMapsToFKError() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return(nil, &serviceerror.ServiceError{Type: serviceerror.ClientErrorType, Code: "ERR"})
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, assertion, nil), ErrFKInvalidUserType)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_ServerErrorMapsToLookupFailed() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return(nil, &serviceerror.ServiceError{Type: serviceerror.ServerErrorType, Code: "SRV"})
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email"}}
+	assert.ErrorIs(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, assertion, nil), ErrUserSchemaLookupFailed)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_UnionAcrossMultipleTypes() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "contractor", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "agency_name"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	// "agency_name" only exists in contractor — still valid because union semantics are used.
+	assertion := &inboundmodel.AssertionConfig{UserAttributes: []string{"email", "agency_name"}}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee", "contractor"}, assertion, nil))
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidateUserAttributes_ComputedAttributesSkipSchemaCheck() {
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+	svc := &inboundClientService{entityType: us, logger: log.GetLogger()}
+
+	// Computed attributes (groups, roles, ouId, ouName, ouHandle, userType) are derived at runtime
+	// and are not in the entity schema — they must be accepted without failing validation.
+	p := &inboundmodel.OAuthProfile{
+		Token: &inboundmodel.OAuthTokenConfig{
+			AccessToken: &inboundmodel.AccessTokenConfig{
+				UserAttributes: []string{"email", "groups", "ouId", "ouName", "ouHandle", "roles", "userType"},
+			},
+			IDToken: &inboundmodel.IDTokenConfig{
+				UserAttributes: []string{"groups", "ouId"},
+			},
+		},
+		UserInfo: &inboundmodel.UserInfoConfig{
+			UserAttributes: []string{"groups", "roles"},
+		},
+	}
+	assert.NoError(suite.T(), svc.validateUserAttributesAgainstAllowedTypes(
+		context.Background(), []string{"employee"}, nil, p))
+}
+
+// ----- CreateInboundClient / UpdateInboundClient / Validate — user attribute validation wired in -----
+
+func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_RejectsInvalidUserAttribute() {
+	store := newInboundClientStoreInterfaceMock(suite.T())
+	store.EXPECT().IsDeclarative(mock.Anything, "p1").Return(false)
+
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+		&entitytypepkg.EntityTypeListResponse{
+			TotalResults: 1,
+			Schemas:      []entitytypepkg.EntityTypeListItem{{Name: "employee"}},
+		}, nil)
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+
+	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+
+	c := validInboundClient()
+	c.AllowedUserTypes = []string{"employee"}
+	c.Assertion = &inboundmodel.AssertionConfig{UserAttributes: []string{"not_a_real_attr"}}
+
+	err := svc.CreateInboundClient(context.Background(), &c, nil, nil, false, "")
+	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_RejectsInvalidUserAttribute() {
+	store := newInboundClientStoreInterfaceMock(suite.T())
+	store.EXPECT().IsDeclarative(mock.Anything, "p1").Return(false)
+
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+		&entitytypepkg.EntityTypeListResponse{
+			TotalResults: 1,
+			Schemas:      []entitytypepkg.EntityTypeListItem{{Name: "employee"}},
+		}, nil)
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+
+	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+
+	c := validInboundClient()
+	c.AllowedUserTypes = []string{"employee"}
+	p := validOAuthProfileData()
+	p.UserInfo = &inboundmodel.UserInfoConfig{UserAttributes: []string{"ghost"}}
+
+	err := svc.UpdateInboundClient(context.Background(), &c, nil, p, true, "", "")
+	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
+}
+
+func (suite *InboundClientServiceTestSuite) TestValidate_RejectsInvalidUserAttribute() {
+	store := newInboundClientStoreInterfaceMock(suite.T())
+
+	us := entitytypemock.NewEntityTypeServiceInterfaceMock(suite.T())
+	// validateAllowedUserTypes (called by validateFKs) checks entity type existence via GetEntityTypeList.
+	us.EXPECT().GetEntityTypeList(mock.Anything, mock.Anything, mock.Anything, 0, false).Return(
+		&entitytypepkg.EntityTypeListResponse{
+			TotalResults: 1,
+			Schemas:      []entitytypepkg.EntityTypeListItem{{Name: "employee"}},
+		}, nil)
+	us.EXPECT().GetNonCredentialAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false).
+		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
+
+	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+
+	c := validInboundClient()
+	c.AllowedUserTypes = []string{"employee"}
+	p := validOAuthProfileData()
+	p.Token = &inboundmodel.OAuthTokenConfig{
+		AccessToken: &inboundmodel.AccessTokenConfig{UserAttributes: []string{"bad_attr"}},
+	}
+
+	err := svc.Validate(context.Background(), &c, p, true)
+	assert.ErrorIs(suite.T(), err, ErrInvalidUserAttribute)
 }

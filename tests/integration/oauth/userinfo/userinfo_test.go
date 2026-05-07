@@ -276,7 +276,7 @@ func (ts *UserInfoTestSuite) createTestApplication(authFlowID string) string {
 					"scopes":                  []string{"openid", "profile", "email"},
 					"token": map[string]interface{}{
 						"idToken": map[string]interface{}{
-							"userAttributes": []string{"email", "given_name", "family_name", "name"},
+							"userAttributes": []string{"email", "given_name", "family_name"},
 						},
 					},
 					"scopeClaims": map[string][]string{

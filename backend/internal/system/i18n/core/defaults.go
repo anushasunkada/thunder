@@ -174,6 +174,8 @@ var defaultMessages = map[string]string{
 	"error.applicationservice.invalid_response_type_description": "One or more provided response types are invalid",
 	"error.applicationservice.invalid_token_endpoint_auth_method": "Invalid token endpoint authentication method",
 	"error.applicationservice.invalid_token_endpoint_auth_method_description": "The provided token endpoint authentication method is invalid",
+	"error.applicationservice.invalid_user_attribute": "Invalid user attribute",
+	"error.applicationservice.invalid_user_attribute_description": "One or more user attributes are not valid for the configured allowed user types",
 	"error.applicationservice.invalid_user_type": "Invalid user type",
 	"error.applicationservice.invalid_user_type_description": "One or more user types in allowed_user_types do not exist in the system",
 	"error.applicationservice.layout_not_found": "Layout not found",

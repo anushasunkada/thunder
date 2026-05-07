@@ -474,4 +474,18 @@ var (
 			DefaultValue: "An application may have at most one inbound auth config per protocol",
 		},
 	}
+	// ErrorInvalidUserAttribute is the error returned when a user attribute is not valid for any
+	// of the application's allowed user types.
+	ErrorInvalidUserAttribute = serviceerror.ServiceError{
+		Type: serviceerror.ClientErrorType,
+		Code: "APP-1035",
+		Error: core.I18nMessage{
+			Key:          "error.applicationservice.invalid_user_attribute",
+			DefaultValue: "Invalid user attribute",
+		},
+		ErrorDescription: core.I18nMessage{
+			Key:          "error.applicationservice.invalid_user_attribute_description",
+			DefaultValue: "One or more user attributes are not valid for the configured allowed user types",
+		},
+	}
 )

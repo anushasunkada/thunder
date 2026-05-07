@@ -62,6 +62,8 @@ var (
 	// while validating allowed user types. Distinct from ErrFKInvalidUserType so the handler
 	// can map it to a server error instead of a client validation error.
 	ErrUserSchemaLookupFailed = errors.New("user schema lookup failed")
+	// ErrInvalidUserAttribute is returned when a user attribute is not valid for any of the allowed user types.
+	ErrInvalidUserAttribute = errors.New("invalid user attribute")
 
 	// ErrOAuthInvalidRedirectURI is returned when the redirect URI is invalid.
 	ErrOAuthInvalidRedirectURI = errors.New("invalid redirect URI")
