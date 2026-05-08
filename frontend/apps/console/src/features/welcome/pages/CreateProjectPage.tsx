@@ -150,7 +150,7 @@ export default function CreateProjectPage(): JSX.Element {
                   mx: 'auto',
                 }}
               >
-                {t('common:welcome.createProject.subtitle')}
+                {t('common:welcome.createProject.subtitle', {productName})}
               </Typography>
             </Box>
 
