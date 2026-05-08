@@ -6,6 +6,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/asgardeo/thunder.svg)](https://github.com/asgardeo/thunder/commits/main)
 [![GitHub issues](https://img.shields.io/github/issues/asgardeo/thunder.svg)](https://github.com/asgardeo/thunder/issues)
 [![codecov.io](https://codecov.io/github/asgardeo/thunder/coverage.svg?branch=main)](https://codecov.io/github/asgardeo/thunder?branch=main)
+[![GitHub Release](https://img.shields.io/github/v/release/asgardeo/thunder?color=blue)](https://github.com/asgardeo/thunder/releases/latest)
 
 ThunderID is a lightweight, open-source Identity and Access Management (IAM) engine built to secure access for humans, AI agents, and machines.
 
