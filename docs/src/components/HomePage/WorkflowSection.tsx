@@ -17,14 +17,15 @@
  */
 
 import React, {JSX} from 'react';
-import {Box, Container, Typography} from '@wso2/oxygen-ui';
+import {Box, Container, Typography, useTheme} from '@wso2/oxygen-ui';
 import useIsDarkMode from '../../hooks/useIsDarkMode';
 import useScrollAnimation from '../../hooks/useScrollAnimation';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import { DocusaurusProductConfig } from '@site/docusaurus.product.config';
+import {DocusaurusProductConfig} from '@site/docusaurus.product.config';
 
 export default function WorkflowSection(): JSX.Element {
   const isDark = useIsDarkMode();
+  const theme = useTheme();
   const {ref, isVisible} = useScrollAnimation({threshold: 0.2});
   const {siteConfig} = useDocusaurusContext();
   const productName = (siteConfig.customFields?.product as DocusaurusProductConfig).project.name;
@@ -34,7 +35,6 @@ export default function WorkflowSection(): JSX.Element {
       sx={{
         py: {xs: 8, lg: 12},
         position: 'relative',
-        background: isDark ? '#0a0a0a' : 'transparent',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -43,8 +43,8 @@ export default function WorkflowSection(): JSX.Element {
           right: 0,
           bottom: 0,
           background: isDark
-            ? 'radial-gradient(ellipse at 50% 50%, rgba(255, 107, 0, 0.07) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse at 50% 50%, rgba(255, 107, 0, 0.04) 0%, transparent 60%)',
+            ? `radial-gradient(ellipse at 50% 50%, rgba(${theme.vars?.palette.primary.main} / 0.07) 0%, transparent 60%)`
+            : `radial-gradient(ellipse at 50% 50%, rgba(${theme.vars?.palette.primary.main} / 0.04) 0%, transparent 60%)`,
           pointerEvents: 'none',
         },
       }}
@@ -67,14 +67,14 @@ export default function WorkflowSection(): JSX.Element {
               mb: 2,
               fontSize: {xs: '1.75rem', sm: '2.25rem', md: '2.5rem'},
               fontWeight: 700,
-              color: isDark ? '#ffffff' : '#1a1a2e',
+              color: 'text.primary',
             }}
           >
             Built around your workflow,{' '}
             <Box
               component="span"
               sx={{
-                background: 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)',
+                background: `linear-gradient(90deg, ${theme.vars?.palette.primary.dark} 0%, ${theme.vars?.palette.primary.main} 100%)`,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -88,7 +88,7 @@ export default function WorkflowSection(): JSX.Element {
             sx={{
               fontSize: {xs: '0.95rem', sm: '1.1rem'},
               lineHeight: 1.7,
-              color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.55)',
+              color: 'text.secondary',
             }}
           >
             {productName} is engineered from the ground up to fit your workflows and toolbox, not dictate them.

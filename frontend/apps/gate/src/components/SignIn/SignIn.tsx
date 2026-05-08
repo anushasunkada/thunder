@@ -18,6 +18,7 @@
 
 import {useAsgardeo} from '@asgardeo/react';
 import {useDesign, AuthPageLayout} from '@thunderid/design';
+import {ParticleBackground} from '@wso2/oxygen-ui';
 import type {JSX} from 'react';
 import SignInBox from './SignInBox';
 import SignInSlogan from './SignInSlogan';
@@ -30,6 +31,7 @@ export default function SignIn(): JSX.Element {
 
   return (
     <AuthPageLayout isLoading={isMetaLoading || isDesignLoading} variant="SignIn">
+      {showSlogan && <ParticleBackground opacity={0.5} />}
       {showSlogan && <SignInSlogan />}
       <SignInBox />
     </AuthPageLayout>

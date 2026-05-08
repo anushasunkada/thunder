@@ -17,8 +17,9 @@
  */
 
 import {useLocation} from '@docusaurus/router';
+import {DefaultTheme} from '@thunderid/design';
 import {LoggerProvider, LogLevel} from '@thunderid/logger/react';
-import {OxygenUIThemeProvider, AcrylicOrangeTheme} from '@wso2/oxygen-ui';
+import {OxygenUIThemeProvider} from '@wso2/oxygen-ui';
 import React, {PropsWithChildren, useEffect} from 'react';
 import {applyPersona, PERSONAS, type Persona} from './NavbarItem/PersonaDropdown';
 
@@ -47,7 +48,7 @@ export default function Root({children = null}: PropsWithChildren<Record<string,
   }, []);
 
   return (
-    <OxygenUIThemeProvider theme={AcrylicOrangeTheme}>
+    <OxygenUIThemeProvider theme={DefaultTheme}>
       <LoggerProvider
         logger={{
           level: LogLevel.DEBUG,

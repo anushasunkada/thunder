@@ -18,11 +18,11 @@
 
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import {Box, Card, Container, Typography} from '@wso2/oxygen-ui';
+import {DocusaurusProductConfig} from '@site/docusaurus.product.config';
+import {Box, Card, Container, Typography, useTheme} from '@wso2/oxygen-ui';
 import React, {JSX, ReactNode} from 'react';
 import useIsDarkMode from '../../hooks/useIsDarkMode';
 import useScrollAnimation from '../../hooks/useScrollAnimation';
-import {DocusaurusProductConfig} from '@site/docusaurus.product.config';
 
 interface FeatureCardProps {
   icon: ReactNode;
@@ -34,6 +34,7 @@ interface FeatureCardProps {
 
 function HighlightCard({icon, title, description, index, isVisible}: FeatureCardProps) {
   const isDark = useIsDarkMode();
+  const theme = useTheme();
 
   return (
     <Card
@@ -43,10 +44,12 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
         position: 'relative',
         overflow: 'hidden',
         background: isDark
-          ? 'linear-gradient(160deg, rgba(255, 107, 0, 0.1) 0%, rgba(10, 10, 10, 0.95) 60%)'
-          : 'linear-gradient(160deg, rgba(255, 107, 0, 0.07) 0%, rgba(255, 255, 255, 0.97) 60%)',
+          ? `linear-gradient(160deg, rgba(${theme.vars?.palette.primary.main} / 0.1) 0%, rgba(10, 10, 10, 0.95) 60%)`
+          : `linear-gradient(160deg, rgba(${theme.vars?.palette.primary.main} / 0.07) 0%, rgba(255, 255, 255, 0.97) 60%)`,
         border: '1px solid',
-        borderColor: isDark ? 'rgba(255, 140, 0, 0.35)' : 'rgba(255, 107, 0, 0.3)',
+        borderColor: isDark
+          ? `rgba(${theme.vars?.palette.primary.main} / 0.35)`
+          : `rgba(${theme.vars?.palette.primary.main} / 0.3)`,
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(32px)',
         transitionProperty: 'opacity, transform, box-shadow',
@@ -55,7 +58,9 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
         transitionDelay: isVisible ? `${index * 0.07}s` : '0s',
         '&:hover': {
           transform: 'translateY(-6px)',
-          boxShadow: isDark ? '0 20px 48px rgba(255, 107, 0, 0.22)' : '0 20px 48px rgba(255, 107, 0, 0.14)',
+          boxShadow: isDark
+            ? `0 20px 48px rgba(${theme.vars?.palette.primary.main} / 0.22)`
+            : `0 20px 48px rgba(${theme.vars?.palette.primary.main} / 0.14)`,
         },
         '&::before': {
           content: '""',
@@ -64,7 +69,7 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
           left: 0,
           right: 0,
           height: '3px',
-          background: 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 50%, #FFB347 100%)',
+          background: `linear-gradient(90deg, ${theme.vars?.palette.primary.dark} 0%, ${theme.vars?.palette.primary.main} 50%, ${theme.vars?.palette.primary.light} 100%)`,
         },
       }}
     >
@@ -77,13 +82,13 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '14px',
-          background: 'linear-gradient(135deg, rgba(255, 107, 0, 0.22) 0%, rgba(255, 140, 0, 0.12) 100%)',
-          color: '#FF6B00',
-          boxShadow: '0 4px 16px rgba(255, 107, 0, 0.2)',
+          background: `linear-gradient(135deg, rgba(${theme.vars?.palette.primary.main} / 0.22) 0%, rgba(${theme.vars?.palette.primary.main} / 0.12) 100%)`,
+          color: 'primary.main',
+          boxShadow: `0 4px 16px rgba(${theme.vars?.palette.primary.main} / 0.2)`,
           transition: 'transform 0.3s ease, box-shadow 0.3s ease',
           '.MuiCard-root:hover &': {
             transform: 'scale(1.12)',
-            boxShadow: '0 8px 24px rgba(255, 107, 0, 0.32)',
+            boxShadow: `0 8px 24px rgba(${theme.vars?.palette.primary.main} / 0.32)`,
           },
         }}
       >
@@ -96,7 +101,7 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
           mb: 1.5,
           fontSize: '1.05rem',
           letterSpacing: '-0.01em',
-          color: isDark ? '#ffffff' : '#1a1a2e',
+          color: 'text.primary',
         }}
       >
         {title}
@@ -106,7 +111,7 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
         sx={{
           fontSize: '0.875rem',
           lineHeight: 1.75,
-          color: isDark ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.6)',
+          color: 'text.secondary',
         }}
       >
         {description}
@@ -117,6 +122,7 @@ function HighlightCard({icon, title, description, index, isVisible}: FeatureCard
 
 function FeatureCard({icon, title, description, index, isVisible}: FeatureCardProps) {
   const isDark = useIsDarkMode();
+  const theme = useTheme();
 
   return (
     <Card
@@ -126,7 +132,9 @@ function FeatureCard({icon, title, description, index, isVisible}: FeatureCardPr
         transition: 'transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
         bgcolor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
         border: '1px solid',
-        borderColor: isDark ? 'rgba(255, 140, 0, 0.15)' : 'rgba(255, 140, 0, 0.2)',
+        borderColor: isDark
+          ? `rgba(${theme.vars?.palette.primary.main} / 0.15)`
+          : `rgba(${theme.vars?.palette.primary.main} / 0.2)`,
         opacity: isVisible ? 1 : 0,
         transform: isVisible ? 'translateY(0)' : 'translateY(32px)',
         transitionProperty: 'opacity, transform, border-color, box-shadow',
@@ -135,8 +143,10 @@ function FeatureCard({icon, title, description, index, isVisible}: FeatureCardPr
         transitionDelay: isVisible ? `${index * 0.07}s` : '0s',
         '&:hover': {
           transform: 'translateY(-4px)',
-          borderColor: 'rgba(255, 107, 0, 0.5)',
-          boxShadow: isDark ? '0 8px 24px rgba(255, 107, 0, 0.1)' : '0 8px 24px rgba(255, 107, 0, 0.08)',
+          borderColor: `rgba(${theme.vars?.palette.primary.main} / 0.5)`,
+          boxShadow: isDark
+            ? `0 8px 24px rgba(${theme.vars?.palette.primary.main} / 0.1)`
+            : `0 8px 24px rgba(${theme.vars?.palette.primary.main} / 0.08)`,
         },
       }}
     >
@@ -149,18 +159,17 @@ function FeatureCard({icon, title, description, index, isVisible}: FeatureCardPr
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: '10px',
-          bgcolor: isDark ? 'rgba(255, 140, 0, 0.1)' : 'rgba(255, 140, 0, 0.08)',
-          color: '#FF8C00',
+          bgcolor: isDark
+            ? `rgba(${theme.vars?.palette.primary.main} / 0.1)`
+            : `rgba(${theme.vars?.palette.primary.main} / 0.08)`,
+          color: 'primary.main',
           transition: 'transform 0.3s ease',
           '.MuiCard-root:hover &': {transform: 'scale(1.1)'},
         }}
       >
         {icon}
       </Box>
-      <Typography
-        variant="h6"
-        sx={{fontWeight: 600, mb: 1, fontSize: '0.95rem', color: isDark ? '#ffffff' : '#1a1a2e'}}
-      >
+      <Typography variant="h6" sx={{fontWeight: 600, mb: 1, fontSize: '0.95rem', color: 'text.primary'}}>
         {title}
       </Typography>
       <Typography
@@ -168,7 +177,7 @@ function FeatureCard({icon, title, description, index, isVisible}: FeatureCardPr
         sx={{
           fontSize: '0.85rem',
           lineHeight: 1.65,
-          color: isDark ? 'rgba(255, 255, 255, 0.55)' : 'rgba(0, 0, 0, 0.55)',
+          color: 'text.secondary',
         }}
       >
         {description}
@@ -396,14 +405,15 @@ const features = [
 
 export default function ProductOverviewSection(): JSX.Element {
   const isDark = useIsDarkMode();
+  const theme = useTheme();
   const {ref: titleRef, isVisible: titleVisible} = useScrollAnimation({threshold: 0.2});
   const {ref, isVisible} = useScrollAnimation({threshold: 0.05});
   const {siteConfig} = useDocusaurusContext();
   const productName = (siteConfig.customFields?.product as DocusaurusProductConfig).project.name;
 
   return (
-    <Box sx={{py: {xs: 8, lg: 12}, background: isDark ? '#0a0a0a' : 'transparent'}}>
-      <Container maxWidth="xl" sx={{px: {xs: 2, sm: 4}}}>
+    <Box sx={{py: {xs: 8, lg: 12}}}>
+      <Container maxWidth="lg" sx={{px: {xs: 2, sm: 4}}}>
         <Box
           ref={titleRef}
           sx={{
@@ -420,14 +430,14 @@ export default function ProductOverviewSection(): JSX.Element {
               mb: 2,
               fontSize: {xs: '1.75rem', sm: '2.25rem', md: '2.5rem'},
               fontWeight: 700,
-              color: isDark ? '#ffffff' : '#1a1a2e',
+              color: 'text.primary',
             }}
           >
             What is{' '}
             <Box
               component="span"
               sx={{
-                background: 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)',
+                background: `linear-gradient(90deg, ${theme.vars?.palette.primary.dark} 0%, ${theme.vars?.palette.primary.main} 100%)`,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -443,7 +453,7 @@ export default function ProductOverviewSection(): JSX.Element {
               mx: 'auto',
               fontSize: {xs: '0.95rem', sm: '1.05rem'},
               lineHeight: 1.7,
-              color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.55)',
+              color: 'text.secondary',
             }}
           >
             {productName} is an open source IAM stack built in Go, focused on open standards and designed to handle
@@ -462,6 +472,44 @@ export default function ProductOverviewSection(): JSX.Element {
           {features.slice(0, 4).map((feature, index) => (
             <HighlightCard key={feature.title} {...feature} index={index} isVisible={isVisible} />
           ))}
+
+          <Box
+            sx={{
+              gridColumn: '1 / -1',
+              textAlign: 'center',
+              pt: 6,
+              pb: 2,
+              opacity: isVisible ? 1 : 0,
+              transform: isVisible ? 'translateY(0)' : 'translateY(24px)',
+              transition:
+                'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s',
+            }}
+          >
+            <Typography
+              variant="h4"
+              sx={{
+                mb: 1.5,
+                fontSize: {xs: '1.4rem', sm: '1.65rem'},
+                fontWeight: 700,
+                color: 'text.primary',
+              }}
+            >
+              Core capabilities
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                maxWidth: '560px',
+                mx: 'auto',
+                fontSize: {xs: '0.9rem', sm: '1rem'},
+                lineHeight: 1.7,
+                color: 'text.secondary',
+              }}
+            >
+              Everything you need to build, deploy, and scale identity in production.
+            </Typography>
+          </Box>
+
           <Box
             sx={{
               gridColumn: '1 / -1',

@@ -41,7 +41,10 @@ function replaceProductNameInObject(value: unknown, productName: string, product
   }
   if (value !== null && typeof value === 'object') {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, replaceProductNameInObject(v, productName, productSlug)]),
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        replaceProductNameInObject(v, productName, productSlug),
+      ]),
     );
   }
   return value;
@@ -82,8 +85,8 @@ const config: Config = {
       const result = await params.defaultParseFrontMatter(params);
       result.frontMatter = replaceProductNameInObject(
         result.frontMatter,
-        productConfig.project.name as string,
-        (productConfig.project.name as string).toLowerCase(),
+        productConfig.project.name,
+        productConfig.project.name.toLowerCase(),
       ) as Record<string, unknown>;
       return result;
     },
@@ -124,7 +127,12 @@ const config: Config = {
             },
           },
           // Replace {{ProductName}} and {{productSlug}} placeholders inside fenced code blocks at build time.
-          rehypePlugins: [[rehypeProductName, {productName: productConfig.project.name, productSlug: (productConfig.project.name as string).toLowerCase()}]],
+          rehypePlugins: [
+            [
+              rehypeProductName,
+              {productName: productConfig.project.name, productSlug: productConfig.project.name.toLowerCase()},
+            ],
+          ],
         },
         blog: {
           path: 'blog',
@@ -141,11 +149,6 @@ const config: Config = {
   ],
 
   themeConfig: {
-    announcementBar: {
-      id: 'docs_wip',
-      content: '🚧 WIP: Docs are under active development and may change frequently.',
-      isCloseable: false,
-    },
     image: 'assets/images/social-card.png',
     colorMode: {
       respectPrefersColorScheme: true,
@@ -157,8 +160,8 @@ const config: Config = {
         src: '/assets/images/logo.svg',
         srcDark: '/assets/images/logo-inverted.svg',
         alt: `${productConfig.project.name} Logo`,
-        height: '40px',
-        width: '101px',
+        height: '40',
+        width: '150',
       },
       items: [
         {

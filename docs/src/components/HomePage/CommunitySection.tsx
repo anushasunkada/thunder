@@ -16,10 +16,10 @@
  * under the License.
  */
 
-import React, {JSX} from 'react';
-import {Box, Card, Container, Typography} from '@wso2/oxygen-ui';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import type {DocusaurusProductConfig} from '@site/docusaurus.product.config';
+import {Box, Card, Container, Typography, useTheme} from '@wso2/oxygen-ui';
+import React, {JSX} from 'react';
 import useIsDarkMode from '../../hooks/useIsDarkMode';
 import useScrollAnimation from '../../hooks/useScrollAnimation';
 
@@ -34,6 +34,7 @@ interface CommunityCardProps {
 
 function CommunityCard({icon, iconBg, title, description, linkLabel, href}: CommunityCardProps) {
   const isDark = useIsDarkMode();
+  const theme = useTheme();
 
   return (
     <Card
@@ -50,12 +51,12 @@ function CommunityCard({icon, iconBg, title, description, linkLabel, href}: Comm
         transition: 'all 0.3s ease',
         bgcolor: isDark ? 'rgba(255, 255, 255, 0.025)' : 'rgba(0, 0, 0, 0.02)',
         border: '1px solid',
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+        borderColor: 'divider',
         borderRadius: '16px',
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: isDark ? '0 12px 32px rgba(0, 0, 0, 0.4)' : '0 12px 32px rgba(0, 0, 0, 0.1)',
-          borderColor: 'rgba(255, 140, 0, 0.25)',
+          borderColor: `rgba(${theme.vars?.palette.primary.main} / 0.25)`,
           bgcolor: isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(0, 0, 0, 0.03)',
         },
       }}
@@ -70,24 +71,28 @@ function CommunityCard({icon, iconBg, title, description, linkLabel, href}: Comm
           alignItems: 'center',
           justifyContent: 'center',
           background: iconBg,
-          color: '#ffffff',
+          color: 'common.white',
           mb: 3,
         }}
       >
         {icon}
       </Box>
-      <Typography variant="h6" sx={{fontWeight: 600, mb: 1, color: isDark ? '#ffffff' : '#1a1a2e', fontSize: '1.1rem'}}>
+      <Typography variant="h6" sx={{fontWeight: 600, mb: 1, color: 'text.primary', fontSize: '1.1rem'}}>
         {title}
       </Typography>
-      <Typography
-        variant="body2"
-        sx={{mb: 3, color: isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.45)', lineHeight: 1.7, fontSize: '0.9rem'}}
-      >
+      <Typography variant="body2" sx={{mb: 3, color: 'text.secondary', lineHeight: 1.7, fontSize: '0.9rem'}}>
         {description}
       </Typography>
       <Typography
         variant="body2"
-        sx={{mt: 'auto', color: '#FF8C00', fontWeight: 500, fontSize: '0.9rem', transition: 'color 0.2s ease', '&:hover': {color: '#FF6B00'}}}
+        sx={{
+          mt: 'auto',
+          color: 'primary.main',
+          fontWeight: 500,
+          fontSize: '0.9rem',
+          transition: 'color 0.2s ease',
+          '&:hover': {color: 'primary.dark'},
+        }}
       >
         {linkLabel} &rarr;
       </Typography>
@@ -97,7 +102,16 @@ function CommunityCard({icon, iconBg, title, description, linkLabel, href}: Comm
 
 function GitForkIcon() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="18" r="3" />
       <circle cx="6" cy="6" r="3" />
       <circle cx="18" cy="6" r="3" />
@@ -109,7 +123,16 @@ function GitForkIcon() {
 
 function IssueIcon() {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -126,13 +149,13 @@ function DiscordIcon() {
 }
 
 export default function CommunitySection(): JSX.Element {
-  const isDark = useIsDarkMode();
+  const theme = useTheme();
   const {ref, isVisible} = useScrollAnimation({threshold: 0.15});
   const {siteConfig} = useDocusaurusContext();
   const productName = (siteConfig.customFields?.product as DocusaurusProductConfig).project.name;
 
   return (
-    <Box component="section" sx={{py: {xs: 8, lg: 12}, background: isDark ? '#0a0a0a' : 'transparent'}}>
+    <Box component="section" sx={{py: {xs: 8, lg: 12}}}>
       <Container maxWidth="lg" sx={{px: {xs: 2, sm: 4}}}>
         <Box
           ref={ref}
@@ -152,14 +175,14 @@ export default function CommunitySection(): JSX.Element {
               mb: 2,
               fontSize: {xs: '1.75rem', sm: '2.25rem', md: '2.5rem'},
               fontWeight: 700,
-              color: isDark ? '#ffffff' : '#1a1a2e',
+              color: 'text.primary',
             }}
           >
             Join the {productName}{' '}
             <Box
               component="span"
               sx={{
-                background: 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 100%)',
+                background: `linear-gradient(90deg, ${theme.vars?.palette.primary.dark} 0%, ${theme.vars?.palette.primary.main} 100%)`,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -173,12 +196,13 @@ export default function CommunitySection(): JSX.Element {
             sx={{
               mb: 6,
               fontSize: {xs: '0.95rem', sm: '1.05rem'},
-              color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.55)',
+              color: 'text.secondary',
               lineHeight: 1.7,
               maxWidth: '600px',
             }}
           >
-            We're building {productName} with you. Engage with our ever-growing community to get the latest updates, product support, and more.
+            We're building {productName} with you. Engage with our ever-growing community to get the latest updates,
+            product support, and more.
           </Typography>
 
           <Box
@@ -192,7 +216,7 @@ export default function CommunitySection(): JSX.Element {
           >
             <CommunityCard
               icon={<GitForkIcon />}
-              iconBg="linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%)"
+              iconBg={`linear-gradient(135deg, ${theme.vars?.palette.primary.dark} 0%, ${theme.vars?.palette.primary.main} 100%)`}
               title="Contribute"
               description={`Help shape ${productName} by submitting features, fixes, or improvements.`}
               linkLabel="Start Contributing"
