@@ -152,6 +152,9 @@ DOCS_DEFAULT_PORT=3000
 TEST_RUN="${4:-}"
 TEST_PACKAGE="${5:-}"
 
+# PNPM version to use for frontend builds and docs build
+PNPM_VERSION="10.33.4"
+
 # ============================================================================
 # Read Configuration from deployment.yaml
 # ============================================================================
@@ -377,7 +380,7 @@ function build_frontend() {
     # Check if pnpm is installed, if not install it
     if ! command -v pnpm >/dev/null 2>&1; then
         echo "pnpm not found, installing..."
-        npm install -g pnpm
+        npm install -g pnpm@$PNPM_VERSION
     fi
     
     # Navigate to frontend directory and install dependencies
@@ -400,7 +403,7 @@ function build_docs() {
     # Check if pnpm is installed, if not install it
     if ! command -v pnpm >/dev/null 2>&1; then
         echo "pnpm not found, installing..."
-        npm install -g pnpm
+        npm install -g pnpm@$PNPM_VERSION
     fi
     
     # Navigate to frontend directory first to ensure build:docs script can run
@@ -1151,7 +1154,7 @@ function run_frontend() {
     # Check if pnpm is installed, if not install it
     if ! command -v pnpm >/dev/null 2>&1; then
         echo "pnpm not found, installing..."
-        npm install -g pnpm
+        npm install -g pnpm@$PNPM_VERSION
     fi
     
     # Navigate to frontend directory and install dependencies
@@ -1179,7 +1182,7 @@ function run_docs() {
     # Check if pnpm is installed, if not install it
     if ! command -v pnpm >/dev/null 2>&1; then
         echo "pnpm not found, installing..."
-        npm install -g pnpm
+        npm install -g pnpm@$PNPM_VERSION
     fi
     
     # Navigate to frontend directory first to install all dependencies
