@@ -74,7 +74,7 @@ export default function AgentsListPage(): JSX.Element {
               });
             }}
           >
-            {t('agents:listing.addAgent', 'Add agent')}
+            {t('agents:listing.addAgent', 'Add Agent')}
           </Button>
         </PageTitle.Actions>
       </PageTitle>

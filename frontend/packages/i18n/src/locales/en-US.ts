@@ -687,7 +687,7 @@ const translations = {
     // Listing page
     'listing.title': 'Agents',
     'listing.subtitle': 'Manage service identities and machine clients',
-    'listing.addAgent': 'Add agent',
+    'listing.addAgent': 'Add Agent',
     'listing.schema': 'Schema',
     'listing.search.placeholder': 'Search agents',
     'listing.loadError': 'Failed to load agents',

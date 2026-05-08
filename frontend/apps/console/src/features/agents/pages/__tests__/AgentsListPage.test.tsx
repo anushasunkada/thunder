@@ -49,7 +49,7 @@ vi.mock('react-i18next', () => ({
       const translations: Record<string, string> = {
         'agents:listing.title': 'Agents',
         'agents:listing.subtitle': 'Manage service identities and machine clients',
-        'agents:listing.addAgent': 'Add agent',
+        'agents:listing.addAgent': 'Add Agent',
         'agents:listing.schema': 'Schema',
         'agents:listing.search.placeholder': 'Search agents',
       };
