@@ -50,7 +50,15 @@ function replaceProductNameInObject(value: unknown, productName: string, product
   return value;
 }
 
-const baseUrl = `/${productConfig.documentation.deployment.production.baseUrl}/`;
+const baseUrl =
+  // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+  process.env.DOCUSAURUS_BASE_URL ||
+  (productConfig.documentation.deployment.production.baseUrl
+    ? `/${productConfig.documentation.deployment.production.baseUrl}/`
+    : '/');
+
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+const siteUrl = process.env.DOCUSAURUS_URL || productConfig.documentation.deployment.production.url;
 
 const config: Config = {
   title: productConfig.project.name,
@@ -67,8 +75,7 @@ const config: Config = {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  url: productConfig.documentation.deployment.production.url,
-  // Since we use GitHub pages, the base URL is the repository name.
+  url: siteUrl,
   baseUrl,
 
   // GitHub pages deployment config.

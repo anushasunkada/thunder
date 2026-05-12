@@ -92,9 +92,7 @@ const DocusaurusProductConfig = {
     },
     deployment: {
       production: {
-        baseUrl: 'thunderid',
-        // TODO: Docusaurus doesn't seem to allow subpaths in the URL yet.
-        // Can't use the GitHub pages URL until then.
+        baseUrl: '',
         url: 'https://thunderid.dev',
       },
     },
