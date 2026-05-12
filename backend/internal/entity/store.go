@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
@@ -159,6 +160,7 @@ func (es *entityDBStore) CreateEntity(ctx context.Context, entity Entity,
 		sysCredsJSON = string(systemCredentials)
 	}
 
+	now := time.Now().UTC()
 	_, err = dbClient.ExecuteContext(
 		ctx,
 		QueryCreateEntity,
@@ -172,6 +174,8 @@ func (es *entityDBStore) CreateEntity(ctx context.Context, entity Entity,
 		systemAttrs,
 		credsJSON,
 		sysCredsJSON,
+		now,
+		now,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create entity: %w", err)
@@ -263,7 +267,7 @@ func (es *entityDBStore) UpdateEntity(ctx context.Context, entity *Entity) error
 		ctx,
 		QueryUpdateEntity,
 		entity.ID, entity.OUID, entity.Type,
-		string(entity.State), string(attributes), systemAttrs, es.deploymentID,
+		string(entity.State), string(attributes), systemAttrs, time.Now().UTC(), es.deploymentID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to execute update entity query: %w", err)
@@ -302,7 +306,7 @@ func (es *entityDBStore) UpdateAttributes(ctx context.Context, entityID string, 
 	}
 
 	rowsAffected, err := dbClient.ExecuteContext(ctx, QueryUpdateAttributes,
-		entityID, string(attributes), es.deploymentID)
+		entityID, string(attributes), time.Now().UTC(), es.deploymentID)
 	if err != nil {
 		return fmt.Errorf("failed to execute update attributes query: %w", err)
 	}
@@ -332,7 +336,7 @@ func (es *entityDBStore) UpdateSystemAttributes(ctx context.Context, entityID st
 	}
 
 	rowsAffected, err := dbClient.ExecuteContext(ctx, QueryUpdateSystemAttributes,
-		entityID, string(attrs), es.deploymentID)
+		entityID, string(attrs), time.Now().UTC(), es.deploymentID)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -362,7 +366,7 @@ func (es *entityDBStore) UpdateCredentials(ctx context.Context, entityID string,
 	}
 
 	rowsAffected, err := dbClient.ExecuteContext(ctx, QueryUpdateCredentials,
-		entityID, string(creds), es.deploymentID)
+		entityID, string(creds), time.Now().UTC(), es.deploymentID)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -383,7 +387,7 @@ func (es *entityDBStore) UpdateSystemCredentials(ctx context.Context, entityID s
 	}
 
 	rowsAffected, err := dbClient.ExecuteContext(ctx, QueryUpdateSystemCredentials,
-		entityID, string(creds), es.deploymentID)
+		entityID, string(creds), time.Now().UTC(), es.deploymentID)
 	if err != nil {
 		return fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -1032,16 +1036,17 @@ func prepareIdentifierQuery(
 	}
 	toInsert = deduped
 
+	now := time.Now().UTC()
 	valuePlaceholders := make([]string, 0, len(toInsert))
-	args := make([]interface{}, 0, len(toInsert)*5)
+	args := make([]interface{}, 0, len(toInsert)*6)
 	paramIndex := 1
 
 	for _, attr := range toInsert {
 		valuePlaceholders = append(valuePlaceholders,
-			fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)",
-				paramIndex, paramIndex+1, paramIndex+2, paramIndex+3, paramIndex+4))
-		args = append(args, entityID, attr.name, attr.value, attr.source, deploymentID)
-		paramIndex += 5
+			fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)",
+				paramIndex, paramIndex+1, paramIndex+2, paramIndex+3, paramIndex+4, paramIndex+5))
+		args = append(args, entityID, attr.name, attr.value, attr.source, deploymentID, now)
+		paramIndex += 6
 	}
 
 	queryStr := QueryBatchInsertIdentifiers.Query + strings.Join(valuePlaceholders, ", ")

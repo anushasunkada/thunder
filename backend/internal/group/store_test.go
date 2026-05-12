@@ -798,6 +798,7 @@ func (suite *GroupStoreTestSuite) TestGroupStore_UpdateGroup() {
 						groupDAO.OUID,
 						groupDAO.Name,
 						groupDAO.Description,
+						mock.Anything,
 						testDeploymentID,
 					).
 					Return(int64(0), nil).
@@ -839,6 +840,7 @@ func (suite *GroupStoreTestSuite) TestGroupStore_UpdateGroup() {
 						groupMinimal.OUID,
 						groupMinimal.Name,
 						groupMinimal.Description,
+						mock.Anything,
 						testDeploymentID,
 					).
 					Return(int64(0), errors.New("update fail")).
@@ -866,6 +868,7 @@ func (suite *GroupStoreTestSuite) TestGroupStore_UpdateGroup() {
 						groupDAO.OUID,
 						groupDAO.Name,
 						groupDAO.Description,
+						mock.Anything,
 						testDeploymentID,
 					).
 					Return(int64(1), nil).
@@ -1815,6 +1818,8 @@ func (suite *GroupStoreTestSuite) TestGroupStore_AddMembersToGroupReturnsError()
 			mock.Anything, // MemberType to avoid type mismatch
 			"usr-1",
 			testDeploymentID,
+			mock.Anything, // CREATED_AT
+			mock.Anything, // UPDATED_AT
 		).
 		Return(int64(0), errors.New("insert fail")).
 		Once()
