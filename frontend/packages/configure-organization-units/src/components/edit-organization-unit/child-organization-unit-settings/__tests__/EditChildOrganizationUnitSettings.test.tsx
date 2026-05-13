@@ -16,18 +16,27 @@
  * under the License.
  */
 
-import {screen, renderWithProviders} from '@thunderid/test-utils';
-import {describe, it, expect, vi, beforeEach} from 'vitest';
+import { screen, renderWithProviders } from '@thunderid/test-utils';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EditChildOrganizationUnitSettings from '../EditChildOrganizationUnitSettings';
 
 // Mock child component
-vi.mock('@/components/edit-organization-unit/child-organization-unit-settings/ManageChildOrganizationUnitSection', () => ({
-  default: ({organizationUnitId, organizationUnitName}: {organizationUnitId: string; organizationUnitName: string}) => (
-    <div data-testid="manage-child-ous-section">
-      ManageChildOUsSection - {organizationUnitId} - {organizationUnitName}
-    </div>
-  ),
-}));
+vi.mock(
+  '@/components/edit-organization-unit/child-organization-unit-settings/ManageChildOrganizationUnitSection',
+  () => ({
+    default: ({
+      organizationUnitId,
+      organizationUnitName,
+    }: {
+      organizationUnitId: string;
+      organizationUnitName: string;
+    }) => (
+      <div data-testid="manage-child-ous-section">
+        ManageChildOUsSection - {organizationUnitId} - {organizationUnitName}
+      </div>
+    ),
+  }),
+);
 
 describe('EditChildOrganizationUnitSettings', () => {
   beforeEach(() => {
@@ -59,7 +68,7 @@ describe('EditChildOrganizationUnitSettings', () => {
   });
 
   it('should handle different organization unit IDs and names', () => {
-    const {rerender} = renderWithProviders(
+    const { rerender } = renderWithProviders(
       <EditChildOrganizationUnitSettings organizationUnitId="ou-123" organizationUnitName="Engineering" />,
     );
 
