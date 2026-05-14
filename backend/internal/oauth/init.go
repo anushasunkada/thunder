@@ -22,6 +22,7 @@ package oauth
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/internal/oauth/hostbridge"
 	"github.com/thunder-id/thunderid/internal/oauth/jwks"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
@@ -33,57 +34,37 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/userinfo"
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
-	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
 	oauthdeps "github.com/thunder-id/thunderid/pkg/oauth/deps"
 )
 
 // Initialize initializes all OAuth-related services and registers their routes.
-func Initialize(
-	mux *http.ServeMux,
-	applicationService oauthdeps.ApplicationService,
-	inboundClient oauthdeps.InboundClient,
-	authnProvider oauthdeps.AuthnProviderManager,
-	jwtService oauthdeps.JWTService,
-	jweService oauthdeps.JWEService,
-	flowExecService oauthdeps.FlowExecService,
-	observabilitySvc oauthdeps.ObservabilityService,
-	pkiService oauthdeps.PKIService,
-	ouService oauthdeps.OUService,
-	attributeCacheSvc oauthdeps.AttributeCacheService,
-	authzService oauthdeps.AuthorizationService,
-	entityProvider oauthdeps.EntityProvider,
-	resourceService oauthdeps.ResourceService,
-	i18nService oauthdeps.I18nService,
-	idpService oauthdeps.IDPService,
-) error {
-	// Fetch runtime transactioner for OAuth services.
-	transactioner, err := provider.GetDBProvider().GetRuntimeDBTransactioner()
-	if err != nil {
-		return err
-	}
+func Initialize(mux *http.ServeMux, deps oauthdeps.Dependencies) error {
+	transactioner := deps.Transactioner
+	inboundInternal := hostbridge.InboundFromHost(deps.Inbound)
+	dcrPartner := hostbridge.DCRPartnerFromApplication(deps.Application)
 
-	jwks.Initialize(mux, pkiService)
+	jwks.Initialize(mux, deps.PKIService)
 	httpClient := syshttp.NewHTTPClientWithCheckRedirect(func(req *http.Request, _ []*http.Request) error {
 		return syshttp.IsSSRFSafeURL(req.URL.String())
 	})
 	resolver := jwksresolver.Initialize(httpClient)
-	tokenBuilder, tokenValidator := tokenservice.Initialize(jwtService, jweService, resolver, idpService)
+	tokenBuilder, tokenValidator := tokenservice.Initialize(deps.JWTService, deps.JWEService, resolver, deps.IDPService)
 	scopeValidator := scope.Initialize()
-	discoveryService := discovery.Initialize(mux, pkiService)
-	parService := par.Initialize(mux, inboundClient, authnProvider, jwtService, discoveryService,
-		resourceService)
+	discoveryService := discovery.Initialize(mux, deps.PKIService)
+	parService := par.Initialize(mux, inboundInternal, deps.AuthnProvider, deps.JWTService, discoveryService,
+		deps.ResourceService, deps.DBProvider, deps.RedisProvider, deps.DeploymentID, deps.DatabaseRuntimeType)
 	grantHandlerProvider, err := granthandlers.Initialize(
-		mux, jwtService, inboundClient, flowExecService, tokenBuilder, tokenValidator,
-		attributeCacheSvc, ouService, authzService, entityProvider, resourceService, parService)
+		mux, deps.JWTService, inboundInternal, deps.FlowExecService, tokenBuilder, tokenValidator,
+		deps.AttributeCacheSvc, deps.OUService, deps.AuthzService, deps.EntityProvider, deps.ResourceService, parService)
 	if err != nil {
 		return err
 	}
-	token.Initialize(mux, jwtService, inboundClient, authnProvider, grantHandlerProvider,
-		scopeValidator, observabilitySvc, discoveryService, transactioner)
-	introspect.Initialize(mux, jwtService, inboundClient, authnProvider, discoveryService)
-	userinfo.Initialize(mux, jwtService, jweService, resolver,
-		tokenValidator, inboundClient, ouService, attributeCacheSvc, transactioner)
-	dcr.Initialize(mux, applicationService, ouService, i18nService, transactioner)
+	token.Initialize(mux, deps.JWTService, inboundInternal, deps.AuthnProvider, grantHandlerProvider,
+		scopeValidator, deps.ObservabilitySvc, discoveryService, transactioner)
+	introspect.Initialize(mux, deps.JWTService, inboundInternal, deps.AuthnProvider, discoveryService)
+	userinfo.Initialize(mux, deps.JWTService, deps.JWEService, resolver,
+		tokenValidator, inboundInternal, deps.OUService, deps.AttributeCacheSvc, transactioner)
+	dcr.Initialize(mux, dcrPartner, deps.OUService, deps.I18nService, transactioner)
 	return nil
 }

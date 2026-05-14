@@ -56,6 +56,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/idp"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/notification"
+	"github.com/thunder-id/thunderid/internal/oauth/hostbridge"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
@@ -345,10 +346,34 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
 	}
 
-	// Initialize OAuth services.
-	err = oauth.Initialize(mux, applicationService, inboundClientService, authnProvider, jwtService, jweService,
-		flowExecService, observabilitySvc, pkiService, ouService, attributeCacheService, authZService, entityProvider,
-		resourceService, i18nService, idpService)
+	oauthTxn, err := dbprovider.GetDBProvider().GetRuntimeDBTransactioner()
+	if err != nil {
+		logger.Fatal("Failed to get runtime DB transactioner for OAuth", log.Error(err))
+	}
+
+	rt := config.GetServerRuntime()
+	err = oauth.InitializeWithDependencies(mux, oauth.Dependencies{
+		Application:         hostbridge.NewThunderApplication(applicationService),
+		Inbound:             hostbridge.NewThunderInbound(inboundClientService),
+		AuthnProvider:       authnProvider,
+		JWTService:          jwtService,
+		JWEService:          jweService,
+		FlowExecService:     flowExecService,
+		ObservabilitySvc:    observabilitySvc,
+		PKIService:          pkiService,
+		OUService:           ouService,
+		AttributeCacheSvc:   attributeCacheService,
+		AuthzService:        authZService,
+		EntityProvider:      entityProvider,
+		ResourceService:     resourceService,
+		I18nService:         i18nService,
+		IDPService:          idpService,
+		Transactioner:       oauthTxn,
+		DBProvider:          dbprovider.GetDBProvider(),
+		RedisProvider:       dbprovider.GetRedisProvider(),
+		DeploymentID:        rt.Config.Server.Identifier,
+		DatabaseRuntimeType: rt.Config.Database.Runtime.Type,
+	})
 	if err != nil {
 		logger.Fatal("Failed to initialize OAuth services", log.Error(err))
 	}

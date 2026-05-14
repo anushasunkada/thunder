@@ -27,7 +27,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientauth"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -42,22 +41,29 @@ func Initialize(
 	jwtService jwt.JWTServiceInterface,
 	discoveryService discovery.DiscoveryServiceInterface,
 	resourceService resource.ResourceServiceInterface,
+	dbProvider provider.DBProviderInterface,
+	redisProvider provider.RedisProviderInterface,
+	deploymentID string,
+	databaseRuntimeType string,
 ) PARServiceInterface {
-	store := initializePARStore()
+	store := initializePARStore(dbProvider, redisProvider, deploymentID, databaseRuntimeType)
 	parSvc := newPARService(store, resourceService)
 	handler := newPARHandler(parSvc)
 	registerRoutes(mux, handler, inboundClient, authnProvider, jwtService, discoveryService)
 	return parSvc
 }
 
-// initializePARStore selects the PAR store implementation based on the configured runtime DB type.
-func initializePARStore() parStoreInterface {
-	deploymentID := config.GetServerRuntime().Config.Server.Identifier
-
-	if config.GetServerRuntime().Config.Database.Runtime.Type == provider.DataSourceTypeRedis {
-		return newRedisPARRequestStore(provider.GetRedisProvider(), deploymentID)
+// initializePARStore selects the PAR store implementation based on databaseRuntimeType.
+func initializePARStore(
+	dbProvider provider.DBProviderInterface,
+	redisProvider provider.RedisProviderInterface,
+	deploymentID string,
+	databaseRuntimeType string,
+) parStoreInterface {
+	if databaseRuntimeType == provider.DataSourceTypeRedis {
+		return newRedisPARRequestStore(redisProvider, deploymentID)
 	}
-	return newPARRequestStore(deploymentID)
+	return newPARRequestStore(dbProvider, deploymentID)
 }
 
 // registerRoutes registers the PAR endpoint route with client authentication middleware.

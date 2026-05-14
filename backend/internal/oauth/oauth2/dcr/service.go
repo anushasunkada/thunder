@@ -29,6 +29,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/application/model"
 	"github.com/thunder-id/thunderid/internal/cert"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/internal/oauth/hostbridge"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauthutils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/ou"
@@ -48,7 +49,7 @@ type DCRServiceInterface interface {
 
 // dcrService is the default implementation of DCRServiceInterface.
 type dcrService struct {
-	appService    application.ApplicationServiceInterface
+	appService    hostbridge.DCRPartner
 	ouService     ou.OrganizationUnitServiceInterface
 	i18nService   i18nmgt.I18nServiceInterface
 	transactioner transaction.Transactioner
@@ -56,7 +57,7 @@ type dcrService struct {
 
 // newDCRService creates a new instance of dcrService.
 func newDCRService(
-	appService application.ApplicationServiceInterface,
+	appService hostbridge.DCRPartner,
 	ouService ou.OrganizationUnitServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 	transactioner transaction.Transactioner,

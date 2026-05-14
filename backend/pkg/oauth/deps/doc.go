@@ -2,8 +2,16 @@
 // It lives under pkg/oauth/deps as a separate package so internal/oauth can
 // import these types without an import cycle with pkg/oauth.
 //
-// Types are currently aliases to Thunder internal service interfaces so the
-// server and pkg/oauth share one dependency surface. Narrowing these to
-// pkg-local interfaces (with public models) is a follow-up for embedders
-// outside this module.
+// Application (DCRApplication) and Inbound (InboundOAuth) are pkg/oauth/host
+// contracts so embedders outside this module can supply implementations without
+// importing internal packages. Thunder defaults are constructed via
+// internal/oauth/hostbridge (for example NewThunderApplication and NewThunderInbound).
+//
+// Other dependency fields remain aliases to Thunder internal interfaces until
+// they are narrowed similarly.
+//
+// Transactioner must be supplied on Dependencies: internal/oauth.Initialize no
+// longer fetches it from the global DB provider (embedders can pass any
+// implementation). Other subpackages may still read config/DB globals until
+// further refactors.
 package oauthdeps

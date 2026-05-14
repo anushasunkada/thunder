@@ -22,7 +22,7 @@ package dcr
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/application"
+	"github.com/thunder-id/thunderid/internal/oauth/hostbridge"
 	"github.com/thunder-id/thunderid/internal/ou"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -32,7 +32,7 @@ import (
 // Initialize initializes the DCR service and registers its routes.
 func Initialize(
 	mux *http.ServeMux,
-	appService application.ApplicationServiceInterface,
+	appService hostbridge.DCRPartner,
 	ouService ou.OrganizationUnitServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 	transactioner transaction.Transactioner,

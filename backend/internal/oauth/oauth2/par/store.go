@@ -48,9 +48,9 @@ type parRequestStore struct {
 }
 
 // newPARRequestStore creates a new DB-backed PAR request store.
-func newPARRequestStore(deploymentID string) parStoreInterface {
+func newPARRequestStore(dbProvider provider.DBProviderInterface, deploymentID string) parStoreInterface {
 	return &parRequestStore{
-		dbProvider:   provider.GetDBProvider(),
+		dbProvider:   dbProvider,
 		deploymentID: deploymentID,
 	}
 }
