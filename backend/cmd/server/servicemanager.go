@@ -51,6 +51,7 @@ import (
 	flowcore "github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/flowmeta"
+	flowhostbridge "github.com/thunder-id/thunderid/internal/flow/hostbridge"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	"github.com/thunder-id/thunderid/internal/group"
 	"github.com/thunder-id/thunderid/internal/idp"
@@ -340,7 +341,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		i18nService,
 	)
 
-	flowExecService, err := flow.InitializeExecution(mux, flowMgtService, inboundClientService, entityProvider,
+	flowExecService, err := flow.InitializeExecution(mux, flowMgtService, flowhostbridge.NewThunderInboundFlow(inboundClientService), entityProvider,
 		execRegistry, observabilitySvc, runtimeCryptoSvc)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))

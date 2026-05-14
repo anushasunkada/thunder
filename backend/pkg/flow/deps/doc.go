@@ -2,10 +2,12 @@
 // It lives under pkg/flow/deps as a separate package so internal/flow/flowexec
 // can import these types without an import cycle with pkg/flow.
 //
-// Types are currently aliases to Thunder internal service interfaces so the
-// server and pkg/flow share one dependency surface. Narrowing these to
-// pkg-local interfaces (with public models) is a follow-up for embedders
-// outside this module.
+// Inbound is pkg/flow/host.InboundFlow so embedders outside this module can supply
+// entity inbound resolution without importing internal/inboundclient. Thunder
+// defaults are constructed via internal/flow/hostbridge.NewThunderInboundFlow.
+//
+// Other dependency fields remain aliases to Thunder internal service interfaces
+// until they are narrowed similarly.
 //
 // internal/flow/core does not consume these aliases in its Initialize signature:
 // flowdeps imports internal/flow/executor, which imports core, so core cannot

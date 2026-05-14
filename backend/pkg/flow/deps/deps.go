@@ -6,7 +6,7 @@ import "fmt"
 // ObservabilitySvc may be nil; flow execution will not publish observability events in that case.
 type ExecutionDependencies struct {
 	FlowMgtService   FlowMgtService
-	InboundClient    InboundClient
+	Inbound          InboundFlow
 	EntityProvider   EntityProvider
 	ExecutorRegistry ExecutorRegistry
 	ObservabilitySvc ObservabilityService
@@ -19,8 +19,8 @@ func (d ExecutionDependencies) Validate() error {
 	switch {
 	case d.FlowMgtService == nil:
 		return fmt.Errorf("flow dependency is required: FlowMgtService")
-	case d.InboundClient == nil:
-		return fmt.Errorf("flow dependency is required: InboundClient")
+	case d.Inbound == nil:
+		return fmt.Errorf("flow dependency is required: Inbound")
 	case d.EntityProvider == nil:
 		return fmt.Errorf("flow dependency is required: EntityProvider")
 	case d.ExecutorRegistry == nil:

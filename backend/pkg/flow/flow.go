@@ -13,7 +13,7 @@ type (
 	GraphCache            = core.GraphCacheInterface
 	FlowExecService       = flowexec.FlowExecServiceInterface
 	FlowMgtService        = flowdeps.FlowMgtService
-	InboundClient         = flowdeps.InboundClient
+	InboundFlow           = flowdeps.InboundFlow
 	EntityProvider        = flowdeps.EntityProvider
 	ExecutorRegistry      = flowdeps.ExecutorRegistry
 	ObservabilityService  = flowdeps.ObservabilityService
@@ -35,7 +35,7 @@ func InitializeExecutionWithDependencies(mux *http.ServeMux, deps ExecutionDepen
 	return flowexec.Initialize(
 		mux,
 		deps.FlowMgtService,
-		deps.InboundClient,
+		deps.Inbound,
 		deps.EntityProvider,
 		deps.ExecutorRegistry,
 		deps.ObservabilitySvc,
@@ -46,7 +46,7 @@ func InitializeExecutionWithDependencies(mux *http.ServeMux, deps ExecutionDepen
 func InitializeExecution(
 	mux *http.ServeMux,
 	flowMgtService flowdeps.FlowMgtService,
-	inboundClientService flowdeps.InboundClient,
+	inboundFlow flowdeps.InboundFlow,
 	entityProvider flowdeps.EntityProvider,
 	executorRegistry flowdeps.ExecutorRegistry,
 	observabilitySvc flowdeps.ObservabilityService,
@@ -54,7 +54,7 @@ func InitializeExecution(
 ) (FlowExecService, error) {
 	return InitializeExecutionWithDependencies(mux, ExecutionDependencies{
 		FlowMgtService:   flowMgtService,
-		InboundClient:    inboundClientService,
+		Inbound:          inboundFlow,
 		EntityProvider:   entityProvider,
 		ExecutorRegistry: executorRegistry,
 		ObservabilitySvc: observabilitySvc,

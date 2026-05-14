@@ -33,7 +33,7 @@ import (
 func Initialize(
 	mux *http.ServeMux,
 	flowMgtService flowdeps.FlowMgtService,
-	inboundClientService flowdeps.InboundClient,
+	inboundFlow flowdeps.InboundFlow,
 	entityProvider flowdeps.EntityProvider,
 	executorRegistry flowdeps.ExecutorRegistry,
 	observabilitySvc flowdeps.ObservabilityService,
@@ -56,7 +56,7 @@ func Initialize(
 	}
 	flowEngine := newFlowEngine(executorRegistry, observabilitySvc)
 	flowExecService := newFlowExecService(flowMgtService, flowStore, flowEngine,
-		inboundClientService, entityProvider, observabilitySvc, transactioner, cryptoSvc)
+		inboundFlow, entityProvider, observabilitySvc, transactioner, cryptoSvc)
 
 	handler := newFlowExecutionHandler(flowExecService)
 	registerRoutes(mux, handler)

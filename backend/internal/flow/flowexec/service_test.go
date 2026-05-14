@@ -30,6 +30,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/core"
+	flowhostbridge "github.com/thunder-id/thunderid/internal/flow/hostbridge"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
@@ -217,13 +218,13 @@ func TestInitiateFlowSuccessScenarios(t *testing.T) {
 
 			// Create service with mocked dependencies
 			service := &flowExecService{
-				flowMgtService:       mockFlowMgtSvc,
-				flowStore:            mockStore,
-				inboundClientService: mockInboundClient,
-				entityProvider:       mockEntityProvider,
-				flowEngine:           nil,
-				transactioner:        &stubTransactioner{},
-				cryptoSvc:            mockCrypto,
+				flowMgtService: mockFlowMgtSvc,
+				flowStore:      mockStore,
+				inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+				entityProvider: mockEntityProvider,
+				flowEngine:     nil,
+				transactioner:  &stubTransactioner{},
+				cryptoSvc:      mockCrypto,
 			}
 
 			initContext := &FlowInitContext{
@@ -384,13 +385,13 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 
 			// Create service with mocked dependencies
 			service := &flowExecService{
-				flowMgtService:       mockFlowMgtSvc,
-				flowStore:            mockStore,
-				inboundClientService: mockInboundClient,
-				entityProvider:       mockEntityProvider,
-				flowEngine:           nil,
-				transactioner:        &stubTransactioner{},
-				cryptoSvc:            mockCrypto,
+				flowMgtService: mockFlowMgtSvc,
+				flowStore:      mockStore,
+				inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+				entityProvider: mockEntityProvider,
+				flowEngine:     nil,
+				transactioner:  &stubTransactioner{},
+				cryptoSvc:      mockCrypto,
 			}
 
 			initContext := &FlowInitContext{
@@ -488,12 +489,12 @@ func TestEncryptedPayloadStoredBeforeWrite(t *testing.T) {
 		mock.Anything).Return(nil)
 
 	service := &flowExecService{
-		flowMgtService:       mockFlowMgtSvc,
-		flowStore:            mockStore,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
-		cryptoSvc:            mockCrypto,
+		flowMgtService: mockFlowMgtSvc,
+		flowStore:      mockStore,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
+		cryptoSvc:      mockCrypto,
 	}
 
 	executionID, svcErr := service.InitiateFlow(context.Background(), &FlowInitContext{
@@ -563,13 +564,13 @@ func TestDecryptCalledForEncryptedStoredContext(t *testing.T) {
 		mock.AnythingOfType("FlowContextDB")).Return(nil)
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
-		cryptoSvc:            mockCrypto,
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
+		cryptoSvc:      mockCrypto,
 	}
 
 	flowStep, svcErr := service.Execute(context.Background(), "test-app", "existing-execution-id",
@@ -816,13 +817,13 @@ func TestExecute_ContextDecryptionSuccess(t *testing.T) {
 		mock.AnythingOfType("FlowContextDB")).Return(nil)
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
-		cryptoSvc:            mockCrypto,
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
+		cryptoSvc:      mockCrypto,
 	}
 
 	flowStep, svcErr := service.Execute(context.Background(), "test-app", "existing-execution-id",
@@ -878,13 +879,13 @@ func TestExecute_ExistingFlowWithoutChallengeToken(t *testing.T) {
 		mock.AnythingOfType("FlowContextDB")).Return(nil)
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
-		cryptoSvc:            mockCrypto,
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
+		cryptoSvc:      mockCrypto,
 	}
 
 	// Execute with empty challenge token
@@ -968,13 +969,13 @@ func TestExecute_ExistingFlowWithDifferentChallengeTokens(t *testing.T) {
 				mock.AnythingOfType("FlowContextDB")).Return(nil)
 
 			service := &flowExecService{
-				flowStore:            mockStore,
-				flowMgtService:       mockFlowMgtSvc,
-				flowEngine:           mockEngine,
-				inboundClientService: mockInboundClient,
-				entityProvider:       mockEntityProvider,
-				transactioner:        &stubTransactioner{},
-				cryptoSvc:            mockCrypto,
+				flowStore:      mockStore,
+				flowMgtService: mockFlowMgtSvc,
+				flowEngine:     mockEngine,
+				inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+				entityProvider: mockEntityProvider,
+				transactioner:  &stubTransactioner{},
+				cryptoSvc:      mockCrypto,
 			}
 
 			flowStep, svcErr := service.Execute(context.Background(), "test-app", "existing-execution-id",
@@ -1025,12 +1026,12 @@ func TestExecute_EngineError_InvalidChallengeToken_PreservesContext(t *testing.T
 	// DeleteFlowContext must NOT be called — flow must be preserved for retry
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
 	}
 
 	flowStep, svcErr := service.Execute(context.Background(), "test-app", "existing-execution-id",
@@ -1093,12 +1094,12 @@ func TestExecute_EngineError_NonChallengeToken_RemovesContext(t *testing.T) {
 		"existing-execution-id").Return(nil)
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
 	}
 
 	flowStep, svcErr := service.Execute(context.Background(), "test-app", "existing-execution-id",
@@ -1133,12 +1134,12 @@ func TestExecute_EngineError_NewFlow_ContextNeverRemoved(t *testing.T) {
 	// DeleteFlowContext must NOT be called — new flows have no persisted context to clean up
 
 	service := &flowExecService{
-		flowStore:            mockStore,
-		flowMgtService:       mockFlowMgtSvc,
-		flowEngine:           mockEngine,
-		inboundClientService: mockInboundClient,
-		entityProvider:       mockEntityProvider,
-		transactioner:        &stubTransactioner{},
+		flowStore:      mockStore,
+		flowMgtService: mockFlowMgtSvc,
+		flowEngine:     mockEngine,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInboundClient),
+		entityProvider: mockEntityProvider,
+		transactioner:  &stubTransactioner{},
 	}
 
 	// Pass empty executionID to indicate a new flow
@@ -1159,8 +1160,8 @@ func newBuildAppService(
 	mockInbound := inboundclientmock.NewInboundClientServiceInterfaceMock(t)
 	mockEP := entityprovidermock.NewEntityProviderInterfaceMock(t)
 	return &flowExecService{
-		inboundClientService: mockInbound,
-		entityProvider:       mockEP,
+		inboundFlow:    flowhostbridge.NewThunderInboundFlow(mockInbound),
+		entityProvider: mockEP,
 	}, mockInbound, mockEP
 }
 
