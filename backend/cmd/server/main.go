@@ -33,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thunder-id/thunderid/internal/serverbootstrap"
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
@@ -148,19 +149,10 @@ func getThunderHome(logger *log.Logger) string {
 
 // initThunderConfigurations initializes the configurations.
 func initThunderConfigurations(logger *log.Logger, serverHome string) *config.Config {
-	// Load the configurations.
-	configFilePath := path.Join(serverHome, "repository/conf/deployment.yaml")
-	defaultConfigPath := path.Join(serverHome, "repository/resources/conf/default.json")
-	cfg, err := config.LoadConfig(configFilePath, defaultConfigPath, serverHome)
+	cfg, err := serverbootstrap.InitializeRuntime(serverHome)
 	if err != nil {
 		logger.Fatal("Failed to load configurations", log.Error(err))
 	}
-
-	// Initialize runtime configurations.
-	if err := config.InitializeServerRuntime(serverHome, cfg); err != nil {
-		logger.Fatal("Failed to initialize server runtime", log.Error(err))
-	}
-
 	return cfg
 }
 

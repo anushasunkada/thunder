@@ -20,8 +20,11 @@ This document describes **what lives here today**, **how an external application
 | [`pkg/flow/host`](flow/host) | **Host contract** for entity inbound profile resolution used by flow execution (`InboundFlow`, `EntityInboundProfile`, not-found sentinel). |
 | [`pkg/authnprovider`](authnprovider) | Public authentication-provider contract and models (used by broader auth; not all OAuth deps are migrated to `pkg` yet). |
 | [`pkg/authnprovider/wire`](authnprovider/wire) | Small wiring helpers for authn provider construction in Thunder. |
+| [`pkg/embed`](embed) | **`WireThunder`**: registers the same HTTP surface as the Thunder server binary (OAuth, flow, and the rest) on a caller `*http.ServeMux`, after loading config from a Thunder deployment directory (`THUNDER_HOME` layout). Optional `pkg/authnprovider.AuthnProvider` overrides the default authn manager. |
 
 Supporting implementation for Thunder defaults lives under **`internal/oauth/hostbridge`** and **`internal/flow/hostbridge`** (adapters from Thunder `internal` services to the `pkg/.../host` contracts). External applications **do not** import those packages; they implement the `host` interfaces directly.
+
+For **full** Thunder routing inside another binary without hand-building `oauthdeps.Dependencies`, use **`pkg/embed.WireThunder`** (see [`pkg/embed/embed.go`](embed/embed.go)).
 
 ---
 

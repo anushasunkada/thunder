@@ -1,0 +1,420 @@
+/*
+ * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+// Package serverbootstrap registers Thunder HTTP services (OAuth, flow, authn, …) on a mux.
+package serverbootstrap
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/thunder-id/thunderid/internal/agent"
+	"github.com/thunder-id/thunderid/internal/application"
+	"github.com/thunder-id/thunderid/internal/attributecache"
+	"github.com/thunder-id/thunderid/internal/authn"
+	authnAssert "github.com/thunder-id/thunderid/internal/authn/assert"
+	authncm "github.com/thunder-id/thunderid/internal/authn/common"
+	authnConsent "github.com/thunder-id/thunderid/internal/authn/consent"
+	"github.com/thunder-id/thunderid/internal/authn/github"
+	"github.com/thunder-id/thunderid/internal/authn/google"
+	"github.com/thunder-id/thunderid/internal/authn/magiclink"
+	authnOAuth "github.com/thunder-id/thunderid/internal/authn/oauth"
+	authnOIDC "github.com/thunder-id/thunderid/internal/authn/oidc"
+	"github.com/thunder-id/thunderid/internal/authn/otp"
+	"github.com/thunder-id/thunderid/internal/authn/passkey"
+	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
+	"github.com/thunder-id/thunderid/internal/authz"
+	"github.com/thunder-id/thunderid/internal/cert"
+	"github.com/thunder-id/thunderid/internal/consent"
+	layoutmgt "github.com/thunder-id/thunderid/internal/design/layout/mgt"
+	"github.com/thunder-id/thunderid/internal/design/resolve"
+	thememgt "github.com/thunder-id/thunderid/internal/design/theme/mgt"
+	"github.com/thunder-id/thunderid/internal/entity"
+	"github.com/thunder-id/thunderid/internal/entityprovider"
+	"github.com/thunder-id/thunderid/internal/entitytype"
+	flowcore "github.com/thunder-id/thunderid/internal/flow/core"
+	"github.com/thunder-id/thunderid/internal/flow/executor"
+	"github.com/thunder-id/thunderid/internal/flow/flowmeta"
+	flowhostbridge "github.com/thunder-id/thunderid/internal/flow/hostbridge"
+	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
+	"github.com/thunder-id/thunderid/internal/group"
+	"github.com/thunder-id/thunderid/internal/idp"
+	"github.com/thunder-id/thunderid/internal/inboundclient"
+	"github.com/thunder-id/thunderid/internal/notification"
+	"github.com/thunder-id/thunderid/internal/oauth/hostbridge"
+	"github.com/thunder-id/thunderid/internal/ou"
+	"github.com/thunder-id/thunderid/internal/resource"
+	"github.com/thunder-id/thunderid/internal/role"
+	"github.com/thunder-id/thunderid/internal/system/cache"
+	"github.com/thunder-id/thunderid/internal/system/config"
+	"github.com/thunder-id/thunderid/internal/system/cryptolab/hash"
+	dbprovider "github.com/thunder-id/thunderid/internal/system/database/provider"
+	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
+	"github.com/thunder-id/thunderid/internal/system/email"
+	"github.com/thunder-id/thunderid/internal/system/export"
+	healthcheckservice "github.com/thunder-id/thunderid/internal/system/healthcheck/service"
+	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
+	"github.com/thunder-id/thunderid/internal/system/importer"
+	"github.com/thunder-id/thunderid/internal/system/jose"
+	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm"
+	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
+	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/internal/system/mcp"
+	"github.com/thunder-id/thunderid/internal/system/observability"
+	"github.com/thunder-id/thunderid/internal/system/services"
+	"github.com/thunder-id/thunderid/internal/system/sysauthz"
+	"github.com/thunder-id/thunderid/internal/system/template"
+	"github.com/thunder-id/thunderid/internal/user"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
+	authnwire "github.com/thunder-id/thunderid/pkg/authnprovider/wire"
+	"github.com/thunder-id/thunderid/pkg/flow"
+	"github.com/thunder-id/thunderid/pkg/oauth"
+)
+
+// observabilitySvc is the observability service instance. This is used for graceful shutdown.
+var observabilitySvc observability.ObservabilityServiceInterface
+
+// RegisterServices registers all the services with the provided HTTP multiplexer.
+// If customAuthn is non-nil, it replaces Thunder's default authn provider manager
+// (built-in passkey/OTP/federated stack is still initialized for auth HTTP routes).
+func RegisterServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterface, customAuthn pkgauthn.AuthnProvider) jwt.JWTServiceInterface {
+	logger := log.GetLogger()
+
+	// Load the server's private key for signing JWTs.
+	pkiService, err := pkiservice.Initialize()
+	if err != nil {
+		logger.Fatal("Failed to initialize certificate service", log.Error(err))
+	}
+
+	configCryptoSvc, err := defaultkm.InitConfigProvider()
+	if err != nil {
+		logger.Fatal("Failed to initialize config crypto provider", log.Error(err))
+	}
+	runtimeCryptoSvc := defaultkm.NewRuntimeCryptoService(pkiService, configCryptoSvc)
+
+	jwtService, jweService, err := jose.Initialize(pkiService)
+	if err != nil {
+		logger.Fatal("Failed to initialize JOSE services", log.Error(err))
+	}
+
+	observabilitySvc = observability.Initialize()
+
+	// List to collect exporters from each package
+	var exporters []declarativeresource.ResourceExporter
+
+	// Initialize i18n service for internationalization support.
+	i18nService, i18nExporter, err := i18nmgt.Initialize(mux)
+	if err != nil {
+		logger.Fatal("Failed to initialize i18n service", log.Error(err))
+	}
+	// Add to exporters list (must be done after initializing list)
+	exporters = append(exporters, i18nExporter)
+
+	ouAuthzService, err := sysauthz.Initialize()
+	if err != nil {
+		logger.Fatal("Failed to initialize system authorization service", log.Error(err))
+	}
+
+	ouService, ouHierarchyResolver, ouExporter, err := ou.Initialize(mux, ouAuthzService)
+	if err != nil {
+		logger.Fatal("Failed to initialize OrganizationUnitService", log.Error(err))
+	}
+	exporters = append(exporters, ouExporter)
+
+	// Complete the two-phase initialization: inject the OU hierarchy resolver into the
+	// authz service now that the ou package is ready. This breaks the import-cycle that
+	// would arise if sysauthz were to directly import the ou package.
+	ouAuthzService.SetOUHierarchyResolver(ouHierarchyResolver)
+
+	hashCfg, err := buildHashConfig()
+	if err != nil {
+		logger.Fatal("Failed to build HashService config", log.Error(err))
+	}
+	hashService, err := hash.Initialize(hashCfg)
+	if err != nil {
+		logger.Fatal("Failed to initialize HashService", log.Error(err))
+	}
+
+	// Initialize consent service
+	consentService := consent.Initialize()
+
+	// Initialize user type service
+	entityTypeService, entityTypeExporter, err := entitytype.Initialize(
+		mux, cacheManager, ouService, ouAuthzService, consentService)
+	if err != nil {
+		logger.Fatal("Failed to initialize EntityTypeService", log.Error(err))
+	}
+	exporters = append(exporters, entityTypeExporter)
+
+	// Initialize entity service
+	entityService, err := entity.Initialize(cacheManager, hashService, entityTypeService, ouService)
+	if err != nil {
+		logger.Fatal("Failed to initialize EntityService", log.Error(err))
+	}
+
+	// Initialize entity provider
+	entityProvider := entityprovider.InitializeEntityProvider(entityService)
+
+	userService, ouUserResolver, userExporter, err := user.Initialize(
+		mux, entityService, ouService, entityTypeService, ouAuthzService,
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize UserService", log.Error(err))
+	}
+	exporters = append(exporters, userExporter)
+
+	groupService, ouGroupResolver, groupExporter, err := group.Initialize(
+		mux, dbprovider.GetDBProvider(), ouService, entityService, entityTypeService, ouAuthzService,
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize GroupService", log.Error(err))
+	}
+	exporters = append(exporters, groupExporter)
+
+	// Two-phase initialization: inject user/group resolvers into OU service.
+	ouService.SetOUUserResolver(ouUserResolver)
+	ouService.SetOUGroupResolver(ouGroupResolver)
+
+	resourceService, resourceExporter, err := resource.Initialize(mux, ouService)
+	if err != nil {
+		logger.Fatal("Failed to initialize Resource Service", log.Error(err))
+	}
+	exporters = append(exporters, resourceExporter)
+	roleService, roleExporter, err := role.Initialize(
+		mux, entityService, groupService, ouService, resourceService, entityTypeService,
+	)
+	if err != nil {
+		logger.Fatal("Failed to initialize RoleService", log.Error(err))
+	}
+	exporters = append(exporters, roleExporter)
+	authZService := authz.Initialize(roleService)
+
+	idpService, idpExporter, err := idp.Initialize(cacheManager, mux)
+	if err != nil {
+		logger.Fatal("Failed to initialize IDPService", log.Error(err))
+	}
+	exporters = append(exporters, idpExporter)
+
+	templateService, err := template.Initialize()
+	if err != nil {
+		logger.Fatal("Failed to initialize template service", log.Error(err))
+	}
+
+	_, otpService, notifSenderSvc, notificationExporter, err := notification.Initialize(
+		mux, jwtService, templateService)
+	if err != nil {
+		logger.Fatal("Failed to initialize NotificationService", log.Error(err))
+	}
+	exporters = append(exporters, notificationExporter)
+
+	// Initialize MCP server
+	mcpServer := mcp.Initialize(mux, jwtService)
+
+	// Initialize passkey service
+	passkeyService := passkey.Initialize(entityService)
+
+	// Initialize magic link service
+	magicLinkService := magiclink.Initialize(jwtService, entityProvider)
+
+	// Initialize otp core service
+	otpCoreService := otp.Initialize(otpService, entityProvider)
+
+	// Initialize federated authentication services.
+	oauthAuthnService := authnOAuth.Initialize(idpService, entityProvider)
+	oidcAuthnService := authnOIDC.Initialize(oauthAuthnService, jwtService)
+	googleAuthnService := google.Initialize(oidcAuthnService, jwtService)
+	githubAuthnService := github.Initialize(oauthAuthnService)
+
+	federatedAuths := map[idp.IDPType]authncm.FederatedAuthenticator{
+		idp.IDPTypeOAuth:  oauthAuthnService,
+		idp.IDPTypeOIDC:   oidcAuthnService,
+		idp.IDPTypeGoogle: googleAuthnService,
+		idp.IDPTypeGitHub: githubAuthnService,
+	}
+
+	// Initialize authn provider
+	var authnProvider authnprovidermgr.AuthnProviderManagerInterface
+	if customAuthn != nil {
+		authnProvider = authnwire.NewManager(customAuthn)
+	} else {
+		authnProvider = authnprovidermgr.InitializeAuthnProviderManager(entityService, passkeyService, otpCoreService,
+			federatedAuths)
+	}
+
+	// Initialize authentication services.
+	authAssertGen := authnAssert.Initialize()
+	consentEnforcer := authnConsent.Initialize(consentService, jwtService)
+
+	authn.Initialize(mux, mcpServer, idpService, jwtService, authnProvider, authAssertGen, passkeyService,
+		otpCoreService, magicLinkService, oauthAuthnService, oidcAuthnService, googleAuthnService, githubAuthnService)
+
+	attributeCacheService := attributecache.Initialize()
+
+	// Initialize flow and executor services.
+	flowFactory, graphCache := flowcore.Initialize(cacheManager)
+	var emailClient email.EmailClientInterface
+	emailClient, err = email.Initialize()
+	if err != nil {
+		logger.Debug("Email client not configured. "+
+			"EmailExecutor will be registered but will not send emails.", log.Error(err))
+		emailClient = nil
+	}
+	execRegistry := executor.Initialize(flowFactory, ouService, idpService, notifSenderSvc, jwtService, authAssertGen,
+		consentEnforcer, authnProvider, otpCoreService, passkeyService, magicLinkService, authZService,
+		entityTypeService, groupService, roleService, entityProvider, attributeCacheService, emailClient,
+		templateService, oauthAuthnService, oidcAuthnService, githubAuthnService, googleAuthnService)
+
+	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
+		mux, mcpServer, cacheManager, flowFactory, execRegistry, graphCache)
+	if err != nil {
+		logger.Fatal("Failed to initialize FlowMgtService", log.Error(err))
+	}
+	exporters = append(exporters, flowMgtExporter)
+	certservice, err := cert.Initialize(cacheManager, dbprovider.GetDBProvider())
+	if err != nil {
+		logger.Fatal("Failed to initialize CertificateService", log.Error(err))
+	}
+
+	// Initialize theme and layout services
+	themeMgtService, themeExporter, err := thememgt.Initialize(mux)
+	if err != nil {
+		logger.Fatal("Failed to initialize ThemeMgtService", log.Error(err))
+	}
+	exporters = append(exporters, themeExporter)
+
+	layoutMgtService, layoutExporter, err := layoutmgt.Initialize(mux)
+	if err != nil {
+		logger.Fatal("Failed to initialize LayoutMgtService", log.Error(err))
+	}
+	exporters = append(exporters, layoutExporter)
+
+	inboundClientService, err := inboundclient.Initialize(
+		cacheManager, certservice, entityProvider,
+		themeMgtService, layoutMgtService, flowMgtService, entityTypeService, consentService)
+	if err != nil {
+		logger.Fatal("Failed to initialize InboundClientService", log.Error(err))
+	}
+
+	// TODO: Remove entityService dependency after finalizing declarative resource loading pattern
+	applicationService, applicationExporter, err := application.Initialize(
+		mux, mcpServer, entityProvider, entityService, inboundClientService, ouService, i18nService)
+	if err != nil {
+		logger.Fatal("Failed to initialize ApplicationService", log.Error(err))
+	}
+	exporters = append(exporters, applicationExporter)
+
+	if _, err := agent.Initialize(mux, entityService, inboundClientService, ouService); err != nil {
+		logger.Fatal("Failed to initialize AgentService", log.Error(err))
+	}
+
+	// Initialize design resolve service for theme and layout resolution
+	designResolveService := resolve.Initialize(mux, themeMgtService, layoutMgtService, applicationService)
+
+	// Initialize flow metadata service
+	_ = flowmeta.Initialize(mux, inboundClientService, entityProvider, ouService, designResolveService, i18nService)
+
+	// Initialize export service with collected exporters
+	_ = export.Initialize(mux, exporters)
+
+	// Initialize import service
+	_ = importer.Initialize(
+		mux,
+		applicationService,
+		idpService,
+		flowMgtService,
+		ouService,
+		entityTypeService,
+		roleService,
+		groupService,
+		resourceService,
+		themeMgtService,
+		layoutMgtService,
+		userService,
+		i18nService,
+	)
+
+	flowExecService, err := flow.InitializeExecution(mux, flowMgtService, flowhostbridge.NewThunderInboundFlow(inboundClientService), entityProvider,
+		execRegistry, observabilitySvc, runtimeCryptoSvc)
+	if err != nil {
+		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
+	}
+
+	oauthTxn, err := dbprovider.GetDBProvider().GetRuntimeDBTransactioner()
+	if err != nil {
+		logger.Fatal("Failed to get runtime DB transactioner for OAuth", log.Error(err))
+	}
+
+	rt := config.GetServerRuntime()
+	err = oauth.InitializeWithDependencies(mux, oauth.Dependencies{
+		Application:         hostbridge.NewThunderApplication(applicationService),
+		Inbound:             hostbridge.NewThunderInbound(inboundClientService),
+		AuthnProvider:       authnProvider,
+		JWTService:          jwtService,
+		JWEService:          jweService,
+		FlowExecService:     flowExecService,
+		ObservabilitySvc:    observabilitySvc,
+		PKIService:          pkiService,
+		OUService:           ouService,
+		AttributeCacheSvc:   attributeCacheService,
+		AuthzService:        authZService,
+		EntityProvider:      entityProvider,
+		ResourceService:     resourceService,
+		I18nService:         i18nService,
+		IDPService:          idpService,
+		Transactioner:       oauthTxn,
+		DBProvider:          dbprovider.GetDBProvider(),
+		RedisProvider:       dbprovider.GetRedisProvider(),
+		DeploymentID:        rt.Config.Server.Identifier,
+		DatabaseRuntimeType: rt.Config.Database.Runtime.Type,
+	})
+	if err != nil {
+		logger.Fatal("Failed to initialize OAuth services", log.Error(err))
+	}
+
+	// Register the health service.
+	healthSvc := healthcheckservice.Initialize(dbprovider.GetDBProvider(), dbprovider.GetRedisProvider())
+	services.NewHealthCheckService(mux, healthSvc)
+
+	return jwtService
+}
+
+// UnregisterServices unregisters all services that require cleanup during shutdown.
+func UnregisterServices() {
+	observabilitySvc.Shutdown()
+}
+
+// buildHashConfig constructs a hash.HashConfig from the server configuration.
+func buildHashConfig() (hash.HashConfig, error) {
+	cfg := config.GetServerRuntime().Config.Crypto.PasswordHashing
+	alg := hash.CredAlgorithm(strings.ToUpper(cfg.Algorithm))
+	switch alg {
+	case "", hash.SHA256:
+		return hash.HashConfig{Algorithm: hash.SHA256, SaltSize: cfg.SHA256.SaltSize}, nil
+	case hash.PBKDF2:
+		return hash.HashConfig{Algorithm: alg, SaltSize: cfg.PBKDF2.SaltSize,
+			Iterations: cfg.PBKDF2.Iterations, KeySize: cfg.PBKDF2.KeySize}, nil
+	case hash.ARGON2ID:
+		return hash.HashConfig{Algorithm: alg, SaltSize: cfg.Argon2ID.SaltSize,
+			Iterations: cfg.Argon2ID.Iterations, Memory: cfg.Argon2ID.Memory,
+			Parallelism: cfg.Argon2ID.Parallelism, KeySize: cfg.Argon2ID.KeySize}, nil
+	default:
+		return hash.HashConfig{}, fmt.Errorf("unrecognized password hashing algorithm %q", cfg.Algorithm)
+	}
+}
