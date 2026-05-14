@@ -22,14 +22,6 @@ package oauth
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/application"
-	"github.com/thunder-id/thunderid/internal/attributecache"
-	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
-	"github.com/thunder-id/thunderid/internal/authz"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/flow/flowexec"
-	"github.com/thunder-id/thunderid/internal/idp"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/jwks"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
@@ -41,35 +33,29 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/userinfo"
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
-	"github.com/thunder-id/thunderid/internal/ou"
-	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
-	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
-	"github.com/thunder-id/thunderid/internal/system/observability"
+	oauthdeps "github.com/thunder-id/thunderid/pkg/oauth/deps"
 )
 
 // Initialize initializes all OAuth-related services and registers their routes.
 func Initialize(
 	mux *http.ServeMux,
-	applicationService application.ApplicationServiceInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
-	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
-	jwtService jwt.JWTServiceInterface,
-	jweService jwe.JWEServiceInterface,
-	flowExecService flowexec.FlowExecServiceInterface,
-	observabilitySvc observability.ObservabilityServiceInterface,
-	pkiService pkiservice.PKIServiceInterface,
-	ouService ou.OrganizationUnitServiceInterface,
-	attributeCacheSvc attributecache.AttributeCacheServiceInterface,
-	authzService authz.AuthorizationServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
-	resourceService resource.ResourceServiceInterface,
-	i18nService i18nmgt.I18nServiceInterface,
-	idpService idp.IDPServiceInterface,
+	applicationService oauthdeps.ApplicationService,
+	inboundClient oauthdeps.InboundClient,
+	authnProvider oauthdeps.AuthnProviderManager,
+	jwtService oauthdeps.JWTService,
+	jweService oauthdeps.JWEService,
+	flowExecService oauthdeps.FlowExecService,
+	observabilitySvc oauthdeps.ObservabilityService,
+	pkiService oauthdeps.PKIService,
+	ouService oauthdeps.OUService,
+	attributeCacheSvc oauthdeps.AttributeCacheService,
+	authzService oauthdeps.AuthorizationService,
+	entityProvider oauthdeps.EntityProvider,
+	resourceService oauthdeps.ResourceService,
+	i18nService oauthdeps.I18nService,
+	idpService oauthdeps.IDPService,
 ) error {
 	// Fetch runtime transactioner for OAuth services.
 	transactioner, err := provider.GetDBProvider().GetRuntimeDBTransactioner()

@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	authnprovidercm "github.com/thunder-id/thunderid/internal/authnprovider/common"
-	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
 	"github.com/thunder-id/thunderid/tests/mocks/httpmock"
 )
 
@@ -169,6 +169,6 @@ func (suite *RestAuthnProviderTestSuite) TestSystemError_Decoding() {
 
 	suite.Nil(result)
 	suite.NotNil(err)
-	suite.Equal(serviceerror.InternalServerError.Code, err.Code)
-	suite.Equal(serviceerror.ServerErrorType, err.Type)
+	suite.Equal(pkgauthn.ErrorCodeSystemError, err.Code)
+	suite.Equal(pkgauthn.ServerError, err.Type)
 }

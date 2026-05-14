@@ -21,28 +21,23 @@ package flowexec
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/flow/executor"
-	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	dbprovider "github.com/thunder-id/thunderid/internal/system/database/provider"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
-	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
+	flowdeps "github.com/thunder-id/thunderid/pkg/flow/deps"
 )
 
 // Initialize creates and configures the flow execution service components.
 // The observabilitySvc parameter is optional (can be nil) - if nil, observability events won't be published.
 func Initialize(
 	mux *http.ServeMux,
-	flowMgtService flowmgt.FlowMgtServiceInterface,
-	inboundClientService inboundclient.InboundClientServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
-	executorRegistry executor.ExecutorRegistryInterface,
-	observabilitySvc observability.ObservabilityServiceInterface,
-	cryptoSvc kmprovider.RuntimeCryptoProvider,
+	flowMgtService flowdeps.FlowMgtService,
+	inboundClientService flowdeps.InboundClient,
+	entityProvider flowdeps.EntityProvider,
+	executorRegistry flowdeps.ExecutorRegistry,
+	observabilitySvc flowdeps.ObservabilityService,
+	cryptoSvc flowdeps.RuntimeCryptoProvider,
 ) (FlowExecServiceInterface, error) {
 	var flowStore flowStoreInterface
 	var transactioner transaction.Transactioner

@@ -50,14 +50,12 @@ import (
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	flowcore "github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
-	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	"github.com/thunder-id/thunderid/internal/flow/flowmeta"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	"github.com/thunder-id/thunderid/internal/group"
 	"github.com/thunder-id/thunderid/internal/idp"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/notification"
-	"github.com/thunder-id/thunderid/internal/oauth"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
@@ -82,6 +80,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
 	"github.com/thunder-id/thunderid/internal/system/template"
 	"github.com/thunder-id/thunderid/internal/user"
+	"github.com/thunder-id/thunderid/pkg/flow"
+	"github.com/thunder-id/thunderid/pkg/oauth"
 )
 
 // observabilitySvc is the observability service instance. This is used for graceful shutdown.
@@ -339,7 +339,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		i18nService,
 	)
 
-	flowExecService, err := flowexec.Initialize(mux, flowMgtService, inboundClientService, entityProvider,
+	flowExecService, err := flow.InitializeExecution(mux, flowMgtService, inboundClientService, entityProvider,
 		execRegistry, observabilitySvc, runtimeCryptoSvc)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))

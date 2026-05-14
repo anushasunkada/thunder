@@ -26,6 +26,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
 )
 
 // authnProviderManager is a proxy struct that implements AuthnProviderManagerInterface by delegating
@@ -48,28 +49,28 @@ func (m *authnProviderManager) AuthenticateUser(ctx context.Context, identifiers
 	requestedAttributes *authnprovidercm.RequestedAttributes,
 	metadata *authnprovidercm.AuthnMetadata,
 	authUser AuthUser) (AuthUser, *AuthnBasicResult, *serviceerror.ServiceError) {
-	result, svcErr := m.provider.Authenticate(ctx, identifiers, credentials, metadata)
-	if svcErr != nil {
-		if svcErr.Type == serviceerror.ServerErrorType {
+	result, provErr := m.provider.Authenticate(ctx, identifiers, credentials, metadata)
+	if provErr != nil {
+		if provErr.Type == pkgauthn.ServerError {
 			m.logger.Error("provider returned server error during authentication",
-				log.String("error", svcErr.ErrorDescription.DefaultValue))
+				log.String("error", provErr.Description))
 			return AuthUser{}, nil, &serviceerror.InternalServerError
 		}
-		switch svcErr.Code {
+		switch provErr.Code {
 		case authnprovidercm.ErrorCodeUserNotFound:
 			return AuthUser{}, nil, serviceerror.CustomServiceError(ErrorUserNotFound, core.I18nMessage{
 				Key:          "error.authnprovider.user_not_found_description",
-				DefaultValue: svcErr.ErrorDescription.DefaultValue,
+				DefaultValue: provErr.Description,
 			})
 		case authnprovidercm.ErrorCodeInvalidRequest:
 			return AuthUser{}, nil, serviceerror.CustomServiceError(ErrorInvalidRequest, core.I18nMessage{
 				Key:          "error.authnprovider.invalid_request_description",
-				DefaultValue: svcErr.ErrorDescription.DefaultValue,
+				DefaultValue: provErr.Description,
 			})
 		default:
 			return AuthUser{}, nil, serviceerror.CustomServiceError(ErrorAuthenticationFailed, core.I18nMessage{
 				Key:          "error.authnprovider.authentication_failed_description",
-				DefaultValue: svcErr.ErrorDescription.DefaultValue,
+				DefaultValue: provErr.Description,
 			})
 		}
 	}
@@ -129,16 +130,16 @@ func (m *authnProviderManager) GetUserAttributes(ctx context.Context,
 	if data.isAttributeValuesIncluded {
 		return authUser, data.attributes, nil
 	}
-	result, svcErr := m.provider.GetAttributes(ctx, data.token, requestedAttributes, metadata)
-	if svcErr != nil {
-		if svcErr.Type == serviceerror.ServerErrorType {
+	result, provErr := m.provider.GetAttributes(ctx, data.token, requestedAttributes, metadata)
+	if provErr != nil {
+		if provErr.Type == pkgauthn.ServerError {
 			m.logger.Error("provider returned server error while fetching attributes",
-				log.String("error", svcErr.ErrorDescription.DefaultValue))
+				log.String("error", provErr.Description))
 			return AuthUser{}, nil, &serviceerror.InternalServerError
 		}
 		return AuthUser{}, nil, serviceerror.CustomServiceError(ErrorGetAttributesClientError, core.I18nMessage{
 			Key:          "error.authnprovider.get_attributes_client_error_description",
-			DefaultValue: svcErr.ErrorDescription.DefaultValue,
+			DefaultValue: provErr.Description,
 		})
 	}
 	authUser.setProviderData(defaultProvider, providerData{

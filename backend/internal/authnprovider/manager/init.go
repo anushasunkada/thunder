@@ -34,3 +34,11 @@ func InitializeAuthnProviderManager(entitySvc entity.EntityServiceInterface,
 	p := provider.InitializeAuthnProvider(entitySvc, passkeySvc, otpSvc, federatedAuths)
 	return newAuthnProviderManager(p)
 }
+
+// InitializeAuthnProviderManagerWithProvider initializes and returns an AuthnProviderManagerInterface
+// using a caller-provided authentication provider implementation.
+func InitializeAuthnProviderManagerWithProvider(
+	p provider.AuthnProviderInterface,
+) AuthnProviderManagerInterface {
+	return newAuthnProviderManager(p)
+}

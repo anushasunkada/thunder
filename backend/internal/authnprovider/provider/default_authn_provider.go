@@ -31,8 +31,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/entity"
 	"github.com/thunder-id/thunderid/internal/idp"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
-	"github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
 )
 
 type defaultAuthnProvider struct {
@@ -61,7 +61,7 @@ func (p *defaultAuthnProvider) Authenticate(
 	ctx context.Context,
 	identifiers, credentials map[string]interface{},
 	metadata *authnprovidercm.AuthnMetadata,
-) (*authnprovidercm.AuthnResult, *serviceerror.ServiceError) {
+) (*authnprovidercm.AuthnResult, *pkgauthn.ServiceError) {
 	if credentials == nil {
 		return nil, newClientError(authnprovidercm.ErrorCodeAuthenticationFailed,
 			"Credentials are required", "Credentials are required for authentication")
@@ -130,7 +130,7 @@ type credentialOutcome struct {
 func (p *defaultAuthnProvider) resolveCredentials(
 	ctx context.Context,
 	identifiers, credentials map[string]interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	if passkeyCredential, ok := credentials["passkey"]; ok {
 		return p.authenticateWithPasskey(ctx, passkeyCredential)
 	}
@@ -148,7 +148,7 @@ func (p *defaultAuthnProvider) resolveCredentials(
 
 func (p *defaultAuthnProvider) authenticateWithPasskey(
 	ctx context.Context, raw interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	cred, ok := raw.(*passkey.PasskeyAuthenticationFinishRequest)
 	if !ok || cred == nil {
 		return nil, newClientError(authnprovidercm.ErrorCodeInvalidRequest,
@@ -164,7 +164,7 @@ func (p *defaultAuthnProvider) authenticateWithPasskey(
 
 func (p *defaultAuthnProvider) authenticateWithOTP(
 	ctx context.Context, raw interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	otpCredential, ok := raw.(map[string]interface{})
 	if !ok {
 		return nil, newClientError(authnprovidercm.ErrorCodeInvalidRequest,
@@ -199,7 +199,7 @@ func (p *defaultAuthnProvider) authenticateWithOTP(
 
 func (p *defaultAuthnProvider) authenticateWithFederated(
 	ctx context.Context, raw interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	cred, ok := raw.(*authncommon.FederatedAuthCredential)
 	if !ok || cred == nil {
 		return nil, newClientError(authnprovidercm.ErrorCodeInvalidRequest,
@@ -247,7 +247,7 @@ func (p *defaultAuthnProvider) authenticateWithFederated(
 
 func (p *defaultAuthnProvider) authenticateByUserID(
 	ctx context.Context, userID interface{}, credentials map[string]interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	userIDStr, ok := userID.(string)
 	if !ok || userIDStr == "" {
 		return nil, newClientError(authnprovidercm.ErrorCodeInvalidRequest,
@@ -262,7 +262,7 @@ func (p *defaultAuthnProvider) authenticateByUserID(
 
 func (p *defaultAuthnProvider) authenticateByIdentifiers(
 	ctx context.Context, identifiers, credentials map[string]interface{},
-) (*credentialOutcome, *serviceerror.ServiceError) {
+) (*credentialOutcome, *pkgauthn.ServiceError) {
 	authResult, authErr := p.entitySvc.AuthenticateEntity(ctx, identifiers, credentials)
 	if authErr != nil {
 		return nil, p.handleEntityAuthError(authErr, "Basic authentication failed with server error")
@@ -270,7 +270,7 @@ func (p *defaultAuthnProvider) authenticateByIdentifiers(
 	return &credentialOutcome{entityID: authResult.EntityID}, nil
 }
 
-func (p *defaultAuthnProvider) handleEntityAuthError(err error, serverMsg string) *serviceerror.ServiceError {
+func (p *defaultAuthnProvider) handleEntityAuthError(err error, serverMsg string) *pkgauthn.ServiceError {
 	if errors.Is(err, entity.ErrEntityNotFound) {
 		return newClientError(authnprovidercm.ErrorCodeUserNotFound,
 			"User not found", "The specified user does not exist")
@@ -288,7 +288,7 @@ func (p *defaultAuthnProvider) GetAttributes(
 	token string,
 	requestedAttributes *authnprovidercm.RequestedAttributes,
 	metadata *authnprovidercm.GetAttributesMetadata,
-) (*authnprovidercm.GetAttributesResult, *serviceerror.ServiceError) {
+) (*authnprovidercm.GetAttributesResult, *pkgauthn.ServiceError) {
 	entityID := token
 
 	entityResult, getErr := p.entitySvc.GetEntity(ctx, entityID)
@@ -349,23 +349,11 @@ func (p *defaultAuthnProvider) GetAttributes(
 	}, nil
 }
 
-func newClientError(code, msg, desc string) *serviceerror.ServiceError {
-	return &serviceerror.ServiceError{
-		Type: serviceerror.ClientErrorType,
-		Code: code,
-		Error: core.I18nMessage{
-			Key:          "error.authnproviderservice." + code,
-			DefaultValue: msg,
-		},
-		ErrorDescription: core.I18nMessage{
-			Key:          "error.authnproviderservice." + code + "_description",
-			DefaultValue: desc,
-		},
-	}
+func newClientError(code, msg, desc string) *pkgauthn.ServiceError {
+	return pkgauthn.NewClientError(code, msg, desc)
 }
 
-func (p *defaultAuthnProvider) logAndReturnServerError(msg string, fields ...log.Field) *serviceerror.ServiceError {
+func (p *defaultAuthnProvider) logAndReturnServerError(msg string, fields ...log.Field) *pkgauthn.ServiceError {
 	p.logger.Error(msg, fields...)
-	err := serviceerror.InternalServerError
-	return &err
+	return pkgauthn.NewServerError(pkgauthn.ErrorCodeSystemError, msg, "An unexpected error occurred")
 }

@@ -19,8 +19,6 @@
 package manager
 
 import (
-	"github.com/thunder-id/thunderid/internal/system/i18n/core"
-
 	"context"
 	"testing"
 
@@ -28,6 +26,7 @@ import (
 
 	authnprovidercm "github.com/thunder-id/thunderid/internal/authnprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
 	"github.com/thunder-id/thunderid/tests/mocks/authnprovider/providermock"
 )
 
@@ -60,7 +59,7 @@ func (s *ManagerTestSuite) TestAuthenticateUser_Success() {
 			IsAttributeValuesIncluded: false,
 			AttributesResponse:        nil,
 			IsExistingUser:            true,
-		}, (*serviceerror.ServiceError)(nil))
+		}, (*pkgauthn.ServiceError)(nil))
 
 	returnedAuthUser, result, svcErr := s.mgr.AuthenticateUser(context.Background(), identifiers, credentials,
 		nil, meta, AuthUser{})
@@ -93,7 +92,7 @@ func (s *ManagerTestSuite) TestAuthenticateUser_FederatedNewUser() {
 			IsAmbiguousUser: false,
 			ExternalSub:     "ext-sub-123",
 			ExternalClaims:  map[string]interface{}{"email": "new@example.com"},
-		}, (*serviceerror.ServiceError)(nil))
+		}, (*pkgauthn.ServiceError)(nil))
 
 	returnedAuthUser, result, svcErr := s.mgr.AuthenticateUser(context.Background(), identifiers, credentials,
 		nil, meta, AuthUser{})
@@ -114,11 +113,7 @@ func (s *ManagerTestSuite) TestAuthenticateUser_ClientError() {
 	identifiers := map[string]interface{}{"username": "alice"}
 	credentials := map[string]interface{}{"password": "wrong"}
 	meta := &authnprovidercm.AuthnMetadata{}
-	provErr := &serviceerror.ServiceError{
-		Code:  "PROV-ERR",
-		Type:  serviceerror.ClientErrorType,
-		Error: core.I18nMessage{Key: "error.test.invalid_credentials", DefaultValue: "invalid credentials"},
-	}
+	provErr := pkgauthn.NewClientError("PROV-ERR", "invalid credentials", "")
 
 	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
 		Return((*authnprovidercm.AuthnResult)(nil), provErr)
@@ -157,11 +152,7 @@ func (s *ManagerTestSuite) assertAuthenticateUserClientErrorMapping(
 	identifiers := map[string]interface{}{"username": "alice"}
 	credentials := map[string]interface{}{"password": "secret"}
 	meta := &authnprovidercm.AuthnMetadata{}
-	provErr := &serviceerror.ServiceError{
-		Code: providerErrorCode, Type: serviceerror.ClientErrorType,
-		Error:            core.I18nMessage{DefaultValue: providerError},
-		ErrorDescription: core.I18nMessage{DefaultValue: providerErrorDescription},
-	}
+	provErr := pkgauthn.NewClientError(providerErrorCode, providerError, providerErrorDescription)
 
 	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
 		Return((*authnprovidercm.AuthnResult)(nil), provErr)
@@ -181,11 +172,7 @@ func (s *ManagerTestSuite) TestAuthenticateUser_ServerError() {
 	identifiers := map[string]interface{}{"username": "alice"}
 	credentials := map[string]interface{}{"password": "secret"}
 	meta := &authnprovidercm.AuthnMetadata{}
-	provErr := &serviceerror.ServiceError{
-		Code:  "PROV-ERR",
-		Type:  serviceerror.ServerErrorType,
-		Error: core.I18nMessage{Key: "error.test.database_unavailable", DefaultValue: "database unavailable"},
-	}
+	provErr := pkgauthn.NewServerError("PROV-ERR", "database unavailable", "")
 
 	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
 		Return((*authnprovidercm.AuthnResult)(nil), provErr)
@@ -213,9 +200,9 @@ func (s *ManagerTestSuite) TestAuthenticateUser_ReAuth() {
 	}
 
 	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
-		Return(firstResult, (*serviceerror.ServiceError)(nil)).Once()
+		Return(firstResult, (*pkgauthn.ServiceError)(nil)).Once()
 	s.mockProvider.On("Authenticate", context.Background(), identifiers, credentials, meta).
-		Return(secondResult, (*serviceerror.ServiceError)(nil)).Once()
+		Return(secondResult, (*pkgauthn.ServiceError)(nil)).Once()
 
 	au1, _, _ := s.mgr.AuthenticateUser(context.Background(), identifiers, credentials, nil, meta, AuthUser{})
 	au2, _, _ := s.mgr.AuthenticateUser(context.Background(), identifiers, credentials, nil, meta, au1)
@@ -305,11 +292,7 @@ func (s *ManagerTestSuite) TestGetUserAttributes_CacheMissServerError() {
 	authUser.setProviderData(defaultProvider, providerData{token: "tok", isAttributeValuesIncluded: false})
 
 	requestedAttrs := &authnprovidercm.RequestedAttributes{}
-	provErr := &serviceerror.ServiceError{
-		Code:  "PROVIDER-ERR",
-		Type:  serviceerror.ServerErrorType,
-		Error: core.I18nMessage{Key: "error.test.provider_failure", DefaultValue: "provider failure"},
-	}
+	provErr := pkgauthn.NewServerError("PROVIDER-ERR", "provider failure", "")
 
 	s.mockProvider.On("GetAttributes", context.Background(), "tok", requestedAttrs,
 		(*authnprovidercm.GetAttributesMetadata)(nil)).
@@ -328,11 +311,7 @@ func (s *ManagerTestSuite) TestGetUserAttributes_CacheMissClientError() {
 	authUser.setProviderData(defaultProvider, providerData{token: "expired-tok", isAttributeValuesIncluded: false})
 
 	requestedAttrs := &authnprovidercm.RequestedAttributes{}
-	provErr := &serviceerror.ServiceError{
-		Code:  "PROVIDER-ERR",
-		Type:  serviceerror.ClientErrorType,
-		Error: core.I18nMessage{Key: "error.test.token_expired", DefaultValue: "token expired"},
-	}
+	provErr := pkgauthn.NewClientError("PROVIDER-ERR", "token expired", "")
 
 	s.mockProvider.On("GetAttributes", context.Background(), "expired-tok", requestedAttrs,
 		(*authnprovidercm.GetAttributesMetadata)(nil)).
@@ -364,7 +343,7 @@ func (s *ManagerTestSuite) TestGetUserAttributes_CacheMiss() {
 	s.mockProvider.On("GetAttributes", context.Background(), "tok", requestedAttrs,
 		(*authnprovidercm.GetAttributesMetadata)(nil)).
 		Return(&authnprovidercm.GetAttributesResult{AttributesResponse: fetchedAttrs},
-			(*serviceerror.ServiceError)(nil))
+			(*pkgauthn.ServiceError)(nil))
 
 	retAuthUser, attrs, svcErr := s.mgr.GetUserAttributes(context.Background(), requestedAttrs, nil, authUser)
 	s.Nil(svcErr)

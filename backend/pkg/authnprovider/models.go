@@ -1,23 +1,4 @@
-/*
- * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
- *
- * WSO2 LLC. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
-// Package common provides common data models and error types shared across authnprovider sub-packages.
-package common
+package authnprovider
 
 // AuthnMetadata contains metadata for authentication.
 type AuthnMetadata struct {
@@ -26,13 +7,11 @@ type AuthnMetadata struct {
 
 // AuthnResult represents the result of an authentication attempt.
 type AuthnResult struct {
-	// Entity-generic fields.
 	EntityID       string `json:"entityId"`
 	EntityCategory string `json:"entityCategory"`
 	EntityType     string `json:"entityType"`
 	OUID           string `json:"ouId"`
 
-	// TODO: Remove after refacoring usages
 	UserID   string `json:"userId"`
 	UserType string `json:"userType"`
 
@@ -40,8 +19,6 @@ type AuthnResult struct {
 	IsAttributeValuesIncluded bool                `json:"isAttributeValuesIncluded"`
 	AttributesResponse        *AttributesResponse `json:"attributesResponse,omitempty"`
 
-	// Federated authentication fields. Set when the authentication flow is federated
-	// and no internal user was found (IsExistingUser = false).
 	ExternalSub     string                 `json:"externalSub,omitempty"`
 	ExternalClaims  map[string]interface{} `json:"externalClaims,omitempty"`
 	IsExistingUser  bool                   `json:"isExistingUser"`
@@ -56,13 +33,11 @@ type GetAttributesMetadata struct {
 
 // GetAttributesResult represents the result of fetching attributes.
 type GetAttributesResult struct {
-	// Entity-generic fields.
 	EntityID       string `json:"entityId"`
 	EntityCategory string `json:"entityCategory"`
 	EntityType     string `json:"entityType"`
 	OUID           string `json:"ouId"`
 
-	// TODO: Remove after refacoring usages
 	UserID   string `json:"userId"`
 	UserType string `json:"userType"`
 
@@ -71,9 +46,8 @@ type GetAttributesResult struct {
 
 // AssuranceMetadataResponse contains assurance metadata for an attribute.
 type AssuranceMetadataResponse struct {
-	IsVerified bool `json:"isVerified"`
-	// this should be the key of the corresponding verification response in the verifications map
-	VerificationID string `json:"verificationId,omitempty"`
+	IsVerified       bool   `json:"isVerified"`
+	VerificationID   string `json:"verificationId,omitempty"`
 }
 
 // VerificationResponse contains verification details for an attribute.
@@ -110,8 +84,7 @@ type GenericTimeMetadataRequest struct {
 
 // AssuranceMetadataRequest contains assurance metadata request details.
 type AssuranceMetadataRequest struct {
-	ShouldVerify bool `json:"shouldVerify,omitempty"`
-	// this should be the key of the corresponding verification request in the verifications map
+	ShouldVerify   bool   `json:"shouldVerify,omitempty"`
 	VerificationID string `json:"verificationId,omitempty"`
 }
 

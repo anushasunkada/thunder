@@ -26,10 +26,9 @@ import (
 	"net/http"
 
 	authnprovidercm "github.com/thunder-id/thunderid/internal/authnprovider/common"
-	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	systemhttp "github.com/thunder-id/thunderid/internal/system/http"
-	"github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	pkgauthn "github.com/thunder-id/thunderid/pkg/authnprovider"
 )
 
 // restAuthnProvider is an authentication provider that communicates with an external service via REST.
@@ -72,7 +71,7 @@ func newRestAuthnProvider(baseURL, apiKey string, httpClient systemhttp.HTTPClie
 
 // Authenticate authenticates a user.
 func (p *restAuthnProvider) Authenticate(ctx context.Context, identifiers, credentials map[string]interface{},
-	metadata *authnprovidercm.AuthnMetadata) (*authnprovidercm.AuthnResult, *serviceerror.ServiceError) {
+	metadata *authnprovidercm.AuthnMetadata) (*authnprovidercm.AuthnResult, *pkgauthn.ServiceError) {
 	reqBody := AuthenticateRequest{
 		Identifiers: identifiers,
 		Credentials: credentials,
@@ -85,7 +84,7 @@ func (p *restAuthnProvider) Authenticate(ctx context.Context, identifiers, crede
 func (p *restAuthnProvider) GetAttributes(ctx context.Context, token string,
 	requestedAttributes *authnprovidercm.RequestedAttributes,
 	metadata *authnprovidercm.GetAttributesMetadata) (
-	*authnprovidercm.GetAttributesResult, *serviceerror.ServiceError) {
+	*authnprovidercm.GetAttributesResult, *pkgauthn.ServiceError) {
 	reqBody := GetAttributesRequest{
 		Token:               token,
 		RequestedAttributes: requestedAttributes,
@@ -96,7 +95,7 @@ func (p *restAuthnProvider) GetAttributes(ctx context.Context, token string,
 
 // postAndDecode marshals reqBody as JSON, posts it to url, and decodes the response into T.
 func postAndDecode[T any](p *restAuthnProvider, ctx context.Context, url string,
-	reqBody interface{}) (*T, *serviceerror.ServiceError) {
+	reqBody interface{}) (*T, *pkgauthn.ServiceError) {
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, p.logAndReturnServerError("Failed to marshal request", log.String("error", err.Error()))
@@ -121,10 +120,9 @@ func postAndDecode[T any](p *restAuthnProvider, ctx context.Context, url string,
 	return nil, p.decodeError(resp.Body, resp.StatusCode)
 }
 
-func (p *restAuthnProvider) logAndReturnServerError(msg string, fields ...log.Field) *serviceerror.ServiceError {
+func (p *restAuthnProvider) logAndReturnServerError(msg string, fields ...log.Field) *pkgauthn.ServiceError {
 	p.logger.Error(msg, fields...)
-	err := serviceerror.InternalServerError
-	return &err
+	return pkgauthn.NewServerError(pkgauthn.ErrorCodeSystemError, msg, "An unexpected error occurred")
 }
 
 func isClientError(statusCode int, code string) bool {
@@ -135,36 +133,20 @@ func isClientError(statusCode int, code string) bool {
 		code == authnprovidercm.ErrorCodeInvalidRequest
 }
 
-func (p *restAuthnProvider) decodeError(body io.Reader, statusCode int) *serviceerror.ServiceError {
+func (p *restAuthnProvider) decodeError(body io.Reader, statusCode int) *pkgauthn.ServiceError {
 	var apiErr apiErrorResponse
 	if err := json.NewDecoder(body).Decode(&apiErr); err != nil {
 		return p.logAndReturnServerError("Failed to decode error response from authn provider",
 			log.String("error", err.Error()))
 	}
 
-	errorType := serviceerror.ServerErrorType
 	if isClientError(statusCode, apiErr.Code) {
-		errorType = serviceerror.ClientErrorType
+		return pkgauthn.NewClientError(apiErr.Code, apiErr.Message, apiErr.Description)
 	}
 
-	if errorType == serviceerror.ServerErrorType {
-		return p.logAndReturnServerError("Authn provider returned server error",
-			log.String("code", apiErr.Code), log.String("message", apiErr.Message),
-			log.String("description", apiErr.Description))
-	}
-
-	return &serviceerror.ServiceError{
-		Type: errorType,
-		Code: apiErr.Code,
-		Error: core.I18nMessage{
-			Key:          "error.authnproviderservice." + apiErr.Code,
-			DefaultValue: apiErr.Message,
-		},
-		ErrorDescription: core.I18nMessage{
-			Key:          "error.authnproviderservice." + apiErr.Code + "_description",
-			DefaultValue: apiErr.Description,
-		},
-	}
+	return p.logAndReturnServerError("Authn provider returned server error",
+		log.String("code", apiErr.Code), log.String("message", apiErr.Message),
+		log.String("description", apiErr.Description))
 }
 
 func (p *restAuthnProvider) doRequest(ctx context.Context, url string, body io.Reader) (*http.Response, error) {
