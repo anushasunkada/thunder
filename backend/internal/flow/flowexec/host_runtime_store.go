@@ -20,12 +20,20 @@ package flowexec
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 type hostContextStore struct {
 	host thunderidengine.RuntimeStore
+}
+
+func (s *hostContextStore) validateHost() error {
+	if s.host == nil {
+		return fmt.Errorf("runtime store is not configured")
+	}
+	return nil
 }
 
 // NewContextStoreFromRuntime adapts a host RuntimeStore for flow context persistence.
@@ -36,10 +44,16 @@ func NewContextStoreFromRuntime(host thunderidengine.RuntimeStore) ContextStoreI
 func (s *hostContextStore) StoreFlowContext(
 	ctx context.Context, dbModel FlowContextDB, expirySeconds int64,
 ) error {
+	if err := s.validateHost(); err != nil {
+		return err
+	}
 	return s.host.StoreFlowContext(ctx, toPublicFlowContext(dbModel), expirySeconds)
 }
 
 func (s *hostContextStore) GetFlowContext(ctx context.Context, executionID string) (*FlowContextDB, error) {
+	if err := s.validateHost(); err != nil {
+		return nil, err
+	}
 	pub, err := s.host.GetFlowContext(ctx, executionID)
 	if err != nil {
 		return nil, err
@@ -52,10 +66,16 @@ func (s *hostContextStore) GetFlowContext(ctx context.Context, executionID strin
 }
 
 func (s *hostContextStore) UpdateFlowContext(ctx context.Context, dbModel FlowContextDB) error {
+	if err := s.validateHost(); err != nil {
+		return err
+	}
 	return s.host.UpdateFlowContext(ctx, toPublicFlowContext(dbModel))
 }
 
 func (s *hostContextStore) DeleteFlowContext(ctx context.Context, executionID string) error {
+	if err := s.validateHost(); err != nil {
+		return err
+	}
 	return s.host.DeleteFlowContext(ctx, executionID)
 }
 

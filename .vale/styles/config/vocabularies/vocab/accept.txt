@@ -41,6 +41,7 @@ URIs
 Vue
 [Uu]nexported
 [Mm]ux
+Embedded
 DTOs
 [Mm]iddleware
 [Vv]itest

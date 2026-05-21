@@ -28,7 +28,7 @@ frontend/packages/      # @thunderid/contexts · design · hooks · i18n · util
 samples/apps/           # react-sdk-sample · react-api-based-sample · react-vanilla-sample · wayfinder-sample
 ```
 
-## Embeddable engine (`pkg/thunderidengine`)
+## Embedded engine (`pkg/thunderidengine`)
 
 External Go processes import only `github.com/thunder-id/thunderid/pkg/thunderidengine`. Host code implements nine provider interfaces; `Engine.Initialize(mux)` loads configuration, wires `internal/enginebridge` adapters, and registers OAuth AS + `POST /flow/execute` + `GET /flow/meta` (no DCR, no `/flows/**` CRUD).
 

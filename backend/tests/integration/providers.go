@@ -20,7 +20,10 @@ package integration
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
@@ -139,9 +142,20 @@ func newMemoryRuntimeStore() *memoryRuntimeStore {
 func (m *memoryRuntimeStore) Store(
 	_ context.Context, parRequest thunderidengine.PushedAuthorizationRequest, _ int64,
 ) (string, error) {
-	key := "urn:par:" + parRequest.ClientID
+	key, err := newPARRequestURI()
+	if err != nil {
+		return "", err
+	}
 	m.par[key] = parRequest
 	return key, nil
+}
+
+func newPARRequestURI() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("generate par request uri: %w", err)
+	}
+	return "urn:par:" + hex.EncodeToString(b), nil
 }
 
 func (m *memoryRuntimeStore) Consume(

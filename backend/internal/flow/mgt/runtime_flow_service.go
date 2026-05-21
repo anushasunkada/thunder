@@ -171,6 +171,10 @@ func hostFlowToComplete(def *HostFlowDefinition) (*CompleteFlowDefinition, *serv
 	if def == nil {
 		return nil, &ErrorFlowNotFound
 	}
+	flowType := common.FlowType(def.FlowType)
+	if !isValidFlowType(flowType) {
+		return nil, &ErrorInvalidFlowType
+	}
 	var nodes []NodeDefinition
 	if len(def.Nodes) > 0 {
 		if err := json.Unmarshal(def.Nodes, &nodes); err != nil {
@@ -181,7 +185,7 @@ func hostFlowToComplete(def *HostFlowDefinition) (*CompleteFlowDefinition, *serv
 		ID:       def.ID,
 		Handle:   def.Handle,
 		Name:     def.Name,
-		FlowType: common.FlowType(def.FlowType),
+		FlowType: flowType,
 		Nodes:    nodes,
 	}, nil
 }

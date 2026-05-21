@@ -74,15 +74,7 @@ func NewDefaultContextStoreFromConfig() (ContextStoreInterface, error) {
 
 func resolveFlowContextStore(opts *InitOptions) (ContextStoreInterface, transaction.Transactioner, error) {
 	if opts != nil && opts.ContextStore != nil {
-		if config.GetServerRuntime().Config.Database.Runtime.Type == dbprovider.DataSourceTypeRedis {
-			return opts.ContextStore, transaction.NewNoOpTransactioner(), nil
-		}
-		dbProvider := dbprovider.GetDBProvider()
-		transactioner, err := dbProvider.GetRuntimeDBTransactioner()
-		if err != nil {
-			return nil, nil, err
-		}
-		return opts.ContextStore, transactioner, nil
+		return opts.ContextStore, transaction.NewNoOpTransactioner(), nil
 	}
 
 	if config.GetServerRuntime().Config.Database.Runtime.Type == dbprovider.DataSourceTypeRedis {

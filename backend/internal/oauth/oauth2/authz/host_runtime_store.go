@@ -75,7 +75,11 @@ func (s *hostAuthRequestStore) ClearRequest(ctx context.Context, key string) err
 }
 
 func (s *hostAuthCodeStore) InsertAuthorizationCode(ctx context.Context, authzCode AuthorizationCode) error {
-	return s.host.InsertAuthorizationCode(ctx, toPublicAuthorizationCode(authzCode))
+	pub, err := toPublicAuthorizationCode(authzCode)
+	if err != nil {
+		return err
+	}
+	return s.host.InsertAuthorizationCode(ctx, pub)
 }
 
 func (s *hostAuthCodeStore) ConsumeAuthorizationCode(ctx context.Context, authCode string) (bool, error) {
@@ -92,17 +96,20 @@ func (s *hostAuthCodeStore) GetAuthorizationCode(
 	if pub == nil {
 		return nil, nil
 	}
-	internal := fromPublicAuthorizationCode(*pub)
+	internal, err := fromPublicAuthorizationCode(*pub)
+	if err != nil {
+		return nil, err
+	}
 	return &internal, nil
 }
 
 // PublicAuthCodeFromInternal converts an internal authorization code to the host model.
-func PublicAuthCodeFromInternal(code AuthorizationCode) thunderidengine.AuthorizationCode {
+func PublicAuthCodeFromInternal(code AuthorizationCode) (thunderidengine.AuthorizationCode, error) {
 	return toPublicAuthorizationCode(code)
 }
 
 // InternalAuthCodeFromPublic converts a host authorization code to the internal model.
-func InternalAuthCodeFromPublic(pub thunderidengine.AuthorizationCode) AuthorizationCode {
+func InternalAuthCodeFromPublic(pub thunderidengine.AuthorizationCode) (AuthorizationCode, error) {
 	return fromPublicAuthorizationCode(pub)
 }
 
@@ -151,8 +158,11 @@ func unmarshalOAuthParameters(raw thunderidengine.OAuthParameters) (oauth2model.
 	return params, nil
 }
 
-func toPublicAuthorizationCode(code AuthorizationCode) thunderidengine.AuthorizationCode {
-	claimsRaw, _ := json.Marshal(code.ClaimsRequest)
+func toPublicAuthorizationCode(code AuthorizationCode) (thunderidengine.AuthorizationCode, error) {
+	claimsRaw, err := json.Marshal(code.ClaimsRequest)
+	if err != nil {
+		return thunderidengine.AuthorizationCode{}, fmt.Errorf("marshal claims request: %w", err)
+	}
 	return thunderidengine.AuthorizationCode{
 		CodeID:              code.CodeID,
 		Code:                code.Code,
@@ -170,13 +180,15 @@ func toPublicAuthorizationCode(code AuthorizationCode) thunderidengine.Authoriza
 		Nonce:               code.Nonce,
 		CompletedACR:        code.CompletedACR,
 		ClaimsRequestJSON:   claimsRaw,
-	}
+	}, nil
 }
 
-func fromPublicAuthorizationCode(pub thunderidengine.AuthorizationCode) AuthorizationCode {
+func fromPublicAuthorizationCode(pub thunderidengine.AuthorizationCode) (AuthorizationCode, error) {
 	var claims *oauth2model.ClaimsRequest
 	if len(pub.ClaimsRequestJSON) > 0 {
-		_ = json.Unmarshal(pub.ClaimsRequestJSON, &claims)
+		if err := json.Unmarshal(pub.ClaimsRequestJSON, &claims); err != nil {
+			return AuthorizationCode{}, fmt.Errorf("unmarshal claims request: %w", err)
+		}
 	}
 	return AuthorizationCode{
 		CodeID:              pub.CodeID,
@@ -195,5 +207,5 @@ func fromPublicAuthorizationCode(pub thunderidengine.AuthorizationCode) Authoriz
 		Nonce:               pub.Nonce,
 		CompletedACR:        pub.CompletedACR,
 		ClaimsRequest:       claims,
-	}
+	}, nil
 }

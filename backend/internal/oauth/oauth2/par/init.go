@@ -50,9 +50,11 @@ func Initialize(
 	resourceService resource.ResourceServiceInterface,
 	opts *InitOptions,
 ) PARServiceInterface {
-	store := initializePARStore()
+	var store StoreInterface
 	if opts != nil && opts.Store != nil {
 		store = opts.Store
+	} else {
+		store = initializePARStore()
 	}
 	parSvc := newPARService(store, resourceService)
 	handler := newPARHandler(parSvc)

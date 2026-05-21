@@ -19,6 +19,7 @@
 package enginebridge
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
@@ -61,10 +62,10 @@ func Initialize(cfg thunderidengine.EngineConfig, mux *http.ServeMux) error {
 		return nil
 	}
 
-	routeMux := mux
-	if routeMux == nil {
-		routeMux = http.NewServeMux()
+	if mux == nil {
+		return fmt.Errorf("thunderidengine: mux is required when route registration is enabled")
 	}
+	routeMux := mux
 
 	flowExecService, err := flowexec.Initialize(routeMux, runtime.flowMgt, runtime.inbound, runtime.entity,
 		execRegistry, runtime.observability, runtime.runtimeCrypto, runtime.flowExecOpts)

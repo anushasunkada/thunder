@@ -67,6 +67,9 @@ func Initialize(
 func resolveAuthorizationStores(opts *InitOptions) (
 	AuthorizationCodeStoreInterface, RequestStoreInterface, transaction.Transactioner, error,
 ) {
+	if opts != nil && opts.CodeStore != nil && opts.RequestStore != nil {
+		return opts.CodeStore, opts.RequestStore, transaction.NewNoOpTransactioner(), nil
+	}
 	defaultCode, defaultRequest, transactioner, err := initializeAuthorizationStores()
 	if err != nil {
 		return nil, nil, nil, err

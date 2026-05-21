@@ -24,6 +24,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/cert"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
+	i18ncore "github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
@@ -99,9 +101,18 @@ func (b *clientBridge) LoadDeclarativeResources(_ context.Context, _ inboundmode
 }
 
 func (b *clientBridge) GetCertificate(
-	_ context.Context, _ cert.CertificateReferenceType, _ string,
+	_ context.Context, refType cert.CertificateReferenceType, _ string,
 ) (*inboundmodel.Certificate, *inboundclient.CertOperationError) {
-	return nil, &inboundclient.CertOperationError{}
+	return nil, &inboundclient.CertOperationError{
+		Operation: inboundclient.CertOpRetrieve,
+		RefType:   refType,
+		Underlying: &serviceerror.ServiceError{
+			Type: serviceerror.ClientErrorType,
+			ErrorDescription: i18ncore.I18nMessage{
+				DefaultValue: errBridgeNotImplemented.Error(),
+			},
+		},
+	}
 }
 
 var _ inboundclient.InboundClientServiceInterface = (*clientBridge)(nil)

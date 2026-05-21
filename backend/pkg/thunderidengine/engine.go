@@ -18,17 +18,28 @@
 
 package thunderidengine
 
-import "net/http"
+import (
+	"net/http"
+	"sync"
+)
 
 // bootstrapFunc wires host providers into internal services. Registered by internal/enginebridge.
 type bootstrapFunc func(EngineConfig, *http.ServeMux) error
 
-var registeredBootstrap bootstrapFunc
+var (
+	registeredBootstrap   bootstrapFunc
+	registerBootstrapOnce sync.Once
+)
 
 // RegisterBootstrap registers the module-internal bootstrap implementation.
 // It is called from internal/enginebridge and must not be used by embedders.
 func RegisterBootstrap(fn bootstrapFunc) {
-	registeredBootstrap = fn
+	if fn == nil {
+		return
+	}
+	registerBootstrapOnce.Do(func() {
+		registeredBootstrap = fn
+	})
 }
 
 // Engine wires host providers and internal Thunder services for embeddable OAuth and flow runtime.

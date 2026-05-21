@@ -19,6 +19,7 @@
 package oauth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/application"
@@ -83,7 +84,7 @@ type EngineDeps struct {
 func InitializeEngine(deps EngineDeps) error {
 	mux := deps.Mux
 	if mux == nil {
-		mux = http.NewServeMux()
+		return fmt.Errorf("oauth: mux is required")
 	}
 
 	transactioner, err := provider.GetDBProvider().GetRuntimeDBTransactioner()

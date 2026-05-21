@@ -112,7 +112,11 @@ func (s *defaultRuntimeStore) ClearRequest(ctx context.Context, key string) erro
 func (s *defaultRuntimeStore) InsertAuthorizationCode(
 	ctx context.Context, code thunderidengine.AuthorizationCode,
 ) error {
-	return s.stores.AuthCode.InsertAuthorizationCode(ctx, oauthauthz.InternalAuthCodeFromPublic(code))
+	internal, err := oauthauthz.InternalAuthCodeFromPublic(code)
+	if err != nil {
+		return err
+	}
+	return s.stores.AuthCode.InsertAuthorizationCode(ctx, internal)
 }
 
 func (s *defaultRuntimeStore) ConsumeAuthorizationCode(ctx context.Context, authCodeString string) (bool, error) {
@@ -126,7 +130,10 @@ func (s *defaultRuntimeStore) GetAuthorizationCode(
 	if err != nil || internal == nil {
 		return nil, err
 	}
-	pub := oauthauthz.PublicAuthCodeFromInternal(*internal)
+	pub, err := oauthauthz.PublicAuthCodeFromInternal(*internal)
+	if err != nil {
+		return nil, err
+	}
 	return &pub, nil
 }
 

@@ -36,15 +36,24 @@ func TestInitializeRegistersRuntimeRoutes(t *testing.T) {
 	if _, err := os.Stat(deployment); err != nil {
 		t.Skip("cmd/server deployment config not available")
 	}
+	ensureServerTestAssets(t, serverHome)
 
 	mux := http.NewServeMux()
-	err := Initialize(thunderidengine.EngineConfig{ConfigPath: serverHome}, mux)
-	if err != nil {
-		t.Skip("server home config not fully provisioned for engine bootstrap:", err)
-	}
+	err := Initialize(thunderidengine.EngineConfig{
+		ConfigPath: serverHome,
+		Providers:  testProviders(),
+		Executors: thunderidengine.ExecutorConfig{
+			Names: []string{
+				"BasicAuthExecutor",
+				"AuthAssertExecutor",
+				"AuthorizationExecutor",
+			},
+		},
+	}, mux)
+	require.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodGet, "/.well-known/openid-configuration", nil)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
-	require.NotEqual(t, http.StatusNotFound, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code)
 }

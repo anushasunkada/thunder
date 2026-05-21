@@ -35,8 +35,12 @@ import (
 func TestEngineInitializeRegistersRuntimeRoutes(t *testing.T) {
 	serverHome := filepath.Join("..", "..", "cmd", "server")
 	deployment := filepath.Join(serverHome, "repository", "conf", "deployment.yaml")
+	cryptoKey := filepath.Join(serverHome, "repository", "resources", "security", "crypto.key")
 	if _, err := os.Stat(deployment); err != nil {
 		t.Skip("cmd/server deployment config not available")
+	}
+	if _, err := os.Stat(cryptoKey); err != nil {
+		t.Skip("cmd/server crypto.key not available")
 	}
 
 	mux := http.NewServeMux()
@@ -52,9 +56,7 @@ func TestEngineInitializeRegistersRuntimeRoutes(t *testing.T) {
 		},
 	})
 	err := engine.Initialize(mux)
-	if err != nil {
-		t.Skip("engine bootstrap requires provisioned server home:", err)
-	}
+	require.NoError(t, err)
 
 	t.Run("openid configuration", func(t *testing.T) {
 		rec := httptest.NewRecorder()
