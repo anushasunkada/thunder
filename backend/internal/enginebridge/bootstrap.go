@@ -37,7 +37,7 @@ func Initialize(cfg thunderidengine.EngineConfig, mux *http.ServeMux) error {
 }
 
 func initializeWithInternalBootstrap(cfg thunderidengine.EngineConfig, mux *http.ServeMux) error {
-	_, thunderCfg, err := loadEngineConfig(cfg.ConfigPath)
+	thunderCfg, err := loadEngineConfig(cfg.ConfigPath)
 	if err != nil {
 		return err
 	}

@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"net/http"
 
-	authnAssert "github.com/thunder-id/thunderid/internal/authn/assert"
 	"github.com/thunder-id/thunderid/internal/attributecache"
+	authnAssert "github.com/thunder-id/thunderid/internal/authn/assert"
 	flowcore "github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
@@ -40,12 +40,12 @@ import (
 )
 
 type leanInfra struct {
-	jwtService      jwt.JWTServiceInterface
-	jweService      jwe.JWEServiceInterface
-	runtimeCrypto   kmprovider.RuntimeCryptoProvider
-	observability   observability.ObservabilityServiceInterface
-	attributeCache  attributecache.AttributeCacheServiceInterface
-	authAssertGen   authnAssert.AuthAssertGeneratorInterface
+	jwtService     jwt.JWTServiceInterface
+	jweService     jwe.JWEServiceInterface
+	runtimeCrypto  kmprovider.RuntimeCryptoProvider
+	observability  observability.ObservabilityServiceInterface
+	attributeCache attributecache.AttributeCacheServiceInterface
+	authAssertGen  authnAssert.AuthAssertGeneratorInterface
 }
 
 func initLeanInfra() (*leanInfra, error) {
@@ -70,7 +70,7 @@ func initializeHostOnly(cfg thunderidengine.EngineConfig, mux *http.ServeMux) er
 		return err
 	}
 
-	_, thunderCfg, err := loadEngineConfig(cfg.ConfigPath)
+	thunderCfg, err := loadEngineConfig(cfg.ConfigPath)
 	if err != nil {
 		return err
 	}
@@ -90,10 +90,7 @@ func initializeHostOnly(cfg thunderidengine.EngineConfig, mux *http.ServeMux) er
 		return err
 	}
 
-	execRegistry, err := buildHostExecutorRegistry(cfg.Executors, cfg.Providers, cacheManager, infra, runtime)
-	if err != nil {
-		return err
-	}
+	execRegistry := buildHostExecutorRegistry(cfg.Executors, cfg.Providers, cacheManager, infra, runtime)
 
 	flowFactory, graphCache := flowcore.Initialize(cacheManager)
 	graphBuilder := flowmgt.NewGraphBuilder(flowFactory, execRegistry, graphCache)
@@ -187,7 +184,7 @@ func buildHostExecutorRegistry(
 	cacheManager cache.CacheManagerInterface,
 	infra *leanInfra,
 	runtime *runtimeServices,
-) (executor.ExecutorRegistryInterface, error) {
+) executor.ExecutorRegistryInterface {
 	if execCfg.CustomRegistry != nil {
 		reg := newExecutorRegistryBridge(execCfg.CustomRegistry)
 		for _, ex := range execCfg.InjectCustom {
@@ -195,7 +192,7 @@ func buildHostExecutorRegistry(
 				reg.RegisterExecutor(ex.GetName(), ex)
 			}
 		}
-		return reg, nil
+		return reg
 	}
 
 	flowFactory, _ := flowcore.Initialize(cacheManager)
@@ -223,5 +220,5 @@ func buildHostExecutorRegistry(
 			reg.RegisterExecutor(ex.GetName(), ex)
 		}
 	}
-	return reg, nil
+	return reg
 }

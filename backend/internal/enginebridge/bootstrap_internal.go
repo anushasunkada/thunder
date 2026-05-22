@@ -112,7 +112,7 @@ func initCrypto() (jwt.JWTServiceInterface, jwe.JWEServiceInterface, kmprovider.
 		return nil, nil, nil, err
 	}
 	runtimeCrypto := defaultkm.NewRuntimeCryptoService(pkiService, configCryptoSvc)
-	jwtService, jweService, err := jose.Initialize(pkiService)
+	jwtService, jweService, err := jose.Initialize(runtimeCrypto, pkiService)
 	if err != nil {
 		return nil, nil, nil, err
 	}

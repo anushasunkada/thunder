@@ -28,25 +28,25 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/config"
 )
 
-func loadEngineConfig(configPath string) (string, *config.Config, error) {
+func loadEngineConfig(configPath string) (*config.Config, error) {
 	if strings.TrimSpace(configPath) == "" {
-		return "", nil, fmt.Errorf("thunderidengine: ConfigPath is required")
+		return nil, fmt.Errorf("thunderidengine: ConfigPath is required")
 	}
 
 	serverHome, deploymentPath := resolveServerHomeAndDeployment(configPath)
 	if _, err := os.Stat(deploymentPath); err != nil {
-		return "", nil, fmt.Errorf("thunderidengine: deployment config not found at %s: %w", deploymentPath, err)
+		return nil, fmt.Errorf("thunderidengine: deployment config not found at %s: %w", deploymentPath, err)
 	}
 
 	defaultConfigPath := path.Join(serverHome, "repository/resources/conf/default.json")
 	cfg, err := config.LoadConfig(deploymentPath, defaultConfigPath, serverHome)
 	if err != nil {
-		return "", nil, fmt.Errorf("thunderidengine: load config: %w", err)
+		return nil, fmt.Errorf("thunderidengine: load config: %w", err)
 	}
 	if err := config.InitializeServerRuntime(serverHome, cfg); err != nil {
-		return "", nil, fmt.Errorf("thunderidengine: init server runtime: %w", err)
+		return nil, fmt.Errorf("thunderidengine: init server runtime: %w", err)
 	}
-	return serverHome, cfg, nil
+	return cfg, nil
 }
 
 func resolveServerHomeAndDeployment(configPath string) (serverHome, deploymentPath string) {
