@@ -95,7 +95,7 @@ func initializeTestRuntime(root string) error {
 
 type MagicLinkServiceTestSuite struct {
 	suite.Suite
-	mockJWTService  *jwtmock.JWTServiceInterfaceMock
+	mockJWTService  *jwtmock.JWTServiceMock
 	mockUserService *entityprovidermock.EntityProviderInterfaceMock
 	service         MagicLinkAuthnServiceInterface
 }
@@ -116,7 +116,7 @@ func (suite *MagicLinkServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *MagicLinkServiceTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockUserService = entityprovidermock.NewEntityProviderInterfaceMock(suite.T())
 	suite.service = newMagicLinkAuthnService(suite.mockJWTService, suite.mockUserService)
 }

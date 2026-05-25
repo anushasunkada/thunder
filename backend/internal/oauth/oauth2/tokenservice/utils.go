@@ -24,12 +24,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/ou"
-	"github.com/thunder-id/thunderid/internal/system/config"
 )
 
 // ParseScopes parses a space-separated scope string into a slice of scope strings.
@@ -55,13 +55,11 @@ func JoinScopes(scopes []string) string {
 	return strings.Join(scopes, " ")
 }
 
-// ResolveTokenConfig resolves the token configuration from the OAuth app or falls back to global config.
-func ResolveTokenConfig(oauthApp *inboundmodel.OAuthClient, tokenType TokenType) *TokenConfig {
-	conf := config.GetServerRuntime().Config
-
+// ResolveTokenConfig resolves the token configuration from the OAuth app or falls back to defaults.
+func ResolveTokenConfig(oauthApp *thunderidengine.OAuthClient, tokenType TokenType, defaults Options) *TokenConfig {
 	tokenConfig := &TokenConfig{
-		Issuer:         conf.JWT.Issuer,
-		ValidityPeriod: conf.JWT.ValidityPeriod,
+		Issuer:         defaults.Issuer,
+		ValidityPeriod: defaults.ValidityPeriod,
 	}
 
 	// Override with token-type specific configuration if available
@@ -79,8 +77,8 @@ func ResolveTokenConfig(oauthApp *inboundmodel.OAuthClient, tokenType TokenType)
 			}
 		}
 	case TokenTypeRefresh:
-		if conf.OAuth.RefreshToken.ValidityPeriod > 0 {
-			tokenConfig.ValidityPeriod = conf.OAuth.RefreshToken.ValidityPeriod
+		if defaults.RefreshTokenValidity > 0 {
+			tokenConfig.ValidityPeriod = defaults.RefreshTokenValidity
 		}
 	}
 
@@ -243,9 +241,9 @@ func ExtractUserAttributes(claims map[string]interface{}) map[string]interface{}
 	return userAttributes
 }
 
-// isSelfIssuer reports whether the given issuer is the server's own configured issuer.
-func isSelfIssuer(issuer string) bool {
-	return issuer == config.GetServerRuntime().Config.JWT.Issuer
+// isSelfIssuer reports whether the given issuer matches the configured server issuer.
+func isSelfIssuer(issuer, serverIssuer string) bool {
+	return issuer == serverIssuer
 }
 
 // FetchUserAttributes fetches user attributes and merges default claims and groups into the return map.
@@ -425,7 +423,7 @@ func buildClaimsFromRequest(
 // to an access token for the given OAuth application.
 func BuildClientAttributes(
 	ctx context.Context,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 	ouService ou.OrganizationUnitServiceInterface,
 ) (map[string]interface{}, error) {
 	claims := make(map[string]interface{})
@@ -448,7 +446,7 @@ func BuildClientAttributes(
 // (ouId, ouName, ouHandle) when the app has an associated OU.
 func resolveClientOUAttributes(
 	ctx context.Context,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 	ouService ou.OrganizationUnitServiceInterface,
 ) (map[string]interface{}, error) {
 	if oauthApp == nil || oauthApp.OUID == "" {
@@ -461,7 +459,7 @@ func resolveClientOUAttributes(
 	orgUnit, svcErr := ouService.GetOrganizationUnit(ctx, oauthApp.OUID)
 	if svcErr != nil {
 		return nil, fmt.Errorf("failed to fetch organization unit %s for app %s: %s",
-			oauthApp.OUID, oauthApp.ID, svcErr.Error)
+			oauthApp.OUID, oauthApp.EntityID, svcErr.Error)
 	}
 
 	return map[string]interface{}{

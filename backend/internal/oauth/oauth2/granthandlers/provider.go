@@ -21,13 +21,12 @@ package granthandlers
 import (
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	rbacauthz "github.com/thunder-id/thunderid/internal/authz"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // GrantHandlerProviderInterface defines the interface for the grant handler provider.
@@ -45,23 +44,26 @@ type GrantHandlerProvider struct {
 
 // newGrantHandlerProvider creates a new instance of GrantHandlerProvider.
 func newGrantHandlerProvider(
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	authzService authz.AuthorizeServiceInterface,
 	tokenBuilder tokenservice.TokenBuilderInterface,
 	tokenValidator tokenservice.TokenValidatorInterface,
 	attrCacheService attributecache.AttributeCacheServiceInterface,
 	ouService ou.OrganizationUnitServiceInterface,
 	rbacAuthzService rbacauthz.AuthorizationServiceInterface,
-	entityProv entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	resourceService resource.ResourceServiceInterface,
+	refreshTokenRenewOnGrant bool,
+	tokenDefaults tokenservice.Options,
 ) GrantHandlerProviderInterface {
 	return &GrantHandlerProvider{
 		clientCredentialsGrantHandler: newClientCredentialsGrantHandler(
-			tokenBuilder, ouService, rbacAuthzService, entityProv, resourceService),
+			tokenBuilder, ouService, rbacAuthzService, clientProvider, resourceService),
 		authorizationCodeGrantHandler: newAuthorizationCodeGrantHandler(
 			authzService, tokenBuilder, attrCacheService, resourceService),
 		refreshTokenGrantHandler: newRefreshTokenGrantHandler(
-			jwtService, tokenBuilder, tokenValidator, attrCacheService, resourceService),
+			jwtService, tokenBuilder, tokenValidator, attrCacheService, resourceService,
+			refreshTokenRenewOnGrant, tokenDefaults),
 		tokenExchangeGrantHandler: newTokenExchangeGrantHandler(
 			tokenBuilder, tokenValidator, resourceService),
 	}

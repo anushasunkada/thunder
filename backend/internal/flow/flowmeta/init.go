@@ -22,25 +22,22 @@ import (
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/design/resolve"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/ou"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize creates and configures the flow metadata service components.
 func Initialize(
 	mux *http.ServeMux,
-	inboundClientService inboundclient.InboundClientServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	ouService ou.OrganizationUnitServiceInterface,
 	designResolve resolve.DesignResolveServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 ) FlowMetaServiceInterface {
 	// Create service instance
-	flowMetaService := newFlowMetaService(
-		inboundClientService, entityProvider, ouService, designResolve, i18nService)
+	flowMetaService := newFlowMetaService(clientProvider, ouService, designResolve, i18nService)
 
 	// Create handler and register routes
 	handler := newFlowMetaHandler(flowMetaService)

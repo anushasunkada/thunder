@@ -30,6 +30,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	dre "github.com/thunder-id/thunderid/internal/system/declarative_resource/entity"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the inbound client service.
@@ -42,20 +43,21 @@ func Initialize(
 	flowMgt flowmgt.FlowMgtServiceInterface,
 	entityType entitytype.EntityTypeServiceInterface,
 	consentService consent.ConsentServiceInterface,
+	opts thunderidengine.Options,
 ) (InboundClientServiceInterface, error) {
-	store, transactioner, err := initializeStore(cacheManager)
+	store, transactioner, err := initializeStore(cacheManager, opts.DeploymentID)
 	if err != nil {
 		return nil, err
 	}
 	return newInboundClientService(store, transactioner, certService, entityProvider,
-		themeMgt, layoutMgt, flowMgt, entityType, consentService), nil
+		themeMgt, layoutMgt, flowMgt, entityType, consentService, opts), nil
 }
 
 // initializeStore always creates a composite store (DB + in-memory file store).
-func initializeStore(cacheManager cache.CacheManagerInterface) (
+func initializeStore(cacheManager cache.CacheManagerInterface, deploymentID string) (
 	inboundClientStoreInterface, transaction.Transactioner, error) {
 	fileStore := newFileBasedStore(dre.KeyTypeInboundAuth)
-	dbStore, transactioner, err := newStore()
+	dbStore, transactioner, err := newStore(deploymentID)
 	if err != nil {
 		return nil, nil, err
 	}

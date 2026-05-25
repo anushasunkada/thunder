@@ -21,14 +21,13 @@ package userinfo
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/ou"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 )
@@ -36,17 +35,18 @@ import (
 // Initialize initializes the userinfo handler and registers its routes.
 func Initialize(
 	mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface,
-	jweService jwe.JWEServiceInterface,
+	jwtService thunderidengine.JWTService,
+	jweService thunderidengine.JWEService,
 	resolver *jwksresolver.Resolver,
 	tokenValidator tokenservice.TokenValidatorInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	ouService ou.OrganizationUnitServiceInterface,
 	attributeCacheSvc attributecache.AttributeCacheServiceInterface,
 	transactioner transaction.Transactioner,
+	opts Options,
 ) userInfoServiceInterface {
 	userInfoService := newUserInfoService(jwtService, jweService, resolver, tokenValidator,
-		inboundClient, ouService, attributeCacheSvc, transactioner)
+		clientProvider, ouService, attributeCacheSvc, transactioner, opts)
 	userInfoHandler := newUserInfoHandler(userInfoService)
 	registerRoutes(mux, userInfoHandler)
 	return userInfoService

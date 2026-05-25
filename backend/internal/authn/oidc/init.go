@@ -20,11 +20,11 @@ package oidc
 
 import (
 	authnoauth "github.com/thunder-id/thunderid/internal/authn/oauth"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the OIDC authentication service.
 func Initialize(oauthSvc authnoauth.OAuthAuthnServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) OIDCAuthnServiceInterface {
+	jwtSvc thunderidengine.JWTService) OIDCAuthnServiceInterface {
 	return newOIDCAuthnService(oauthSvc, jwtSvc)
 }

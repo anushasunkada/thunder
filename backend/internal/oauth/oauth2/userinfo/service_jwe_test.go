@@ -31,15 +31,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	appmodel "github.com/thunder-id/thunderid/internal/application/model"
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/jose/jwemock"
 	"github.com/thunder-id/thunderid/tests/mocks/jose/jwtmock"
 )
@@ -70,7 +69,7 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_Success() {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := rsaPublicKeyToJWKS(&privateKey.PublicKey)
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(s.T())
+	mockJWE := jwemock.NewJWEServiceMock(s.T())
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
 		jwe.KeyEncAlgorithm("RSA-OAEP-256"),
@@ -84,24 +83,24 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_Success() {
 		jwksResolver: jwksresolver.Initialize(nil),
 		logger:       log.GetLogger(),
 	}
-	cfg := &inboundmodel.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
-	cert := &appmodel.ApplicationCertificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
+	cfg := &thunderidengine.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
 
 	result, svcErr := svc.generateJWEUserInfo(context.Background(), map[string]interface{}{"sub": "user1"}, cfg, cert)
 	assert.Nil(s.T(), svcErr)
 	assert.NotNil(s.T(), result)
-	assert.Equal(s.T(), inboundmodel.UserInfoResponseTypeJWE, result.Type)
+	assert.Equal(s.T(), thunderidengine.UserInfoResponseTypeJWE, result.Type)
 	assert.Equal(s.T(), "compact.jwe.token", result.JWTBody)
 }
 
 // TestGenerateJWEUserInfo_NoCert verifies missing cert returns server error.
 func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_NoCert() {
 	svc := &userInfoService{
-		jweService:   jwemock.NewJWEServiceInterfaceMock(s.T()),
+		jweService:   jwemock.NewJWEServiceMock(s.T()),
 		jwksResolver: jwksresolver.Initialize(nil),
 		logger:       log.GetLogger(),
 	}
-	cfg := &inboundmodel.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
+	cfg := &thunderidengine.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
 
 	result, svcErr := svc.generateJWEUserInfo(context.Background(), map[string]interface{}{"sub": "user1"}, cfg, nil)
 	assert.Nil(s.T(), result)
@@ -114,7 +113,7 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_EncryptFailure() {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := rsaPublicKeyToJWKS(&privateKey.PublicKey)
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(s.T())
+	mockJWE := jwemock.NewJWEServiceMock(s.T())
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
 		jwe.KeyEncAlgorithm("RSA-OAEP-256"),
@@ -128,8 +127,8 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_EncryptFailure() {
 		jwksResolver: jwksresolver.Initialize(nil),
 		logger:       log.GetLogger(),
 	}
-	cfg := &inboundmodel.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
-	cert := &appmodel.ApplicationCertificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
+	cfg := &thunderidengine.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
 
 	result, svcErr := svc.generateJWEUserInfo(context.Background(), map[string]interface{}{"sub": "user1"}, cfg, cert)
 	assert.Nil(s.T(), result)
@@ -141,13 +140,13 @@ func (s *JWEUserInfoTestSuite) TestGenerateNestedJWTUserInfo_Success() {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := rsaPublicKeyToJWKS(&privateKey.PublicKey)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(s.T())
+	mockJWT := jwtmock.NewJWTServiceMock(s.T())
 	mockJWT.On("GenerateJWT",
 		mock.Anything, "user1", "test-issuer", int64(600),
 		mock.Anything, mock.Anything, "RS256",
 	).Return("signed.jwt.token", int64(0), (*serviceerror.ServiceError)(nil))
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(s.T())
+	mockJWE := jwemock.NewJWEServiceMock(s.T())
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
 		jwe.KeyEncAlgorithm("RSA-OAEP-256"),
@@ -157,14 +156,16 @@ func (s *JWEUserInfoTestSuite) TestGenerateNestedJWTUserInfo_Success() {
 	).Return("nested.jwe.token", (*serviceerror.ServiceError)(nil))
 
 	svc := &userInfoService{
-		jwtService:   mockJWT,
-		jweService:   mockJWE,
-		jwksResolver: jwksresolver.Initialize(nil),
-		logger:       log.GetLogger(),
+		issuer:         "test-issuer",
+		validityPeriod: 600,
+		jwtService:     mockJWT,
+		jweService:     mockJWE,
+		jwksResolver:   jwksresolver.Initialize(nil),
+		logger:         log.GetLogger(),
 	}
 
-	cfg := &inboundmodel.UserInfoConfig{SigningAlg: "RS256", EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
-	cert := &appmodel.ApplicationCertificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
+	cfg := &thunderidengine.UserInfoConfig{SigningAlg: "RS256", EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
 
 	result, svcErr := svc.generateNestedJWTUserInfo(
 		context.Background(),
@@ -176,7 +177,7 @@ func (s *JWEUserInfoTestSuite) TestGenerateNestedJWTUserInfo_Success() {
 	)
 	assert.Nil(s.T(), svcErr)
 	assert.NotNil(s.T(), result)
-	assert.Equal(s.T(), inboundmodel.UserInfoResponseTypeNESTEDJWT, result.Type)
+	assert.Equal(s.T(), thunderidengine.UserInfoResponseTypeNestedJWT, result.Type)
 	assert.Equal(s.T(), "nested.jwe.token", result.JWTBody)
 }
 
@@ -186,7 +187,7 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_EncryptErrorPropagated() 
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := rsaPublicKeyToJWKS(&privateKey.PublicKey)
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(s.T())
+	mockJWE := jwemock.NewJWEServiceMock(s.T())
 	unsupportedErr := &serviceerror.ServiceError{Code: "JWE-1003", Type: serviceerror.ClientErrorType}
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
@@ -201,8 +202,8 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_EncryptErrorPropagated() 
 		jwksResolver: jwksresolver.Initialize(nil),
 		logger:       log.GetLogger(),
 	}
-	cfg := &inboundmodel.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
-	cert := &appmodel.ApplicationCertificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
+	cfg := &thunderidengine.UserInfoConfig{EncryptionAlg: "RSA-OAEP-256", EncryptionEnc: "A256GCM"}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: pubJWKS}
 
 	result, svcErr := svc.generateJWEUserInfo(context.Background(), map[string]interface{}{"sub": "user1"}, cfg, cert)
 	assert.Nil(s.T(), result)
@@ -213,14 +214,14 @@ func (s *JWEUserInfoTestSuite) TestGenerateJWEUserInfo_EncryptErrorPropagated() 
 // TestGenerateJWSUserInfo_UnsupportedAlg verifies that an algorithm incompatible with the server key
 // returns InternalServerError (server misconfiguration, not a client auth error).
 func (s *JWEUserInfoTestSuite) TestGenerateJWSUserInfo_UnsupportedAlg() {
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(s.T())
+	mockJWT := jwtmock.NewJWTServiceMock(s.T())
 	mockJWT.On("GenerateJWT",
 		mock.Anything, "user1", "test-issuer", int64(600),
 		mock.Anything, mock.Anything, "ES256",
 	).Return("", int64(0), &jwt.ErrorUnsupportedJWSAlgorithm)
 
-	svc := &userInfoService{jwtService: mockJWT, logger: log.GetLogger()}
-	cfg := &inboundmodel.UserInfoConfig{SigningAlg: "ES256"}
+	svc := &userInfoService{issuer: "test-issuer", validityPeriod: 600, jwtService: mockJWT, logger: log.GetLogger()}
+	cfg := &thunderidengine.UserInfoConfig{SigningAlg: "ES256"}
 
 	result, svcErr := svc.generateJWSUserInfo(
 		context.Background(),

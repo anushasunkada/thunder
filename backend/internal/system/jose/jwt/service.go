@@ -36,23 +36,10 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
-
-// JWTServiceInterface defines the interface for JWT operations.
-type JWTServiceInterface interface {
-	GenerateJWT(ctx context.Context, sub, iss string, validityPeriod int64,
-		claims map[string]interface{}, typ, alg string) (string, int64, *serviceerror.ServiceError)
-	VerifyJWT(jwtToken string, expectedAud, expectedIss string) *serviceerror.ServiceError
-	VerifyJWTWithPublicKey(jwtToken string, jwtPublicKey crypto.PublicKey, expectedAud,
-		expectedIss string) *serviceerror.ServiceError
-	VerifyJWTWithJWKS(jwtToken, jwksURL, expectedAud, expectedIss string) *serviceerror.ServiceError
-	VerifyJWTSignature(jwtToken string) *serviceerror.ServiceError
-	VerifyJWTSignatureWithPublicKey(jwtToken string, jwtPublicKey crypto.PublicKey) *serviceerror.ServiceError
-	VerifyJWTSignatureWithJWKS(jwtToken string, jwksURL string) *serviceerror.ServiceError
-}
 
 // jwksCacheEntry holds a cached JWKS response with its expiry time.
 type jwksCacheEntry struct {
@@ -60,10 +47,10 @@ type jwksCacheEntry struct {
 	expiresAt time.Time
 }
 
-// jwtService implements the JWTServiceInterface for generating and managing JWT tokens.
+// jwtService implements thunderidengine.JWTService for generating and managing JWT tokens.
 type jwtService struct {
-	cryptoProvider kmprovider.RuntimeCryptoProvider
-	keyRef         kmprovider.KeyRef
+	cryptoProvider thunderidengine.RuntimeCryptoProvider
+	keyRef         thunderidengine.KeyRef
 	signAlg        cryptolab.SignAlgorithm
 	jwsAlg         jws.Algorithm
 	kid            string
@@ -74,13 +61,14 @@ type jwtService struct {
 
 // newJWTService creates a new JWT service instance.
 func newJWTService(
-	httpClient httpservice.HTTPClientInterface, cryptoProvider kmprovider.RuntimeCryptoProvider,
-) (JWTServiceInterface, error) {
-	preferredKid := config.GetServerRuntime().Config.JWT.PreferredKeyID
-	keyRef := kmprovider.KeyRef{KeyID: preferredKid}
+	httpClient httpservice.HTTPClientInterface, cryptoProvider thunderidengine.RuntimeCryptoProvider,
+	preferredKid string,
+) (thunderidengine.JWTService, error) {
+	keyRef := thunderidengine.KeyRef{KeyID: preferredKid}
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "JWTService"))
 
-	keys, err := cryptoProvider.GetPublicKeys(context.Background(), kmprovider.PublicKeyFilter{KeyID: preferredKid})
+	pkFilter := thunderidengine.PublicKeyFilter{KeyID: preferredKid}
+	keys, err := cryptoProvider.GetPublicKeys(context.Background(), pkFilter)
 	if err != nil {
 		return nil, errors.New("failed to retrieve public key for the key id: " + preferredKid)
 	}
@@ -302,12 +290,12 @@ func (js *jwtService) VerifyJWTSignature(jwtToken string) *serviceerror.ServiceE
 	}
 
 	// Retrieve all public keys from the provider and match by thumbprint
-	keys, providerErr := js.cryptoProvider.GetPublicKeys(context.Background(), kmprovider.PublicKeyFilter{})
+	keys, providerErr := js.cryptoProvider.GetPublicKeys(context.Background(), thunderidengine.PublicKeyFilter{})
 	if providerErr != nil {
 		js.logger.Error("Failed to retrieve public keys for JWT verification: " + providerErr.Error())
 		return &serviceerror.InternalServerError
 	}
-	var matchedKey *kmprovider.PublicKeyInfo
+	var matchedKey *thunderidengine.PublicKeyInfo
 	for i := range keys {
 		if keys[i].Thumbprint == kid {
 			matchedKey = &keys[i]

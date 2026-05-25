@@ -40,6 +40,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/i18n/core"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/certmock"
 	"github.com/thunder-id/thunderid/tests/mocks/consentmock"
 	"github.com/thunder-id/thunderid/tests/mocks/design/layoutmock"
@@ -62,13 +63,20 @@ func (suite *InboundClientServiceTestSuite) SetupTest() {
 	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", &sysconfig.Config{}))
 }
 
+var testInboundOAuthOpts = thunderidengine.Options{
+	AllowWildcardRedirectURI: false,
+	ValidityPeriod:           3600,
+}
+
 func newServiceForTest(store inboundClientStoreInterface) InboundClientServiceInterface {
-	return newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, nil, nil)
+	return newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, nil, nil, testInboundOAuthOpts,
+	)
 }
 
 func newServiceWithCert(certService cert.CertificateServiceInterface) *inboundClientService {
 	svc := newInboundClientService(
-		nil, transaction.NewNoOpTransactioner(), certService, nil, nil, nil, nil, nil, nil,
+		nil, transaction.NewNoOpTransactioner(), certService, nil, nil, nil, nil, nil, nil, testInboundOAuthOpts,
 	)
 	return svc.(*inboundClientService)
 }
@@ -528,7 +536,9 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_Succeeds() {
 	mockCert.EXPECT().GetCertificateByReference(mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, &cert.ErrorCertificateNotFound)
 
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), mockCert, nil, nil, nil, nil, nil, nil)
+	svc := newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), mockCert, nil, nil, nil, nil, nil, nil, testInboundOAuthOpts,
+	)
 	err := svc.UpdateInboundClient(context.Background(), ptrInboundClient(), nil, validOAuthProfile(), true, "", "")
 	assert.NoError(suite.T(), err)
 }
@@ -557,7 +567,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_WildcardInH
 		RedirectURIs: []string{"https://*.example.com/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	err := validateRedirectURIs(p)
+	err := validateRedirectURIs(p, false)
 	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidRedirectURI)
 }
 
@@ -566,7 +576,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_WildcardInQ
 		RedirectURIs: []string{"https://app.example.com/cb?foo=*"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	err := validateRedirectURIs(p)
+	err := validateRedirectURIs(p, false)
 	assert.ErrorIs(suite.T(), err, ErrOAuthInvalidRedirectURI)
 }
 
@@ -1011,11 +1021,11 @@ func (suite *InboundClientServiceTestSuite) TestValidateOAuthProfile_PropagatesU
 		TokenEndpointAuthMethod: "client_secret_basic",
 		UserInfo:                &inboundmodel.UserInfoConfig{SigningAlg: "BOGUS"},
 	}
-	assert.ErrorIs(suite.T(), validateOAuthProfile(p, true), ErrOAuthUserInfoUnsupportedSigningAlg)
+	assert.ErrorIs(suite.T(), validateOAuthProfile(p, true, false), ErrOAuthUserInfoUnsupportedSigningAlg)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateOAuthProfile_NilProfile() {
-	assert.NoError(suite.T(), validateOAuthProfile(nil, false))
+	assert.NoError(suite.T(), validateOAuthProfile(nil, false, false))
 }
 
 // ----- BuildOAuthClient -----
@@ -1134,7 +1144,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_SchemeWildc
 		RedirectURIs: []string{"htt*://app/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_FragmentRejected() {
@@ -1142,7 +1152,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_FragmentRej
 		RedirectURIs: []string{"https://app/cb#frag"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthRedirectURIFragmentNotAllowed)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthRedirectURIFragmentNotAllowed)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardRejected() {
@@ -1150,7 +1160,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		RedirectURIs: []string{"https://*.app.com/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_QueryWildcardRejected() {
@@ -1158,7 +1168,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_QueryWildca
 		RedirectURIs: []string{"https://app/cb?x=*"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 // ----- Host wildcard registration with allow_wildcard_redirect_uri = true -----
@@ -1177,7 +1187,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		GrantTypes:    []string{"authorization_code"},
 		ResponseTypes: []string{"code"},
 	}
-	assert.NoError(suite.T(), validateRedirectURIs(p))
+	assert.NoError(suite.T(), validateRedirectURIs(p, true))
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardSimplePattern_Accepted() {
@@ -1187,7 +1197,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		GrantTypes:    []string{"authorization_code"},
 		ResponseTypes: []string{"code"},
 	}
-	assert.NoError(suite.T(), validateRedirectURIs(p))
+	assert.NoError(suite.T(), validateRedirectURIs(p, true))
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardWholeLabel_Rejected() {
@@ -1196,7 +1206,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		RedirectURIs: []string{"https://*.example.com/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardInPort_Rejected() {
@@ -1205,7 +1215,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		RedirectURIs: []string{"https://app.example.com:80*0/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardWithPort_Accepted() {
@@ -1215,7 +1225,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		GrantTypes:    []string{"authorization_code"},
 		ResponseTypes: []string{"code"},
 	}
-	assert.NoError(suite.T(), validateRedirectURIs(p))
+	assert.NoError(suite.T(), validateRedirectURIs(p, true))
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardFlagOff_Rejected() {
@@ -1224,7 +1234,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		RedirectURIs: []string{"https://app-*.example.com/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcardMixedWithPath_Accepted() {
@@ -1234,7 +1244,7 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_HostWildcar
 		GrantTypes:    []string{"authorization_code"},
 		ResponseTypes: []string{"code"},
 	}
-	assert.NoError(suite.T(), validateRedirectURIs(p))
+	assert.NoError(suite.T(), validateRedirectURIs(p, true))
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_MissingSchemeRejected() {
@@ -1242,14 +1252,14 @@ func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_MissingSche
 		RedirectURIs: []string{"//app/cb"},
 		GrantTypes:   []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthInvalidRedirectURI)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthInvalidRedirectURI)
 }
 
 func (suite *InboundClientServiceTestSuite) TestValidateRedirectURIs_AuthCodeWithoutURIs() {
 	p := &inboundmodel.OAuthProfile{
 		GrantTypes: []string{"authorization_code"},
 	}
-	assert.ErrorIs(suite.T(), validateRedirectURIs(p), ErrOAuthAuthCodeRequiresRedirectURIs)
+	assert.ErrorIs(suite.T(), validateRedirectURIs(p, false), ErrOAuthAuthCodeRequiresRedirectURIs)
 }
 
 // ----- containsInvalidWildcardSegment -----
@@ -1560,7 +1570,9 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_WithRecovery
 	mockCert.EXPECT().GetCertificateByReference(mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, &cert.ErrorCertificateNotFound)
 
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), mockCert, nil, nil, nil, nil, nil, nil)
+	svc := newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), mockCert, nil, nil, nil, nil, nil, nil, testInboundOAuthOpts,
+	)
 	client := ptrInboundClient()
 	client.RecoveryFlowID = "recovery-1"
 	client.IsRecoveryFlowEnabled = true
@@ -2160,7 +2172,9 @@ func (suite *InboundClientServiceTestSuite) TestCreateInboundClient_RejectsInval
 	us.EXPECT().GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false, true, false).
 		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
 
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+	svc := newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil, testInboundOAuthOpts,
+	)
 
 	c := validInboundClient()
 	c.AllowedUserTypes = []string{"employee"}
@@ -2184,7 +2198,9 @@ func (suite *InboundClientServiceTestSuite) TestUpdateInboundClient_RejectsInval
 	us.EXPECT().GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false, true, false).
 		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
 
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+	svc := newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil, testInboundOAuthOpts,
+	)
 
 	c := validInboundClient()
 	c.AllowedUserTypes = []string{"employee"}
@@ -2208,7 +2224,9 @@ func (suite *InboundClientServiceTestSuite) TestValidate_RejectsInvalidUserAttri
 	us.EXPECT().GetAttributes(mock.Anything, entitytypepkg.TypeCategoryUser, "employee", false, true, false).
 		Return([]entitytypepkg.AttributeInfo{{Attribute: "email"}}, nil)
 
-	svc := newInboundClientService(store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil)
+	svc := newInboundClientService(
+		store, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, us, nil, testInboundOAuthOpts,
+	)
 
 	c := validInboundClient()
 	c.AllowedUserTypes = []string{"employee"}
@@ -2225,7 +2243,7 @@ func (suite *InboundClientServiceTestSuite) TestValidate_RejectsInvalidUserAttri
 
 func newInboundClientServiceWithConsent(consentSvc consent.ConsentServiceInterface) *inboundClientService {
 	svc := newInboundClientService(
-		nil, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, nil, consentSvc,
+		nil, transaction.NewNoOpTransactioner(), nil, nil, nil, nil, nil, nil, consentSvc, testInboundOAuthOpts,
 	)
 	return svc.(*inboundClientService)
 }

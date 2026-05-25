@@ -22,16 +22,13 @@ package oauth
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/application"
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/authz"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	"github.com/thunder-id/thunderid/internal/idp"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/jwks"
-	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
+	oauth2authz "github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/granthandlers"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/introspect"
@@ -45,36 +42,73 @@ import (
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
-	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/observability"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes all OAuth-related services and registers their routes.
 func Initialize(
 	mux *http.ServeMux,
-	applicationService application.ApplicationServiceInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
-	jwtService jwt.JWTServiceInterface,
-	jweService jwe.JWEServiceInterface,
+	jwtService thunderidengine.JWTService,
+	jweService thunderidengine.JWEService,
 	flowExecService flowexec.FlowExecServiceInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
-	runtimeCrypto kmprovider.RuntimeCryptoProvider,
+	runtimeCrypto thunderidengine.RuntimeCryptoProvider,
 	ouService ou.OrganizationUnitServiceInterface,
 	attributeCacheSvc attributecache.AttributeCacheServiceInterface,
 	authzService authz.AuthorizationServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
 	resourceService resource.ResourceServiceInterface,
-	i18nService i18nmgt.I18nServiceInterface,
 	idpService idp.IDPServiceInterface,
+	opts thunderidengine.Options,
 ) error {
-	// Fetch runtime transactioner for OAuth services.
+	if err := opts.Validate(); err != nil {
+		return err
+	}
+
 	transactioner, err := provider.GetDBProvider().GetRuntimeDBTransactioner()
 	if err != nil {
 		return err
+	}
+
+	tokenOpts := tokenservice.Options{
+		Issuer:               opts.Issuer,
+		Audience:             opts.Audience,
+		ValidityPeriod:       opts.ValidityPeriod,
+		Leeway:               opts.Leeway,
+		RefreshTokenValidity: opts.RefreshTokenValidity,
+	}
+	discoveryOpts := discovery.Options{
+		Issuer:     opts.Issuer,
+		BaseURL:    opts.BaseURL,
+		RequirePAR: opts.RequirePAR,
+		AcrAMR:     opts.AcrAMR,
+	}
+	parOpts := par.Options{
+		DeploymentID:     opts.DeploymentID,
+		RuntimeStoreType: opts.RuntimeStoreType,
+		PARExpiresIn:     opts.PARExpiresIn,
+		OAuthPolicy:      opts.OAuthPolicy(),
+	}
+	authzOpts := oauth2authz.Options{
+		Issuer:                    opts.Issuer,
+		DeploymentID:              opts.DeploymentID,
+		RuntimeStoreType:          opts.RuntimeStoreType,
+		AuthorizationCodeValidity: opts.AuthorizationCodeValidity,
+		GateClient: oauth2authz.GateClientOptions{
+			Scheme:    opts.GateClient.Scheme,
+			Hostname:  opts.GateClient.Hostname,
+			Port:      opts.GateClient.Port,
+			LoginPath: opts.GateClient.LoginPath,
+			ErrorPath: opts.GateClient.ErrorPath,
+		},
+		OAuthPolicy:   opts.OAuthPolicy(),
+		TokenDefaults: tokenOpts,
+	}
+	userInfoOpts := userinfo.Options{
+		Issuer:         opts.Issuer,
+		ValidityPeriod: opts.ValidityPeriod,
 	}
 
 	jwks.Initialize(mux, runtimeCrypto)
@@ -82,22 +116,22 @@ func Initialize(
 		return syshttp.IsSSRFSafeURL(req.URL.String())
 	})
 	resolver := jwksresolver.Initialize(httpClient)
-	tokenBuilder, tokenValidator := tokenservice.Initialize(jwtService, jweService, resolver, idpService)
+	tokenBuilder, tokenValidator := tokenservice.Initialize(jwtService, jweService, resolver, idpService, tokenOpts)
 	scopeValidator := scope.Initialize()
-	discoveryService := discovery.Initialize(mux, runtimeCrypto)
-	parService := par.Initialize(mux, inboundClient, authnProvider, jwtService, discoveryService,
-		resourceService)
+	discoveryService := discovery.Initialize(mux, runtimeCrypto, discoveryOpts)
+	parService := par.Initialize(mux, clientProvider, authnProvider, jwtService, discoveryService,
+		resourceService, parOpts)
 	grantHandlerProvider, err := granthandlers.Initialize(
-		mux, jwtService, inboundClient, flowExecService, tokenBuilder, tokenValidator,
-		attributeCacheSvc, ouService, authzService, entityProvider, resourceService, parService)
+		mux, jwtService, clientProvider, flowExecService, tokenBuilder, tokenValidator,
+		attributeCacheSvc, ouService, authzService, resourceService, parService,
+		authzOpts, opts.RefreshTokenRenewOnGrant, tokenOpts)
 	if err != nil {
 		return err
 	}
-	token.Initialize(mux, jwtService, inboundClient, authnProvider, grantHandlerProvider,
+	token.Initialize(mux, jwtService, clientProvider, authnProvider, grantHandlerProvider,
 		scopeValidator, observabilitySvc, discoveryService, transactioner)
-	introspect.Initialize(mux, jwtService, inboundClient, authnProvider, discoveryService)
+	introspect.Initialize(mux, jwtService, clientProvider, authnProvider, discoveryService)
 	userinfo.Initialize(mux, jwtService, jweService, resolver,
-		tokenValidator, inboundClient, ouService, attributeCacheSvc, transactioner)
-	dcr.Initialize(mux, applicationService, ouService, i18nService, transactioner)
+		tokenValidator, clientProvider, ouService, attributeCacheSvc, transactioner, userInfoOpts)
 	return nil
 }

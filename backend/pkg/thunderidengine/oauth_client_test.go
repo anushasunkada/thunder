@@ -16,7 +16,8 @@
  * under the License.
  */
 
-package model_test
+//nolint:lll // compact assertion helpers in table-style tests.
+package thunderidengine_test
 
 import (
 	"testing"
@@ -24,9 +25,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thunder-id/thunderid/internal/inboundclient/model"
-	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	sysconfig "github.com/thunder-id/thunderid/internal/system/config"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+)
+
+var (
+	noOAuthPolicy       = thunderidengine.OAuthPolicy{}
+	wildcardOAuthPolicy = thunderidengine.OAuthPolicy{AllowWildcardRedirectURI: true}
+	parOAuthPolicy      = thunderidengine.OAuthPolicy{RequirePAR: true}
 )
 
 const (
@@ -50,60 +56,60 @@ func (suite *OAuthClientTestSuite) SetupTest() {
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_AuthorizationCode() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeAuthorizationCode,
-			oauth2const.GrantTypeRefreshToken,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeAuthorizationCode,
+			thunderidengine.GrantTypeRefreshToken,
 		},
 	}
 
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeAuthorizationCode))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_ClientCredentials() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeClientCredentials,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeClientCredentials,
 		},
 	}
 
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeClientCredentials))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeClientCredentials))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_RefreshToken() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeRefreshToken,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeRefreshToken,
 		},
 	}
 
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeRefreshToken))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeRefreshToken))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_TokenExchange() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeTokenExchange,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeTokenExchange,
 		},
 	}
 
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeTokenExchange))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeTokenExchange))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_NotAllowed() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeAuthorizationCode,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeAuthorizationCode,
 		},
 	}
 
-	suite.False(c.IsAllowedGrantType(oauth2const.GrantTypeClientCredentials))
+	suite.False(c.IsAllowedGrantType(thunderidengine.GrantTypeClientCredentials))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_EmptyGrantType() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeAuthorizationCode,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeAuthorizationCode,
 		},
 	}
 
@@ -111,268 +117,268 @@ func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_EmptyGrantType() {
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_EmptyGrantTypesList() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{},
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{},
 	}
 
-	suite.False(c.IsAllowedGrantType(oauth2const.GrantTypeAuthorizationCode))
+	suite.False(c.IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_NilGrantTypesList() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		GrantTypes: nil,
 	}
 
-	suite.False(c.IsAllowedGrantType(oauth2const.GrantTypeAuthorizationCode))
+	suite.False(c.IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedGrantType_MultipleGrantTypes() {
-	c := &model.OAuthClient{
-		GrantTypes: []oauth2const.GrantType{
-			oauth2const.GrantTypeAuthorizationCode,
-			oauth2const.GrantTypeClientCredentials,
-			oauth2const.GrantTypeRefreshToken,
-			oauth2const.GrantTypeTokenExchange,
+	c := &thunderidengine.OAuthClient{
+		GrantTypes: []thunderidengine.GrantType{
+			thunderidengine.GrantTypeAuthorizationCode,
+			thunderidengine.GrantTypeClientCredentials,
+			thunderidengine.GrantTypeRefreshToken,
+			thunderidengine.GrantTypeTokenExchange,
 		},
 	}
 
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeAuthorizationCode))
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeClientCredentials))
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeRefreshToken))
-	suite.True(c.IsAllowedGrantType(oauth2const.GrantTypeTokenExchange))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeClientCredentials))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeRefreshToken))
+	suite.True(c.IsAllowedGrantType(thunderidengine.GrantTypeTokenExchange))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_Code() {
-	c := &model.OAuthClient{
-		ResponseTypes: []oauth2const.ResponseType{
-			oauth2const.ResponseTypeCode,
+	c := &thunderidengine.OAuthClient{
+		ResponseTypes: []thunderidengine.ResponseType{
+			thunderidengine.ResponseTypeCode,
 		},
 	}
 
-	suite.True(c.IsAllowedResponseType("code"))
+	suite.True(c.IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_NotAllowed() {
-	c := &model.OAuthClient{
-		ResponseTypes: []oauth2const.ResponseType{
-			oauth2const.ResponseTypeCode,
+	c := &thunderidengine.OAuthClient{
+		ResponseTypes: []thunderidengine.ResponseType{
+			thunderidengine.ResponseTypeCode,
 		},
 	}
 
-	suite.False(c.IsAllowedResponseType("token"))
+	suite.False(c.IsAllowedResponseTypeString("token"))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_EmptyResponseType() {
-	c := &model.OAuthClient{
-		ResponseTypes: []oauth2const.ResponseType{
-			oauth2const.ResponseTypeCode,
+	c := &thunderidengine.OAuthClient{
+		ResponseTypes: []thunderidengine.ResponseType{
+			thunderidengine.ResponseTypeCode,
 		},
 	}
 
-	suite.False(c.IsAllowedResponseType(""))
+	suite.False(c.IsAllowedResponseTypeString(""))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_EmptyResponseTypesList() {
-	c := &model.OAuthClient{
-		ResponseTypes: []oauth2const.ResponseType{},
+	c := &thunderidengine.OAuthClient{
+		ResponseTypes: []thunderidengine.ResponseType{},
 	}
 
-	suite.False(c.IsAllowedResponseType("code"))
+	suite.False(c.IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_NilResponseTypesList() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		ResponseTypes: nil,
 	}
 
-	suite.False(c.IsAllowedResponseType("code"))
+	suite.False(c.IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedResponseType_MultipleResponseTypes() {
-	c := &model.OAuthClient{
-		ResponseTypes: []oauth2const.ResponseType{
-			oauth2const.ResponseTypeCode,
+	c := &thunderidengine.OAuthClient{
+		ResponseTypes: []thunderidengine.ResponseType{
+			thunderidengine.ResponseTypeCode,
 			"token",
 			"id_token",
 		},
 	}
 
-	suite.True(c.IsAllowedResponseType("code"))
-	suite.True(c.IsAllowedResponseType("token"))
-	suite.True(c.IsAllowedResponseType("id_token"))
+	suite.True(c.IsAllowedResponseTypeString("code"))
+	suite.True(c.IsAllowedResponseTypeString("token"))
+	suite.True(c.IsAllowedResponseTypeString("id_token"))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedTokenEndpointAuthMethod_ClientSecretBasic() {
-	c := &model.OAuthClient{
-		TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodClientSecretBasic,
+	c := &thunderidengine.OAuthClient{
+		TokenEndpointAuthMethod: thunderidengine.TokenEndpointAuthMethodClientSecretBasic,
 	}
 
-	suite.True(c.IsAllowedTokenEndpointAuthMethod(oauth2const.TokenEndpointAuthMethodClientSecretBasic))
+	suite.True(c.IsAllowedTokenEndpointAuthMethod(thunderidengine.TokenEndpointAuthMethodClientSecretBasic))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedTokenEndpointAuthMethod_ClientSecretPost() {
-	c := &model.OAuthClient{
-		TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodClientSecretPost,
+	c := &thunderidengine.OAuthClient{
+		TokenEndpointAuthMethod: thunderidengine.TokenEndpointAuthMethodClientSecretPost,
 	}
 
-	suite.True(c.IsAllowedTokenEndpointAuthMethod(oauth2const.TokenEndpointAuthMethodClientSecretPost))
+	suite.True(c.IsAllowedTokenEndpointAuthMethod(thunderidengine.TokenEndpointAuthMethodClientSecretPost))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedTokenEndpointAuthMethod_None() {
-	c := &model.OAuthClient{
-		TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodNone,
+	c := &thunderidengine.OAuthClient{
+		TokenEndpointAuthMethod: thunderidengine.TokenEndpointAuthMethodNone,
 	}
 
-	suite.True(c.IsAllowedTokenEndpointAuthMethod(oauth2const.TokenEndpointAuthMethodNone))
+	suite.True(c.IsAllowedTokenEndpointAuthMethod(thunderidengine.TokenEndpointAuthMethodNone))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedTokenEndpointAuthMethod_NotAllowed() {
-	c := &model.OAuthClient{
-		TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodClientSecretBasic,
+	c := &thunderidengine.OAuthClient{
+		TokenEndpointAuthMethod: thunderidengine.TokenEndpointAuthMethodClientSecretBasic,
 	}
 
-	suite.False(c.IsAllowedTokenEndpointAuthMethod(oauth2const.TokenEndpointAuthMethodClientSecretPost))
+	suite.False(c.IsAllowedTokenEndpointAuthMethod(thunderidengine.TokenEndpointAuthMethodClientSecretPost))
 }
 
 func (suite *OAuthClientTestSuite) TestIsAllowedTokenEndpointAuthMethod_Empty() {
-	c := &model.OAuthClient{
-		TokenEndpointAuthMethod: oauth2const.TokenEndpointAuthMethodClientSecretBasic,
+	c := &thunderidengine.OAuthClient{
+		TokenEndpointAuthMethod: thunderidengine.TokenEndpointAuthMethodClientSecretBasic,
 	}
 
 	suite.False(c.IsAllowedTokenEndpointAuthMethod(""))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_ValidWithSingleRegisteredURI() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://example.com/callback"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI("https://example.com/callback"))
+	suite.NoError(c.ValidateRedirectURI("https://example.com/callback", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_ValidHTTPLocalhostWithPort() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"http://localhost:3000/callback"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI("http://localhost:3000/callback"))
+	suite.NoError(c.ValidateRedirectURI("http://localhost:3000/callback", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_ValidHTTPSWithPath() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://app.example.com/oauth/callback"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI("https://app.example.com/oauth/callback"))
+	suite.NoError(c.ValidateRedirectURI("https://app.example.com/oauth/callback", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_ValidCustomScheme() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"myapp://callback"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI("myapp://callback"))
+	suite.NoError(c.ValidateRedirectURI("myapp://callback", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_ValidWithQueryParameters() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://example.com/callback?param=value"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI("https://example.com/callback?param=value"))
+	suite.NoError(c.ValidateRedirectURI("https://example.com/callback?param=value", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_InvalidWithFragment() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://example.com/callback#fragment"},
 	}
 
-	err := c.ValidateRedirectURI("https://example.com/callback#fragment")
+	err := c.ValidateRedirectURI("https://example.com/callback#fragment", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIFragment)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_NotRegistered() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://example.com/callback"},
 	}
 
-	err := c.ValidateRedirectURI("https://different.com/callback")
+	err := c.ValidateRedirectURI("https://different.com/callback", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotRegistered)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_EmptyWithSingleFullyQualifiedURI() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"https://example.com/callback"},
 	}
 
-	suite.NoError(c.ValidateRedirectURI(""))
+	suite.NoError(c.ValidateRedirectURI("", noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_EmptyWithMultipleURIs() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{
 			"https://example.com/callback",
 			"https://example.com/callback2",
 		},
 	}
 
-	err := c.ValidateRedirectURI("")
+	err := c.ValidateRedirectURI("", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_EmptyWithPartialRegisteredURI() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"/callback"},
 	}
 
-	err := c.ValidateRedirectURI("")
+	err := c.ValidateRedirectURI("", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotFullyQualified)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_EmptyWithInvalidRegisteredURI() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{"://invalid"},
 	}
 
-	err := c.ValidateRedirectURI("")
+	err := c.ValidateRedirectURI("", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotFullyQualified)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_EmptyRedirectURIsList() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: []string{},
 	}
 
-	err := c.ValidateRedirectURI("")
+	err := c.ValidateRedirectURI("", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthClientTestSuite) TestValidateRedirectURI_NilRedirectURIsList() {
-	c := &model.OAuthClient{
+	c := &thunderidengine.OAuthClient{
 		RedirectURIs: nil,
 	}
 
-	err := c.ValidateRedirectURI("")
+	err := c.ValidateRedirectURI("", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPKCE_PKCERequiredTrue() {
-	c := &model.OAuthClient{PKCERequired: true, PublicClient: false}
+	c := &thunderidengine.OAuthClient{PKCERequired: true, PublicClient: false}
 	suite.True(c.RequiresPKCE())
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPKCE_PublicClientTrue() {
-	c := &model.OAuthClient{PKCERequired: false, PublicClient: true}
+	c := &thunderidengine.OAuthClient{PKCERequired: false, PublicClient: true}
 	suite.True(c.RequiresPKCE())
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPKCE_BothTrue() {
-	c := &model.OAuthClient{PKCERequired: true, PublicClient: true}
+	c := &thunderidengine.OAuthClient{PKCERequired: true, PublicClient: true}
 	suite.True(c.RequiresPKCE())
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPKCE_BothFalse() {
-	c := &model.OAuthClient{PKCERequired: false, PublicClient: false}
+	c := &thunderidengine.OAuthClient{PKCERequired: false, PublicClient: false}
 	suite.False(c.RequiresPKCE())
 }
 
@@ -390,73 +396,73 @@ func (suite *OAuthHelperTestSuite) SetupTest() {
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_ValidGrantType() {
-	grantTypes := []oauth2const.GrantType{
-		oauth2const.GrantTypeAuthorizationCode,
-		oauth2const.GrantTypeRefreshToken,
+	grantTypes := []thunderidengine.GrantType{
+		thunderidengine.GrantTypeAuthorizationCode,
+		thunderidengine.GrantTypeRefreshToken,
 	}
 
-	suite.True(model.IsAllowedGrantType(grantTypes, oauth2const.GrantTypeAuthorizationCode))
+	suite.True((&thunderidengine.OAuthClient{GrantTypes: grantTypes}).IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_InvalidGrantType() {
-	grantTypes := []oauth2const.GrantType{
-		oauth2const.GrantTypeAuthorizationCode,
+	grantTypes := []thunderidengine.GrantType{
+		thunderidengine.GrantTypeAuthorizationCode,
 	}
 
-	suite.False(model.IsAllowedGrantType(grantTypes, oauth2const.GrantTypeClientCredentials))
+	suite.False((&thunderidengine.OAuthClient{GrantTypes: grantTypes}).IsAllowedGrantType(thunderidengine.GrantTypeClientCredentials))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_EmptyGrantType() {
-	grantTypes := []oauth2const.GrantType{
-		oauth2const.GrantTypeAuthorizationCode,
+	grantTypes := []thunderidengine.GrantType{
+		thunderidengine.GrantTypeAuthorizationCode,
 	}
 
-	suite.False(model.IsAllowedGrantType(grantTypes, ""))
+	suite.False((&thunderidengine.OAuthClient{GrantTypes: grantTypes}).IsAllowedGrantType(""))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_EmptyList() {
-	suite.False(model.IsAllowedGrantType([]oauth2const.GrantType{}, oauth2const.GrantTypeAuthorizationCode))
+	suite.False((&thunderidengine.OAuthClient{GrantTypes: []thunderidengine.GrantType{}}).IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedGrantType_NilList() {
-	suite.False(model.IsAllowedGrantType(nil, oauth2const.GrantTypeAuthorizationCode))
+	suite.False((&thunderidengine.OAuthClient{GrantTypes: nil}).IsAllowedGrantType(thunderidengine.GrantTypeAuthorizationCode))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedResponseType_ValidResponseType() {
-	responseTypes := []oauth2const.ResponseType{
-		oauth2const.ResponseTypeCode,
+	responseTypes := []thunderidengine.ResponseType{
+		thunderidengine.ResponseTypeCode,
 		"token",
 	}
 
-	suite.True(model.IsAllowedResponseType(responseTypes, "code"))
+	suite.True((&thunderidengine.OAuthClient{ResponseTypes: responseTypes}).IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedResponseType_InvalidResponseType() {
-	responseTypes := []oauth2const.ResponseType{
-		oauth2const.ResponseTypeCode,
+	responseTypes := []thunderidengine.ResponseType{
+		thunderidengine.ResponseTypeCode,
 	}
 
-	suite.False(model.IsAllowedResponseType(responseTypes, "token"))
+	suite.False((&thunderidengine.OAuthClient{ResponseTypes: responseTypes}).IsAllowedResponseTypeString("token"))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedResponseType_EmptyResponseType() {
-	responseTypes := []oauth2const.ResponseType{
-		oauth2const.ResponseTypeCode,
+	responseTypes := []thunderidengine.ResponseType{
+		thunderidengine.ResponseTypeCode,
 	}
 
-	suite.False(model.IsAllowedResponseType(responseTypes, ""))
+	suite.False((&thunderidengine.OAuthClient{ResponseTypes: responseTypes}).IsAllowedResponseTypeString(""))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedResponseType_EmptyList() {
-	suite.False(model.IsAllowedResponseType([]oauth2const.ResponseType{}, "code"))
+	suite.False((&thunderidengine.OAuthClient{ResponseTypes: []thunderidengine.ResponseType{}}).IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthHelperTestSuite) TestIsAllowedResponseType_NilList() {
-	suite.False(model.IsAllowedResponseType(nil, "code"))
+	suite.False((&thunderidengine.OAuthClient{ResponseTypes: nil}).IsAllowedResponseTypeString("code"))
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_ValidSingleURI() {
-	err := model.ValidateRedirectURI([]string{"https://example.com/callback"}, "https://example.com/callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"https://example.com/callback"}, "https://example.com/callback", noOAuthPolicy)
 	suite.NoError(err)
 }
 
@@ -466,23 +472,23 @@ func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_ValidMultipleURIs() {
 		"https://example.com/callback2",
 	}
 
-	err := model.ValidateRedirectURI(redirectURIs, "https://example.com/callback2")
+	err := thunderidengine.ValidateRedirectURI(redirectURIs, "https://example.com/callback2", noOAuthPolicy)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_InvalidNotRegistered() {
-	err := model.ValidateRedirectURI([]string{"https://example.com/callback"}, "https://different.com/callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"https://example.com/callback"}, "https://different.com/callback", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotRegistered)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_InvalidWithFragment() {
 	uri := "https://example.com/callback#fragment"
-	err := model.ValidateRedirectURI([]string{uri}, uri)
+	err := thunderidengine.ValidateRedirectURI([]string{uri}, uri, noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIFragment)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIWithSingleFullyQualified() {
-	err := model.ValidateRedirectURI([]string{"https://example.com/callback"}, "")
+	err := thunderidengine.ValidateRedirectURI([]string{"https://example.com/callback"}, "", noOAuthPolicy)
 	suite.NoError(err)
 }
 
@@ -492,131 +498,115 @@ func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIWithMultiple(
 		"https://example.com/callback2",
 	}
 
-	err := model.ValidateRedirectURI(redirectURIs, "")
+	err := thunderidengine.ValidateRedirectURI(redirectURIs, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIWithPartialRegistered() {
-	err := model.ValidateRedirectURI([]string{"/callback"}, "")
+	err := thunderidengine.ValidateRedirectURI([]string{"/callback"}, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotFullyQualified)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIWithNoScheme() {
-	err := model.ValidateRedirectURI([]string{"example.com/callback"}, "")
+	err := thunderidengine.ValidateRedirectURI([]string{"example.com/callback"}, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotFullyQualified)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIWithNoHost() {
-	err := model.ValidateRedirectURI([]string{"https:///callback"}, "")
+	err := thunderidengine.ValidateRedirectURI([]string{"https:///callback"}, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURINotFullyQualified)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_EmptyURIList() {
-	err := model.ValidateRedirectURI([]string{}, "")
+	err := thunderidengine.ValidateRedirectURI([]string{}, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_NilList() {
-	err := model.ValidateRedirectURI(nil, "")
+	err := thunderidengine.ValidateRedirectURI(nil, "", noOAuthPolicy)
 	suite.EqualError(err, errRedirectURIRequired)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_CustomScheme() {
-	err := model.ValidateRedirectURI([]string{"myapp://callback"}, "myapp://callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"myapp://callback"}, "myapp://callback", noOAuthPolicy)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_LocalhostHTTP() {
-	err := model.ValidateRedirectURI([]string{"http://localhost:3000/callback"}, "http://localhost:3000/callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"http://localhost:3000/callback"}, "http://localhost:3000/callback", noOAuthPolicy)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_WithQueryParams() {
 	uri := "https://example.com/callback?foo=bar"
-	suite.NoError(model.ValidateRedirectURI([]string{uri}, uri))
+	suite.NoError(thunderidengine.ValidateRedirectURI([]string{uri}, uri, noOAuthPolicy))
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_IPAddress() {
-	err := model.ValidateRedirectURI([]string{"https://192.168.1.1/callback"}, "https://192.168.1.1/callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"https://192.168.1.1/callback"}, "https://192.168.1.1/callback", noOAuthPolicy)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_Localhost127() {
-	err := model.ValidateRedirectURI([]string{"http://127.0.0.1:8080/callback"}, "http://127.0.0.1:8080/callback")
+	err := thunderidengine.ValidateRedirectURI([]string{"http://127.0.0.1:8080/callback"}, "http://127.0.0.1:8080/callback", noOAuthPolicy)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestValidateRedirectURI_InvalidURLFormat() {
 	uri := "http://example.com/callback\x00invalid"
-	err := model.ValidateRedirectURI([]string{uri}, uri)
+	err := thunderidengine.ValidateRedirectURI([]string{uri}, uri, noOAuthPolicy)
 	suite.Error(err)
 	assert.Contains(suite.T(), err.Error(), "invalid redirect URI")
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPAR_GlobalConfigEnabled() {
-	sysconfig.ResetServerRuntime()
-	cfg := &sysconfig.Config{}
-	cfg.OAuth.PAR.RequirePAR = true
-	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
-
-	c := &model.OAuthClient{RequirePushedAuthorizationRequests: false}
-	suite.True(c.RequiresPAR())
+	c := &thunderidengine.OAuthClient{RequirePushedAuthorizationRequests: false}
+	suite.True(c.RequiresPAR(parOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPAR_PerClientEnabled() {
-	c := &model.OAuthClient{RequirePushedAuthorizationRequests: true}
-	suite.True(c.RequiresPAR())
+	c := &thunderidengine.OAuthClient{RequirePushedAuthorizationRequests: true}
+	suite.True(c.RequiresPAR(noOAuthPolicy))
 }
 
 func (suite *OAuthClientTestSuite) TestRequiresPAR_BothFalse() {
-	c := &model.OAuthClient{RequirePushedAuthorizationRequests: false}
-	suite.False(c.RequiresPAR())
+	c := &thunderidengine.OAuthClient{RequirePushedAuthorizationRequests: false}
+	suite.False(c.RequiresPAR(noOAuthPolicy))
 }
 
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_WildcardEnabled_Matches() {
-	sysconfig.ResetServerRuntime()
-	cfg := &sysconfig.Config{}
-	cfg.OAuth.AllowWildcardRedirectURI = true
-	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
-
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://app.example.com/*"},
 		"https://app.example.com/cb",
+		wildcardOAuthPolicy,
 	)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_WildcardDisabled_NoMatch() {
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://app.example.com/*"},
 		"https://app.example.com/cb",
+		noOAuthPolicy,
 	)
 	suite.Error(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_HostWildcardEnabled_Matches() {
-	sysconfig.ResetServerRuntime()
-	cfg := &sysconfig.Config{}
-	cfg.OAuth.AllowWildcardRedirectURI = true
-	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
-
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://tenant-app-*-*.gateway.example.com/cb"},
 		"https://tenant-app-019dfc78-f19ab4f2.gateway.example.com/cb",
+		wildcardOAuthPolicy,
 	)
 	suite.NoError(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_HostWildcardEnabled_NonMatchingDynamicPart() {
-	sysconfig.ResetServerRuntime()
-	cfg := &sysconfig.Config{}
-	cfg.OAuth.AllowWildcardRedirectURI = true
-	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
-
 	// Hyphen inside the dynamic part is not in [0-9a-zA-Z]+, so this must fail.
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://app-*-prod.example.com/cb"},
 		"https://app-foo-bar-prod.example.com/cb",
+		wildcardOAuthPolicy,
 	)
 	suite.Error(err)
 }
@@ -624,22 +614,19 @@ func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_HostWildcardEn
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_HostWildcardDisabled_NoMatch() {
 	// Default: AllowWildcardRedirectURI = false. Note the pattern would never have made it
 	// past registration with the flag off, but we still verify the matcher returns no match.
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://app-*.example.com/cb"},
 		"https://app-prod.example.com/cb",
+		noOAuthPolicy,
 	)
 	suite.Error(err)
 }
 
 func (suite *OAuthHelperTestSuite) TestMatchAnyRedirectURIPattern_HostWildcardDoesNotCrossDot() {
-	sysconfig.ResetServerRuntime()
-	cfg := &sysconfig.Config{}
-	cfg.OAuth.AllowWildcardRedirectURI = true
-	suite.Require().NoError(sysconfig.InitializeServerRuntime("/tmp/test", cfg))
-
-	err := model.ValidateRedirectURI(
+	err := thunderidengine.ValidateRedirectURI(
 		[]string{"https://app-*.example.com/cb"},
 		"https://app-foo.evil.example.com/cb",
+		wildcardOAuthPolicy,
 	)
 	suite.Error(err)
 }

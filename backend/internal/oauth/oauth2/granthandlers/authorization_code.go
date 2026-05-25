@@ -24,8 +24,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -62,7 +63,7 @@ func newAuthorizationCodeGrantHandler(
 
 // ValidateGrant validates the authorization code grant request.
 func (h *authorizationCodeGrantHandler) ValidateGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) *model.ErrorResponse {
+	oauthApp *thunderidengine.OAuthClient) *model.ErrorResponse {
 	if tokenRequest.GrantType == "" {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorInvalidRequest,
@@ -106,7 +107,7 @@ func (h *authorizationCodeGrantHandler) ValidateGrant(ctx context.Context, token
 
 // HandleGrant processes the authorization code grant request and generates a token response.
 func (h *authorizationCodeGrantHandler) HandleGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) (
+	oauthApp *thunderidengine.OAuthClient) (
 	*model.TokenResponseDTO, *model.ErrorResponse) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "AuthorizationCodeGrantHandler"))
 
@@ -243,7 +244,7 @@ func (h *authorizationCodeGrantHandler) HandleGrant(ctx context.Context, tokenRe
 func (h *authorizationCodeGrantHandler) retrieveAndValidateAuthCode(
 	ctx context.Context,
 	tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 	logger *log.Logger,
 ) (*authz.AuthorizationCode, *model.ErrorResponse) {
 	authCode, codeErr := h.authzService.GetAuthorizationCodeDetails(ctx, tokenRequest.ClientID, tokenRequest.Code)

@@ -24,16 +24,15 @@ import (
 	"encoding/json"
 	"slices"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/ou"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
@@ -50,27 +49,30 @@ type userInfoServiceInterface interface {
 
 // userInfoService implements the userInfoServiceInterface.
 type userInfoService struct {
-	jwtService        jwt.JWTServiceInterface
-	jweService        jwe.JWEServiceInterface
+	jwtService        thunderidengine.JWTService
+	jweService        thunderidengine.JWEService
 	jwksResolver      *jwksresolver.Resolver
 	tokenValidator    tokenservice.TokenValidatorInterface
-	inboundClient     inboundclient.InboundClientServiceInterface
+	clientProvider    thunderidengine.ClientProvider
 	ouService         ou.OrganizationUnitServiceInterface
 	attributeCacheSvc attributecache.AttributeCacheServiceInterface
 	transactioner     transaction.Transactioner
+	issuer            string
+	validityPeriod    int64
 	logger            *log.Logger
 }
 
 // newUserInfoService creates a new userInfoService instance.
 func newUserInfoService(
-	jwtService jwt.JWTServiceInterface,
-	jweService jwe.JWEServiceInterface,
+	jwtService thunderidengine.JWTService,
+	jweService thunderidengine.JWEService,
 	resolver *jwksresolver.Resolver,
 	tokenValidator tokenservice.TokenValidatorInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	ouService ou.OrganizationUnitServiceInterface,
 	attributeCacheSvc attributecache.AttributeCacheServiceInterface,
 	transactioner transaction.Transactioner,
+	opts Options,
 ) userInfoServiceInterface {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, serviceLoggerComponentName))
 	return &userInfoService{
@@ -78,10 +80,12 @@ func newUserInfoService(
 		jweService:        jweService,
 		jwksResolver:      resolver,
 		tokenValidator:    tokenValidator,
-		inboundClient:     inboundClient,
+		clientProvider:    clientProvider,
 		ouService:         ouService,
 		attributeCacheSvc: attributeCacheSvc,
 		transactioner:     transactioner,
+		issuer:            opts.Issuer,
+		validityPeriod:    opts.ValidityPeriod,
 		logger:            logger,
 	}
 }
@@ -139,26 +143,26 @@ func (s *userInfoService) GetUserInfo(
 		return nil, svcErr
 	}
 
-	var userInfoCfg *inboundmodel.UserInfoConfig
-	var certificate *inboundmodel.Certificate
+	var userInfoCfg *thunderidengine.UserInfoConfig
+	var certificate *thunderidengine.Certificate
 	if oauthApp != nil {
 		userInfoCfg = oauthApp.UserInfo
 		certificate = oauthApp.Certificate
 	}
 
-	responseType := inboundmodel.UserInfoResponseTypeJSON
+	responseType := thunderidengine.UserInfoResponseTypeJSON
 	if userInfoCfg != nil {
 		responseType = userInfoCfg.ResponseType
 	}
 	switch responseType {
-	case inboundmodel.UserInfoResponseTypeNESTEDJWT:
+	case thunderidengine.UserInfoResponseTypeNestedJWT:
 		return s.generateNestedJWTUserInfo(ctx, sub, tokenClaims, response, userInfoCfg, certificate)
-	case inboundmodel.UserInfoResponseTypeJWE:
+	case thunderidengine.UserInfoResponseTypeJWE:
 		return s.generateJWEUserInfo(ctx, response, userInfoCfg, certificate)
-	case inboundmodel.UserInfoResponseTypeJWS:
+	case thunderidengine.UserInfoResponseTypeJWS:
 		return s.generateJWSUserInfo(ctx, sub, tokenClaims, response, userInfoCfg)
 	default:
-		return &UserInfoResponse{Type: inboundmodel.UserInfoResponseTypeJSON, JSONBody: response}, nil
+		return &UserInfoResponse{Type: thunderidengine.UserInfoResponseTypeJSON, JSONBody: response}, nil
 	}
 }
 
@@ -166,8 +170,8 @@ func (s *userInfoService) GetUserInfo(
 func (s *userInfoService) generateJWEUserInfo(
 	ctx context.Context,
 	response map[string]interface{},
-	cfg *inboundmodel.UserInfoConfig,
-	certificate *inboundmodel.Certificate,
+	cfg *thunderidengine.UserInfoConfig,
+	certificate *thunderidengine.Certificate,
 ) (*UserInfoResponse, *serviceerror.ServiceError) {
 	rpKey, rpKID, svcErr := s.jwksResolver.ResolveEncryptionKey(
 		ctx, certificate, cfg.EncryptionAlg, jwksresolver.KeyUseStrictEnc)
@@ -193,7 +197,7 @@ func (s *userInfoService) generateJWEUserInfo(
 		return nil, svcErr
 	}
 
-	return &UserInfoResponse{Type: inboundmodel.UserInfoResponseTypeJWE, JWTBody: compact}, nil
+	return &UserInfoResponse{Type: thunderidengine.UserInfoResponseTypeJWE, JWTBody: compact}, nil
 }
 
 // generateNestedJWTUserInfo creates a sign-then-encrypt Nested JWT UserInfo response.
@@ -202,8 +206,8 @@ func (s *userInfoService) generateNestedJWTUserInfo(
 	sub string,
 	tokenClaims map[string]interface{},
 	response map[string]interface{},
-	cfg *inboundmodel.UserInfoConfig,
-	certificate *inboundmodel.Certificate,
+	cfg *thunderidengine.UserInfoConfig,
+	certificate *thunderidengine.Certificate,
 ) (*UserInfoResponse, *serviceerror.ServiceError) {
 	jwsResp, svcErr := s.generateJWSUserInfo(ctx, sub, tokenClaims, response, cfg)
 	if svcErr != nil {
@@ -228,7 +232,7 @@ func (s *userInfoService) generateNestedJWTUserInfo(
 		return nil, svcErr
 	}
 
-	return &UserInfoResponse{Type: inboundmodel.UserInfoResponseTypeNESTEDJWT, JWTBody: compact}, nil
+	return &UserInfoResponse{Type: thunderidengine.UserInfoResponseTypeNestedJWT, JWTBody: compact}, nil
 }
 
 // generateJWSUserInfo creates a signed JWT UserInfo response
@@ -238,17 +242,15 @@ func (s *userInfoService) generateJWSUserInfo(
 	sub string,
 	tokenClaims map[string]interface{},
 	response map[string]interface{},
-	cfg *inboundmodel.UserInfoConfig,
+	cfg *thunderidengine.UserInfoConfig,
 ) (*UserInfoResponse, *serviceerror.ServiceError) {
 	clientID := ""
 	if cid, ok := tokenClaims["client_id"].(string); ok {
 		clientID = cid
 	}
 
-	runtime := config.GetServerRuntime()
-
-	issuer := runtime.Config.JWT.Issuer
-	validity := runtime.Config.JWT.ValidityPeriod
+	issuer := s.issuer
+	validity := s.validityPeriod
 
 	response["aud"] = clientID
 	signingAlg := ""
@@ -277,7 +279,7 @@ func (s *userInfoService) generateJWSUserInfo(
 	}
 
 	return &UserInfoResponse{
-		Type:    inboundmodel.UserInfoResponseTypeJWS,
+		Type:    thunderidengine.UserInfoResponseTypeJWS,
 		JWTBody: signedJWT,
 	}, nil
 }
@@ -332,13 +334,13 @@ func (s *userInfoService) validateOpenIDScope(scopes []string) *serviceerror.Ser
 // Returns nil when no client_id is present, on error, or when the app is not found.
 func (s *userInfoService) getOAuthApp(
 	ctx context.Context, claims map[string]interface{},
-) *inboundmodel.OAuthClient {
+) *thunderidengine.OAuthClient {
 	clientID, ok := claims["client_id"].(string)
 	if !ok || clientID == "" {
 		return nil
 	}
 
-	app, err := s.inboundClient.GetOAuthClientByClientID(ctx, clientID)
+	app, err := s.clientProvider.GetOAuthClientByClientID(ctx, clientID)
 	if err != nil || app == nil {
 		return nil
 	}
@@ -352,7 +354,7 @@ func (s *userInfoService) buildUserInfoResponse(
 	sub string,
 	scopes []string,
 	userAttributes map[string]interface{},
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 	tokenClaims map[string]interface{},
 ) (map[string]interface{}, *serviceerror.ServiceError) {
 	response := map[string]interface{}{

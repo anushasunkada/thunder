@@ -19,30 +19,32 @@
 package authz
 
 import (
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz/requestvalidator"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/resourceindicators"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // AuthorizationValidatorInterface defines the interface for validating OAuth2 authorization requests.
 type AuthorizationValidatorInterface interface {
-	validateInitialAuthorizationRequest(msg *OAuthMessage, oauthApp *inboundmodel.OAuthClient) (
+	validateInitialAuthorizationRequest(msg *OAuthMessage, oauthApp *thunderidengine.OAuthClient) (
 		bool, string, string)
 }
 
 // authorizationValidator implements the AuthorizationValidatorInterface for validating OAuth2 authorization requests.
-type authorizationValidator struct{}
+type authorizationValidator struct {
+	oauthPolicy thunderidengine.OAuthPolicy
+}
 
 // newAuthorizationValidator creates a new instance of authorizationValidator.
-func newAuthorizationValidator() AuthorizationValidatorInterface {
-	return &authorizationValidator{}
+func newAuthorizationValidator(oauthPolicy thunderidengine.OAuthPolicy) AuthorizationValidatorInterface {
+	return &authorizationValidator{oauthPolicy: oauthPolicy}
 }
 
 // validateInitialAuthorizationRequest validates the initial authorization request parameters.
 func (av *authorizationValidator) validateInitialAuthorizationRequest(msg *OAuthMessage,
-	oauthApp *inboundmodel.OAuthClient) (bool, string, string) {
+	oauthApp *thunderidengine.OAuthClient) (bool, string, string) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "AuthorizationValidator"))
 
 	clientID := msg.RequestQueryParams[constants.RequestParamClientID]
@@ -52,7 +54,7 @@ func (av *authorizationValidator) validateInitialAuthorizationRequest(msg *OAuth
 		return false, constants.ErrorInvalidRequest, "Missing client_id parameter"
 	}
 
-	if err := oauthApp.ValidateRedirectURI(redirectURI); err != nil {
+	if err := oauthApp.ValidateRedirectURI(redirectURI, av.oauthPolicy); err != nil {
 		logger.Debug("Validation failed for redirect URI", log.Error(err))
 		return false, constants.ErrorInvalidRequest, "Invalid redirect URI"
 	}

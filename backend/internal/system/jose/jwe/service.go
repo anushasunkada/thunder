@@ -25,35 +25,29 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolab"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
-// JWEServiceInterface defines the interface for JWE operations.
-type JWEServiceInterface interface {
-	Encrypt(payload []byte, recipientPublicKey crypto.PublicKey,
-		alg KeyEncAlgorithm, enc ContentEncAlgorithm, cty string, kid string) (string, *serviceerror.ServiceError)
-	Decrypt(jweToken string) ([]byte, *serviceerror.ServiceError)
-}
-
-// jweService implements the JWEServiceInterface.
+// jweService implements thunderidengine.JWEService.
 type jweService struct {
-	cryptoProvider kmprovider.RuntimeCryptoProvider
-	keyRef         kmprovider.KeyRef
+	cryptoProvider thunderidengine.RuntimeCryptoProvider
+	keyRef         thunderidengine.KeyRef
 	logger         *log.Logger
 }
 
 // newJWEService creates a new JWE service instance.
-func newJWEService(cryptoProvider kmprovider.RuntimeCryptoProvider) (JWEServiceInterface, error) {
-	preferredKid := config.GetServerRuntime().Config.JWT.PreferredKeyID
+func newJWEService(
+	cryptoProvider thunderidengine.RuntimeCryptoProvider,
+	preferredKid string,
+) (thunderidengine.JWEService, error) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "JWEService"))
 
 	return &jweService{
 		cryptoProvider: cryptoProvider,
-		keyRef:         kmprovider.KeyRef{KeyID: preferredKid},
+		keyRef:         thunderidengine.KeyRef{KeyID: preferredKid},
 		logger:         logger,
 	}, nil
 }

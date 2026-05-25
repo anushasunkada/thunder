@@ -21,9 +21,10 @@ package notification
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/system/config"
 	declarativeresource "github.com/thunder-id/thunderid/internal/system/declarative_resource"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/template"
@@ -31,7 +32,7 @@ import (
 )
 
 // Initialize creates and configures the notification service components.
-func Initialize(mux *http.ServeMux, jwtService jwt.JWTServiceInterface,
+func Initialize(mux *http.ServeMux, jwtService thunderidengine.JWTService,
 	templateService template.TemplateServiceInterface) (
 	NotificationSenderMgtSvcInterface, OTPServiceInterface, NotificationSenderServiceInterface,
 	declarativeresource.ResourceExporter, error) {

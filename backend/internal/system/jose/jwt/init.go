@@ -23,11 +23,16 @@ import (
 	"time"
 
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
+// Config holds JWT service initialization settings.
+type Config struct {
+	PreferredKeyID string
+}
+
 // Initialize initializes the JWT service.
-func Initialize(runtimeProvider kmprovider.RuntimeCryptoProvider) (JWTServiceInterface, error) {
+func Initialize(runtimeProvider thunderidengine.RuntimeCryptoProvider, cfg Config) (thunderidengine.JWTService, error) {
 	httpClient := httpservice.NewHTTPClientWithTimeout(10 * time.Second)
-	return newJWTService(httpClient, runtimeProvider)
+	return newJWTService(httpClient, runtimeProvider, cfg.PreferredKeyID)
 }

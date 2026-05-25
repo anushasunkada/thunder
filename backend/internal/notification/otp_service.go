@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/notification/common"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolab/hash"
@@ -48,7 +50,7 @@ type OTPServiceInterface interface {
 
 // otpService implements the OTPServiceInterface.
 type otpService struct {
-	jwtService       jwt.JWTServiceInterface
+	jwtService       thunderidengine.JWTService
 	senderMgtService NotificationSenderMgtSvcInterface
 	clientProvider   notificationClientProviderInterface
 	templateService  template.TemplateServiceInterface
@@ -56,7 +58,7 @@ type otpService struct {
 
 // newOTPService returns a new instance of OTPServiceInterface.
 func newOTPService(notifSenderSvc NotificationSenderMgtSvcInterface,
-	jwtSvc jwt.JWTServiceInterface, templateSvc template.TemplateServiceInterface) OTPServiceInterface {
+	jwtSvc thunderidengine.JWTService, templateSvc template.TemplateServiceInterface) OTPServiceInterface {
 	return &otpService{
 		jwtService:       jwtSvc,
 		senderMgtService: notifSenderSvc,

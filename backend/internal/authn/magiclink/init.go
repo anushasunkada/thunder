@@ -20,12 +20,12 @@ package magiclink
 
 import (
 	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the Magic Link authentication service.
 func Initialize(
-	jwtSvc jwt.JWTServiceInterface,
+	jwtSvc thunderidengine.JWTService,
 	entityProvider entityprovider.EntityProviderInterface,
 ) MagicLinkAuthnServiceInterface {
 	return newMagicLinkAuthnService(jwtSvc, entityProvider)

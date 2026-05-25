@@ -26,7 +26,8 @@ import (
 	"strings"
 	"time"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/granthandlers"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -43,7 +44,7 @@ type TokenServiceInterface interface {
 	ProcessTokenRequest(
 		ctx context.Context,
 		tokenRequest *model.TokenRequest,
-		oauthApp *inboundmodel.OAuthClient,
+		oauthApp *thunderidengine.OAuthClient,
 	) (*model.TokenResponse, *model.ErrorResponse)
 }
 
@@ -74,7 +75,7 @@ func newTokenService(
 func (ts *tokenService) ProcessTokenRequest(
 	ctx context.Context,
 	tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 ) (*model.TokenResponse, *model.ErrorResponse) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "TokenService"))
 

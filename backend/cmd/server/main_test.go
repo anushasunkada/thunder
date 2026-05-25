@@ -51,7 +51,7 @@ import (
 type CreateSecurityMiddlewareTestSuite struct {
 	suite.Suite
 	logger         *log.Logger
-	mockJWTService *jwtmock.JWTServiceInterfaceMock
+	mockJWTService *jwtmock.JWTServiceMock
 	mux            *http.ServeMux
 }
 
@@ -61,7 +61,7 @@ func TestCreateSecurityMiddlewareTestSuite(t *testing.T) {
 
 func (suite *CreateSecurityMiddlewareTestSuite) SetupTest() {
 	suite.logger = log.GetLogger()
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mux = http.NewServeMux()
 
 	// Ensure environment variable is clean before each test

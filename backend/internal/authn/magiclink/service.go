@@ -24,6 +24,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/authn/common"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -49,14 +51,14 @@ type MagicLinkAuthnServiceInterface interface {
 
 // magicLinkAuthnService is the default implementation of MagicLinkAuthnServiceInterface.
 type magicLinkAuthnService struct {
-	jwtService     jwt.JWTServiceInterface
+	jwtService     thunderidengine.JWTService
 	entityProvider entityprovider.EntityProviderInterface
 	logger         *log.Logger
 }
 
 // newMagicLinkAuthnService creates a new instance of magicLinkAuthnService with the provided dependencies.
 func newMagicLinkAuthnService(
-	jwtSvc jwt.JWTServiceInterface,
+	jwtSvc thunderidengine.JWTService,
 	entityProvider entityprovider.EntityProviderInterface,
 ) MagicLinkAuthnServiceInterface {
 	service := &magicLinkAuthnService{

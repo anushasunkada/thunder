@@ -41,7 +41,7 @@ import (
 
 type TokenIntrospectionServiceTestSuite struct {
 	suite.Suite
-	jwtServiceMock     *jwtmock.JWTServiceInterfaceMock
+	jwtServiceMock     *jwtmock.JWTServiceMock
 	introspectService  TokenIntrospectionServiceInterface
 	validToken         string
 	expiredToken       string
@@ -55,7 +55,7 @@ func TestTokenIntrospectionServiceTestSuite(t *testing.T) {
 }
 
 func (s *TokenIntrospectionServiceTestSuite) SetupTest() {
-	s.jwtServiceMock = jwtmock.NewJWTServiceInterfaceMock(s.T())
+	s.jwtServiceMock = jwtmock.NewJWTServiceMock(s.T())
 
 	// Create a private key for signing JWT tokens
 	var err error

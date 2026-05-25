@@ -27,9 +27,8 @@ import (
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/pkce"
-	"github.com/thunder-id/thunderid/internal/system/config"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // DiscoveryServiceInterface defines the interface for discovery services
@@ -41,15 +40,24 @@ type DiscoveryServiceInterface interface {
 // discoveryService implements DiscoveryServiceInterface
 type discoveryService struct {
 	baseURL        string
-	cryptoProvider kmprovider.RuntimeCryptoProvider
+	issuer         string
+	requirePAR     bool
+	acrAMR         map[string][]string
+	cryptoProvider thunderidengine.RuntimeCryptoProvider
 }
 
 // newDiscoveryService creates a new discovery service instance
-func newDiscoveryService(cryptoProvider kmprovider.RuntimeCryptoProvider) DiscoveryServiceInterface {
-	runtime := config.GetServerRuntime()
-	ds := &discoveryService{cryptoProvider: cryptoProvider}
-	ds.baseURL = config.GetServerURL(&runtime.Config.Server)
-	return ds
+func newDiscoveryService(
+	cryptoProvider thunderidengine.RuntimeCryptoProvider,
+	opts Options,
+) DiscoveryServiceInterface {
+	return &discoveryService{
+		baseURL:        opts.BaseURL,
+		issuer:         opts.Issuer,
+		requirePAR:     opts.RequirePAR,
+		acrAMR:         opts.AcrAMR,
+		cryptoProvider: cryptoProvider,
+	}
 }
 
 // GetOAuth2AuthorizationServerMetadata returns OAuth 2.0 Authorization Server Metadata
@@ -101,7 +109,7 @@ func (ds *discoveryService) GetOIDCMetadata(ctx context.Context) (*OIDCProviderM
 }
 
 func (ds *discoveryService) getIssuer() string {
-	return config.GetServerRuntime().Config.JWT.Issuer
+	return ds.issuer
 }
 
 func (ds *discoveryService) getAuthorizationEndpoint() string {
@@ -157,7 +165,7 @@ func (ds *discoveryService) getPAREndpoint() string {
 }
 
 func (ds *discoveryService) isGlobalPARRequired() bool {
-	return config.GetServerRuntime().Config.OAuth.PAR.RequirePAR
+	return ds.requirePAR
 }
 
 func (ds *discoveryService) getSupportedSubjectTypes() []string {
@@ -165,7 +173,7 @@ func (ds *discoveryService) getSupportedSubjectTypes() []string {
 }
 
 func (ds *discoveryService) getSupportedSigningAlgorithms(ctx context.Context) ([]string, error) {
-	keys, err := ds.cryptoProvider.GetPublicKeys(ctx, kmprovider.PublicKeyFilter{})
+	keys, err := ds.cryptoProvider.GetPublicKeys(ctx, thunderidengine.PublicKeyFilter{})
 	if err != nil {
 		log.GetLogger().Error("Failed to retrieve public keys for signing algorithm discovery", log.Error(err))
 		return nil, err
@@ -187,7 +195,7 @@ func (ds *discoveryService) getSupportedSigningAlgorithms(ctx context.Context) (
 }
 
 func (ds *discoveryService) getSupportedAcrValues() []string {
-	acrAMR := config.GetServerRuntime().Config.OAuth.AuthClass.AcrAMR
+	acrAMR := ds.acrAMR
 	acrs := make([]string, 0, len(acrAMR))
 	for acr := range acrAMR {
 		acrs = append(acrs, acr)

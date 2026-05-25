@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/authn/assert"
 	"github.com/thunder-id/thunderid/internal/authn/common"
 	"github.com/thunder-id/thunderid/internal/authn/github"
@@ -86,7 +88,7 @@ type AuthenticationServiceInterface interface {
 // authenticationService is the default implementation of the AuthenticationServiceInterface.
 type authenticationService struct {
 	idpService             idp.IDPServiceInterface
-	jwtService             jwt.JWTServiceInterface
+	jwtService             thunderidengine.JWTService
 	authAssertionGenerator assert.AuthAssertGeneratorInterface
 	authnProvider          authnprovidermgr.AuthnProviderManagerInterface
 	otpService             otp.OTPAuthnServiceInterface
@@ -101,7 +103,7 @@ type authenticationService struct {
 // newAuthenticationService creates a new instance of AuthenticationService.
 func newAuthenticationService(
 	idpSvc idp.IDPServiceInterface,
-	jwtSvc jwt.JWTServiceInterface,
+	jwtSvc thunderidengine.JWTService,
 	authAssertGen assert.AuthAssertGeneratorInterface,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
 	otpAuthnSvc otp.OTPAuthnServiceInterface,

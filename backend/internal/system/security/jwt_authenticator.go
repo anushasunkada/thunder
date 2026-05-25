@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
@@ -30,11 +32,11 @@ import (
 
 // jwtAuthenticator handles authentication and authorization using JWT Bearer tokens.
 type jwtAuthenticator struct {
-	jwtService jwt.JWTServiceInterface
+	jwtService thunderidengine.JWTService
 }
 
 // newJWTAuthenticator creates a new JWT authenticator.
-func newJWTAuthenticator(jwtService jwt.JWTServiceInterface) *jwtAuthenticator {
+func newJWTAuthenticator(jwtService thunderidengine.JWTService) *jwtAuthenticator {
 	return &jwtAuthenticator{
 		jwtService: jwtService,
 	}

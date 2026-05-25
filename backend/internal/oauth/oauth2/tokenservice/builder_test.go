@@ -32,6 +32,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/system/i18n/core"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +41,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -61,9 +62,9 @@ const (
 
 type TokenBuilderTestSuite struct {
 	suite.Suite
-	mockJWTService *jwtmock.JWTServiceInterfaceMock
+	mockJWTService *jwtmock.JWTServiceMock
 	builder        *tokenBuilder
-	oauthApp       *inboundmodel.OAuthClient
+	oauthApp       *thunderidengine.OAuthClient
 }
 
 func TestTokenBuilderTestSuite(t *testing.T) {
@@ -80,15 +81,19 @@ func (suite *TokenBuilderTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.builder = &tokenBuilder{
 		jwtService: suite.mockJWTService,
+		opts: Options{
+			Issuer:         "https://thunder.io",
+			ValidityPeriod: 3600,
+		},
 	}
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				ValidityPeriod: 3600,
 				UserAttributes: []string{"name"}, // Configure user attributes for tests
 			},
@@ -97,8 +102,8 @@ func (suite *TokenBuilderTestSuite) SetupTest() {
 }
 
 func (suite *TokenBuilderTestSuite) TestNewTokenBuilder() {
-	jwtService := jwtmock.NewJWTServiceInterfaceMock(suite.T())
-	builder := newTokenBuilder(jwtService, nil, nil)
+	jwtService := jwtmock.NewJWTServiceMock(suite.T())
+	builder := newTokenBuilder(jwtService, nil, nil, Options{})
 
 	assert.NotNil(suite.T(), builder)
 	assert.Implements(suite.T(), (*TokenBuilderInterface)(nil), builder)
@@ -326,10 +331,10 @@ func (suite *TokenBuilderTestSuite) TestBuildAccessToken_Success_EmptyGrantType(
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildAccessToken_Success_CustomValidityPeriod() {
-	customOAuthApp := &inboundmodel.OAuthClient{
+	customOAuthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				ValidityPeriod: 7200,
 			},
 		},
@@ -448,10 +453,10 @@ func (suite *TokenBuilderTestSuite) TestBuildAccessToken_Success_WithClaimsLocal
 
 func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_Basic() {
 	// Create OAuth app with user attributes configured
-	oauthAppWithUserAttrs := &inboundmodel.OAuthClient{
+	oauthAppWithUserAttrs := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				ValidityPeriod: 3600,
 				UserAttributes: []string{"name"}, // Configure user attributes
 			},
@@ -594,10 +599,10 @@ func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_EmptyScopes() 
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_WithTokenConfig() {
-	customOAuthApp := &inboundmodel.OAuthClient{
+	customOAuthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{},
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{},
 		},
 	}
 
@@ -630,9 +635,9 @@ func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_WithTokenConfi
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildRefreshToken_Success_WithNilAccessToken() {
-	oauthAppWithNilAccessToken := &inboundmodel.OAuthClient{
+	oauthAppWithNilAccessToken := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
 			// Token exists but AccessToken is nil
 			AccessToken: nil,
 		},
@@ -886,10 +891,10 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_NoAuthTime() {
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithScopeClaims() {
-	oauthAppWithScopeClaims := &inboundmodel.OAuthClient{
+	oauthAppWithScopeClaims := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
 				UserAttributes: []string{"name", "email"},
 			},
@@ -929,10 +934,10 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithScopeClaims() {
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithStandardOIDCScopes() {
-	oauthAppWithUserAttrs := &inboundmodel.OAuthClient{
+	oauthAppWithUserAttrs := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
 				UserAttributes: []string{"name", "email"},
 			},
@@ -1000,10 +1005,10 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_NoUserAttributes() 
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_EmptyUserAttributes() {
-	oauthAppWithEmptyUserAttrs := &inboundmodel.OAuthClient{
+	oauthAppWithEmptyUserAttrs := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				UserAttributes: []string{},
 			},
 		},
@@ -1041,10 +1046,10 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_EmptyUserAttributes
 }
 
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_CustomValidityPeriod() {
-	oauthAppWithCustomValidity := &inboundmodel.OAuthClient{
+	oauthAppWithCustomValidity := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 7200,
 			},
 		},
@@ -1135,7 +1140,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_Inli
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := testRSAPublicKeyToJWKS(&privateKey.PublicKey, "enc")
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(suite.T())
+	mockJWE := jwemock.NewJWEServiceMock(suite.T())
 	const signedJWS = "header.payload.signature"
 	const encryptedJWE = "a.b.c.d.e"
 
@@ -1151,17 +1156,17 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_Inli
 		mock.Anything,
 	).Return(encryptedJWE, (*serviceerror.ServiceError)(nil))
 
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  certmodel.CertificateTypeJWKS,
 			Value: pubJWKS,
 		},
@@ -1176,6 +1181,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_Inli
 		jwtService:   suite.mockJWTService,
 		jweService:   mockJWE,
 		jwksResolver: jwksresolver.Initialize(nil),
+		opts:         Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 	}
 
 	result, err := builder.BuildIDToken(&IDTokenBuildContext{
@@ -1199,19 +1205,19 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_EncryptionKeyNotFound
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	sigOnlyJWKS := testRSAPublicKeyToJWKS(&privateKey.PublicKey, "sig")
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(suite.T())
+	mockJWE := jwemock.NewJWEServiceMock(suite.T())
 
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  certmodel.CertificateTypeJWKS,
 			Value: sigOnlyJWKS,
 		},
@@ -1226,6 +1232,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_EncryptionKeyNotFound
 		jwtService:   suite.mockJWTService,
 		jweService:   mockJWE,
 		jwksResolver: jwksresolver.Initialize(nil),
+		opts:         Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 	}
 
 	result, err := builder.BuildIDToken(&IDTokenBuildContext{
@@ -1256,7 +1263,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_EncryptionFailed() {
 			Key: "error.jwe.encrypt_failed", DefaultValue: "JWE encryption failed",
 		},
 	}
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(suite.T())
+	mockJWE := jwemock.NewJWEServiceMock(suite.T())
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
 		jwe.KeyEncAlgorithm("RSA-OAEP-256"),
@@ -1265,17 +1272,17 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_EncryptionFailed() {
 		mock.Anything,
 	).Return("", encErr)
 
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  certmodel.CertificateTypeJWKS,
 			Value: pubJWKS,
 		},
@@ -1290,6 +1297,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_EncryptionFailed() {
 		jwtService:   suite.mockJWTService,
 		jweService:   mockJWE,
 		jwksResolver: jwksresolver.Initialize(nil),
+		opts:         Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 	}
 
 	result, err := builder.BuildIDToken(&IDTokenBuildContext{
@@ -1324,7 +1332,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_JWKS
 		}, nil,
 	)
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(suite.T())
+	mockJWE := jwemock.NewJWEServiceMock(suite.T())
 	mockJWE.On("Encrypt",
 		mock.Anything, mock.Anything,
 		jwe.KeyEncAlgorithm("RSA-OAEP-256"),
@@ -1333,17 +1341,17 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_JWKS
 		mock.Anything,
 	).Return(encryptedJWE, (*serviceerror.ServiceError)(nil))
 
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  certmodel.CertificateTypeJWKSURI,
 			Value: testJWKSURIForBuilder,
 		},
@@ -1358,6 +1366,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Success_WithEncryption_JWKS
 		jwtService:   suite.mockJWTService,
 		jweService:   mockJWE,
 		jwksResolver: jwksresolver.Initialize(mockHTTP),
+		opts:         Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 	}
 
 	result, err := builder.BuildIDToken(&IDTokenBuildContext{
@@ -1382,17 +1391,17 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_NilJWEService() {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	pubJWKS := testRSAPublicKeyToJWKS(&privateKey.PublicKey, "enc")
 
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  certmodel.CertificateTypeJWKS,
 			Value: pubJWKS,
 		},
@@ -1405,6 +1414,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_NilJWEService() {
 
 	builder := &tokenBuilder{
 		jwtService: suite.mockJWTService,
+		opts:       Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 		jweService: nil,
 	}
 
@@ -1424,10 +1434,10 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_NilJWEService() {
 
 // TestBuildIDToken_NoEncryptionAlg verifies that the JWE block is skipped when EncryptionAlg is empty.
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_NoEncryptionAlg() {
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
 				EncryptionAlg:  "", // no encryption
 			},
@@ -1441,6 +1451,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_NoEncryptionAlg() {
 
 	builder := &tokenBuilder{
 		jwtService: suite.mockJWTService,
+		opts:       Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 		jweService: nil,
 	}
 
@@ -1460,23 +1471,23 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_NoEncryptionAlg() {
 
 // TestBuildIDToken_Error_UnsupportedCertType verifies error propagation when cert type is unsupported.
 func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_UnsupportedCertType() {
-	oauthApp := &inboundmodel.OAuthClient{
+	oauthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			IDToken: &inboundmodel.IDTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			IDToken: &thunderidengine.IDTokenConfig{
 				ValidityPeriod: 3600,
-				ResponseType:   inboundmodel.IDTokenResponseTypeJWE,
+				ResponseType:   "JWE",
 				EncryptionAlg:  "RSA-OAEP-256",
 				EncryptionEnc:  "A256GCM",
 			},
 		},
-		Certificate: &inboundmodel.Certificate{
+		Certificate: &thunderidengine.Certificate{
 			Type:  "UNKNOWN",
 			Value: "{}",
 		},
 	}
 
-	mockJWE := jwemock.NewJWEServiceInterfaceMock(suite.T())
+	mockJWE := jwemock.NewJWEServiceMock(suite.T())
 
 	suite.mockJWTService.On("GenerateJWT",
 		mock.Anything, "user123", "https://thunder.io", int64(3600),
@@ -1487,6 +1498,7 @@ func (suite *TokenBuilderTestSuite) TestBuildIDToken_Error_UnsupportedCertType()
 		jwtService:   suite.mockJWTService,
 		jweService:   mockJWE,
 		jwksResolver: jwksresolver.Initialize(nil),
+		opts:         Options{Issuer: "https://thunder.io", ValidityPeriod: 3600},
 	}
 
 	result, err := builder.BuildIDToken(&IDTokenBuildContext{

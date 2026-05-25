@@ -21,11 +21,11 @@ package security
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize creates and returns the security middleware with necessary authenticators.
-func Initialize(jwtService jwt.JWTServiceInterface) (func(http.Handler) http.Handler, error) {
+func Initialize(jwtService thunderidengine.JWTService) (func(http.Handler) http.Handler, error) {
 	jwtAuthenticator := newJWTAuthenticator(jwtService)
 	securityService, err := newSecurityService(
 		[]AuthenticatorInterface{jwtAuthenticator}, publicPaths, apiPermissionEntries)

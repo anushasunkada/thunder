@@ -24,7 +24,8 @@ import (
 	"slices"
 	"strings"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/pkce"
 )
@@ -41,7 +42,7 @@ import (
 //
 // Returns (errorCode, errorDescription). Empty errorCode means validation passed.
 func ValidateAuthorizationRequestParams(
-	params map[string]string, oauthApp *inboundmodel.OAuthClient,
+	params map[string]string, oauthApp *thunderidengine.OAuthClient,
 ) (string, string) {
 	responseType := params[constants.RequestParamResponseType]
 
@@ -63,7 +64,7 @@ func ValidateAuthorizationRequestParams(
 	if responseType == "" {
 		return constants.ErrorInvalidRequest, "Missing response_type parameter"
 	}
-	if !oauthApp.IsAllowedResponseType(responseType) {
+	if !oauthApp.IsAllowedResponseTypeString(responseType) {
 		return constants.ErrorUnsupportedResponseType, "Unsupported response type"
 	}
 

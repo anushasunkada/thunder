@@ -20,25 +20,12 @@
 // It includes support for JWS (JSON Web Signature), JWT (JSON Web Token), and JWE (JSON Web Encryption).
 package jose
 
-import (
-	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
-)
+import "github.com/thunder-id/thunderid/pkg/thunderidengine"
 
-// Initialize initializes the JOSE services (JWT and JWE).
-func Initialize(
-	runtimeProvider kmprovider.RuntimeCryptoProvider,
-) (jwt.JWTServiceInterface, jwe.JWEServiceInterface, error) {
-	jwtService, err := jwt.Initialize(runtimeProvider)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	jweService, err := jwe.Initialize(runtimeProvider)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return jwtService, jweService, nil
+// InitializeJose initializes the JOSE services (JWT and JWE).
+func InitializeJose(
+	runtimeProvider thunderidengine.RuntimeCryptoProvider,
+	opts ...thunderidengine.Option,
+) (thunderidengine.JWTService, thunderidengine.JWEService, error) {
+	return thunderidengine.InitializeJose(runtimeProvider, opts...)
 }

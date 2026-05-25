@@ -30,8 +30,6 @@ import (
 
 	flowcm "github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz/requestvalidator"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -40,11 +38,11 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // AuthorizeServiceInterface defines the interface for authorization services.
@@ -58,39 +56,48 @@ type AuthorizeServiceInterface interface {
 
 // authorizeService implements the AuthorizeService for managing OAuth2 authorization flows.
 type authorizeService struct {
-	inboundClient   inboundclient.InboundClientServiceInterface
+	clientProvider  thunderidengine.ClientProvider
 	resourceService resource.ResourceServiceInterface
 	authZValidator  AuthorizationValidatorInterface
 	authCodeStore   AuthorizationCodeStoreInterface
 	authReqStore    authorizationRequestStoreInterface
 	parService      par.PARServiceInterface
-	jwtService      jwt.JWTServiceInterface
+	jwtService      thunderidengine.JWTService
 	flowExecService flowexec.FlowExecServiceInterface
 	transactioner   transaction.Transactioner
+	issuer          string
+	authCodeTTL     int64
+	oauthPolicy     thunderidengine.OAuthPolicy
+	tokenDefaults   tokenservice.Options
 	logger          *log.Logger
 }
 
 // newAuthorizeService creates a new instance of authorizeService with injected dependencies.
 func newAuthorizeService(
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	resourceService resource.ResourceServiceInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	flowExecService flowexec.FlowExecServiceInterface,
 	authCodeStore AuthorizationCodeStoreInterface,
 	authReqStore authorizationRequestStoreInterface,
 	parService par.PARServiceInterface,
 	transactioner transaction.Transactioner,
+	opts Options,
 ) AuthorizeServiceInterface {
 	return &authorizeService{
-		inboundClient:   inboundClient,
+		clientProvider:  clientProvider,
 		resourceService: resourceService,
-		authZValidator:  newAuthorizationValidator(),
+		authZValidator:  newAuthorizationValidator(opts.OAuthPolicy),
 		authCodeStore:   authCodeStore,
 		authReqStore:    authReqStore,
 		parService:      parService,
 		jwtService:      jwtService,
 		flowExecService: flowExecService,
 		transactioner:   transactioner,
+		issuer:          opts.Issuer,
+		authCodeTTL:     opts.AuthorizationCodeValidity,
+		oauthPolicy:     opts.OAuthPolicy,
+		tokenDefaults:   opts.TokenDefaults,
 		logger:          log.GetLogger().With(log.String(log.LoggerKeyComponentName, "AuthorizeService")),
 	}
 }
@@ -144,8 +151,14 @@ func (as *authorizeService) HandleInitialAuthorizationRequest(ctx context.Contex
 	}
 
 	// Retrieve the OAuth client based on the client ID.
-	app, lookupErr := as.inboundClient.GetOAuthClientByClientID(ctx, clientID)
+	app, lookupErr := as.clientProvider.GetOAuthClientByClientID(ctx, clientID)
 	if lookupErr != nil {
+		if errors.Is(lookupErr, thunderidengine.ErrInboundClientNotFound) {
+			return nil, &AuthorizationError{
+				Code:    oauth2const.ErrorInvalidRequest,
+				Message: "Invalid client_id",
+			}
+		}
 		as.logger.Error("Failed to retrieve OAuth client", log.Error(lookupErr))
 		return nil, &AuthorizationError{
 			Code:    oauth2const.ErrorServerError,
@@ -165,7 +178,7 @@ func (as *authorizeService) HandleInitialAuthorizationRequest(ctx context.Contex
 	}
 
 	// Enforce PAR requirement: if PAR is required (per-client or global), reject requests without request_uri.
-	if app.RequiresPAR() {
+	if app.RequiresPAR(as.oauthPolicy) {
 		return nil, &AuthorizationError{
 			Code:    oauth2const.ErrorInvalidRequest,
 			Message: "Pushed authorization request is required for this client",
@@ -177,7 +190,7 @@ func (as *authorizeService) HandleInitialAuthorizationRequest(ctx context.Contex
 
 // handlePARAuthorizationRequest resolves a request_uri from a PAR and continues the authorization flow.
 func (as *authorizeService) handlePARAuthorizationRequest(
-	ctx context.Context, requestURI string, clientID string, app *inboundmodel.OAuthClient,
+	ctx context.Context, requestURI string, clientID string, app *thunderidengine.OAuthClient,
 ) (*AuthorizationInitResult, *AuthorizationError) {
 	oauthParams, err := as.parService.ResolvePushedAuthorizationRequest(ctx, requestURI, clientID)
 	if err != nil {
@@ -199,7 +212,7 @@ func (as *authorizeService) handlePARAuthorizationRequest(
 
 // handleStandardAuthorizationRequest processes a standard authorization request (without PAR).
 func (as *authorizeService) handleStandardAuthorizationRequest(
-	ctx context.Context, msg *OAuthMessage, app *inboundmodel.OAuthClient,
+	ctx context.Context, msg *OAuthMessage, app *thunderidengine.OAuthClient,
 ) (*AuthorizationInitResult, *AuthorizationError) {
 	// Extract required parameters.
 	redirectURI := msg.RequestQueryParams[oauth2const.RequestParamRedirectURI]
@@ -305,26 +318,27 @@ func (as *authorizeService) handleStandardAuthorizationRequest(
 // initiateFlowAndStoreRequest initiates the authentication flow and stores the authorization request context.
 // This is the common path shared by both standard and PAR-based authorization requests.
 func (as *authorizeService) initiateFlowAndStoreRequest(
-	ctx context.Context, oauthParams *oauth2model.OAuthParameters, app *inboundmodel.OAuthClient,
+	ctx context.Context, oauthParams *oauth2model.OAuthParameters, app *thunderidengine.OAuthClient,
 ) (*AuthorizationInitResult, *AuthorizationError) {
 	effectiveAcrValues := requestvalidator.ResolveACRValues(oauthParams.AcrValues, app.AcrValues)
 	essentialAttributes, optionalAttributes := getRequiredAttributes(
 		oauthParams.StandardScopes, oauthParams.ClaimsRequest, oauthParams.ResponseType, app)
 
 	// Initiate flow with OAuth context.
+	cacheTTL := resolveUserAttributesCacheTTL(app, as.tokenDefaults, as.authCodeTTL)
 	runtimeData := map[string]string{
 		flowcm.RuntimeKeyClientID:                      oauthParams.ClientID,
 		flowcm.RuntimeKeyRequestedPermissions:          utils.StringifyStringArray(oauthParams.PermissionScopes, " "),
 		flowcm.RuntimeKeyRequiredEssentialAttributes:   essentialAttributes,
 		flowcm.RuntimeKeyRequiredOptionalAttributes:    optionalAttributes,
 		flowcm.RuntimeKeyRequiredLocales:               oauthParams.ClaimsLocales,
-		flowcm.RuntimeKeyUserAttributesCacheTTLSeconds: fmt.Sprintf("%d", resolveUserAttributesCacheTTL(app)),
+		flowcm.RuntimeKeyUserAttributesCacheTTLSeconds: fmt.Sprintf("%d", cacheTTL),
 	}
 	if effectiveAcrValues != "" {
 		runtimeData[flowcm.RuntimeKeyRequestedAuthClasses] = effectiveAcrValues
 	}
 	flowInitCtx := &flowexec.FlowInitContext{
-		ApplicationID: app.ID,
+		ApplicationID: app.EntityID,
 		FlowType:      string(flowcm.FlowTypeAuthentication),
 		RuntimeData:   runtimeData,
 	}
@@ -362,7 +376,7 @@ func (as *authorizeService) initiateFlowAndStoreRequest(
 	// Build query parameters for login page redirect.
 	queryParams := make(map[string]string)
 	queryParams[oauth2const.AuthID] = identifier
-	queryParams[oauth2const.AppID] = app.ID
+	queryParams[oauth2const.AppID] = app.EntityID
 	queryParams[oauth2const.ExecutionID] = executionID
 
 	// Add insecure warning if the redirect URI is not using TLS.
@@ -489,7 +503,7 @@ func (as *authorizeService) HandleAuthorizationCallback(ctx context.Context, aut
 		}
 
 		// Generate the authorization code.
-		authzCode, err := createAuthorizationCode(authRequestCtx, &claims, authTime)
+		authzCode, err := createAuthorizationCode(authRequestCtx, &claims, authTime, as.authCodeTTL)
 		if err != nil {
 			authErr = &AuthorizationError{
 				Code:              oauth2const.ErrorServerError,
@@ -516,7 +530,7 @@ func (as *authorizeService) HandleAuthorizationCallback(ctx context.Context, aut
 		// Construct the redirect URI with the authorization code.
 		queryParams := map[string]string{
 			"code":                      authzCode.Code,
-			oauth2const.RequestParamIss: config.GetServerRuntime().Config.JWT.Issuer,
+			oauth2const.RequestParamIss: as.issuer,
 		}
 		if authRequestCtx.OAuthParameters.State != "" {
 			queryParams[oauth2const.RequestParamState] = authRequestCtx.OAuthParameters.State
@@ -652,6 +666,7 @@ func createAuthorizationCode(
 	authRequestCtx *authRequestContext,
 	claims *assertionClaims,
 	authTime time.Time,
+	authCodeTTL int64,
 ) (AuthorizationCode, error) {
 	clientID := authRequestCtx.OAuthParameters.ClientID
 	redirectURI := authRequestCtx.OAuthParameters.RedirectURI
@@ -674,8 +689,7 @@ func createAuthorizationCode(
 	allScopes := append(append([]string{}, standardScopes...), permissionScopes...)
 	resources := authRequestCtx.OAuthParameters.Resources
 
-	oauthConfig := config.GetServerRuntime().Config.OAuth
-	validityPeriod := oauthConfig.AuthorizationCode.ValidityPeriod
+	validityPeriod := authCodeTTL
 	expiryTime := authTime.Add(time.Duration(validityPeriod) * time.Second)
 
 	codeID, err := utils.GenerateUUIDv7()
@@ -712,7 +726,7 @@ func createAuthorizationCode(
 // getRequiredAttributes determines the essential and optional user attributes required based on OIDC scopes,
 // claims parameter, response type, and app configuration.
 func getRequiredAttributes(oidcScopes []string, claimsRequest *oauth2model.ClaimsRequest, responseType string,
-	app *inboundmodel.OAuthClient) (essentialAttributes, optionalAttributes string) {
+	app *thunderidengine.OAuthClient) (essentialAttributes, optionalAttributes string) {
 	if app == nil {
 		return "", ""
 	}
@@ -748,7 +762,7 @@ func getRequiredAttributes(oidcScopes []string, claimsRequest *oauth2model.Claim
 }
 
 // appendAccessTokenAttributes appends access token attributes from app configuration.
-func appendAccessTokenAttributes(app *inboundmodel.OAuthClient, attributesMap map[string]bool) {
+func appendAccessTokenAttributes(app *thunderidengine.OAuthClient, attributesMap map[string]bool) {
 	if app.Token.AccessToken != nil && len(app.Token.AccessToken.UserAttributes) > 0 {
 		for _, attr := range app.Token.AccessToken.UserAttributes {
 			attributesMap[attr] = true
@@ -758,7 +772,7 @@ func appendAccessTokenAttributes(app *inboundmodel.OAuthClient, attributesMap ma
 
 // appendOIDCAttributes appends OIDC-related attributes from scopes and claims parameters.
 func appendOIDCAttributes(oidcScopes []string, claimsRequest *oauth2model.ClaimsRequest, responseType string,
-	app *inboundmodel.OAuthClient, essentialAttributes, optionalAttributes map[string]bool) {
+	app *thunderidengine.OAuthClient, essentialAttributes, optionalAttributes map[string]bool) {
 	var idTokenAllowedSet map[string]bool
 	if app.Token != nil {
 		idTokenAllowedSet = buildIDTokenAllowedSet(app.Token.IDToken)
@@ -773,7 +787,7 @@ func appendOIDCAttributes(oidcScopes []string, claimsRequest *oauth2model.Claims
 }
 
 // buildIDTokenAllowedSet creates a set of allowed attributes for ID token.
-func buildIDTokenAllowedSet(idTokenConfig *inboundmodel.IDTokenConfig) map[string]bool {
+func buildIDTokenAllowedSet(idTokenConfig *thunderidengine.IDTokenConfig) map[string]bool {
 	if idTokenConfig == nil || len(idTokenConfig.UserAttributes) == 0 {
 		return nil
 	}
@@ -785,7 +799,7 @@ func buildIDTokenAllowedSet(idTokenConfig *inboundmodel.IDTokenConfig) map[strin
 }
 
 // buildUserInfoAllowedSet creates a set of allowed attributes for UserInfo.
-func buildUserInfoAllowedSet(userInfoConfig *inboundmodel.UserInfoConfig) map[string]bool {
+func buildUserInfoAllowedSet(userInfoConfig *thunderidengine.UserInfoConfig) map[string]bool {
 	if userInfoConfig == nil || len(userInfoConfig.UserAttributes) == 0 {
 		return nil
 	}
@@ -831,7 +845,7 @@ func appendAttributesFromClaimsParameter(claimsRequest *oauth2model.ClaimsReques
 }
 
 // appendAttributesFromScopes appends user attributes based on OIDC scopes and app configuration.
-func appendAttributesFromScopes(oidcScopes []string, responseType string, app *inboundmodel.OAuthClient,
+func appendAttributesFromScopes(oidcScopes []string, responseType string, app *thunderidengine.OAuthClient,
 	idTokenAllowedSet, userInfoAllowedSet map[string]bool, optionalAttributes map[string]bool) {
 	for _, scope := range oidcScopes {
 		scopeAttributes := resolveScopeAttributes(scope, app.ScopeClaims)
@@ -911,14 +925,17 @@ func validateSubClaimConstraint(claimsRequest *oauth2model.ClaimsRequest, actual
 // the window between code issuance and token exchange.
 // A fixed buffer of attributeCacheTTLBufferSeconds is added to cover the window between
 // authentication completion and token issuance.
-func resolveUserAttributesCacheTTL(app *inboundmodel.OAuthClient) int64 {
-	maxTTL := tokenservice.ResolveTokenConfig(app, tokenservice.TokenTypeAccess).ValidityPeriod
+func resolveUserAttributesCacheTTL(
+	app *thunderidengine.OAuthClient,
+	tokenDefaults tokenservice.Options,
+	authCodeTTL int64,
+) int64 {
+	maxTTL := tokenservice.ResolveTokenConfig(app, tokenservice.TokenTypeAccess, tokenDefaults).ValidityPeriod
 	if app.IsAllowedGrantType(oauth2const.GrantTypeRefreshToken) {
-		refreshTTL := tokenservice.ResolveTokenConfig(app, tokenservice.TokenTypeRefresh).ValidityPeriod
+		refreshTTL := tokenservice.ResolveTokenConfig(app, tokenservice.TokenTypeRefresh, tokenDefaults).ValidityPeriod
 		if refreshTTL > maxTTL {
 			maxTTL = refreshTTL
 		}
 	}
-	authCodeTTL := config.GetServerRuntime().Config.OAuth.AuthorizationCode.ValidityPeriod
 	return maxTTL + authCodeTTL + oauth2const.AttributeCacheTTLBufferSeconds
 }

@@ -32,8 +32,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/system/config"
-	"github.com/thunder-id/thunderid/internal/system/cryptolab"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 )
 
@@ -42,6 +41,7 @@ type DiscoveryTestSuite struct {
 	cryptoMock       *cryptomock.RuntimeCryptoProviderMock
 	discoveryService DiscoveryServiceInterface
 	handler          discoveryHandlerInterface
+	testOpts         Options
 }
 
 func TestDiscoverySuite(t *testing.T) {
@@ -71,8 +71,15 @@ func (suite *DiscoveryTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
+	suite.testOpts = Options{
+		Issuer:     testConfig.JWT.Issuer,
+		BaseURL:    config.GetServerURL(&testConfig.Server),
+		RequirePAR: testConfig.OAuth.PAR.RequirePAR,
+		AcrAMR:     testConfig.OAuth.AuthClass.AcrAMR,
+	}
+
 	suite.cryptoMock = cryptomock.NewRuntimeCryptoProviderMock(suite.T())
-	suite.discoveryService = newDiscoveryService(suite.cryptoMock)
+	suite.discoveryService = newDiscoveryService(suite.cryptoMock, suite.testOpts)
 	suite.handler = newDiscoveryHandler(suite.discoveryService)
 }
 
@@ -118,8 +125,8 @@ func (suite *DiscoveryTestSuite) TestOAuth2AuthorizationServerMetadata() {
 }
 
 func (suite *DiscoveryTestSuite) TestOIDCDiscovery() {
-	suite.cryptoMock.EXPECT().GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{{KeyID: "k1", Algorithm: cryptolab.AlgorithmRS256}}, nil)
+	suite.cryptoMock.EXPECT().GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{{KeyID: "k1", Algorithm: thunderidengine.AlgorithmRS256}}, nil)
 
 	req := httptest.NewRequest("GET", "/.well-known/openid-configuration", nil)
 	w := httptest.NewRecorder()
@@ -263,11 +270,11 @@ func TestGetStandardClaims(t *testing.T) {
 }
 
 func (suite *DiscoveryTestSuite) TestInitialize() {
-	suite.cryptoMock.EXPECT().GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{{KeyID: "k1", Algorithm: cryptolab.AlgorithmRS256}}, nil)
+	suite.cryptoMock.EXPECT().GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{{KeyID: "k1", Algorithm: thunderidengine.AlgorithmRS256}}, nil)
 
 	mux := http.NewServeMux()
-	service := Initialize(mux, suite.cryptoMock)
+	service := Initialize(mux, suite.cryptoMock, suite.testOpts)
 
 	assert.NotNil(suite.T(), service)
 	assert.Implements(suite.T(), (*DiscoveryServiceInterface)(nil), service)
@@ -309,7 +316,10 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithPublicHostname() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	service := newDiscoveryService(suite.cryptoMock)
+	service := newDiscoveryService(suite.cryptoMock, Options{
+		Issuer:  testConfig.JWT.Issuer,
+		BaseURL: config.GetServerURL(&testConfig.Server),
+	})
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())
 	assert.Contains(suite.T(), metadata.AuthorizationEndpoint, "public.thunder.io")
 	config.ResetServerRuntime()
@@ -329,7 +339,10 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithHTTPOnly() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	service := newDiscoveryService(suite.cryptoMock)
+	service := newDiscoveryService(suite.cryptoMock, Options{
+		Issuer:  testConfig.JWT.Issuer,
+		BaseURL: config.GetServerURL(&testConfig.Server),
+	})
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())
 	assert.Contains(suite.T(), metadata.AuthorizationEndpoint, "http://")
 	config.ResetServerRuntime()
@@ -337,13 +350,16 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithHTTPOnly() {
 
 func (suite *DiscoveryTestSuite) TestOIDCDiscovery_MultipleKeyAlgorithms() {
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
-	cryptoMock.EXPECT().GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{
-			{KeyID: "k1", Algorithm: cryptolab.AlgorithmRS256},
-			{KeyID: "k2", Algorithm: cryptolab.AlgorithmES256},
-			{KeyID: "k3", Algorithm: cryptolab.AlgorithmEdDSA},
+	cryptoMock.EXPECT().GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{
+			{KeyID: "k1", Algorithm: thunderidengine.AlgorithmRS256},
+			{KeyID: "k2", Algorithm: thunderidengine.AlgorithmES256},
+			{KeyID: "k3", Algorithm: thunderidengine.AlgorithmEdDSA},
 		}, nil)
-	svc := newDiscoveryService(cryptoMock)
+	svc := newDiscoveryService(cryptoMock, Options{
+		Issuer:  "https://auth.example.com",
+		BaseURL: "https://localhost:8080",
+	})
 	meta, err := svc.GetOIDCMetadata(context.Background())
 	assert.NoError(suite.T(), err)
 	algs := meta.IDTokenSigningAlgValuesSupported
@@ -356,12 +372,15 @@ func (suite *DiscoveryTestSuite) TestOIDCDiscovery_MultipleKeyAlgorithms() {
 
 func (suite *DiscoveryTestSuite) TestOIDCDiscovery_DeduplicatesAlgorithms() {
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
-	cryptoMock.EXPECT().GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{
-			{KeyID: "k1", Algorithm: cryptolab.AlgorithmRS256},
-			{KeyID: "k2", Algorithm: cryptolab.AlgorithmRS256},
+	cryptoMock.EXPECT().GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{
+			{KeyID: "k1", Algorithm: thunderidengine.AlgorithmRS256},
+			{KeyID: "k2", Algorithm: thunderidengine.AlgorithmRS256},
 		}, nil)
-	svc := newDiscoveryService(cryptoMock)
+	svc := newDiscoveryService(cryptoMock, Options{
+		Issuer:  "https://auth.example.com",
+		BaseURL: "https://localhost:8080",
+	})
 	meta, err := svc.GetOIDCMetadata(context.Background())
 	assert.NoError(suite.T(), err)
 	algs := meta.IDTokenSigningAlgValuesSupported

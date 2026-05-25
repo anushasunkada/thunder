@@ -33,6 +33,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	i18ncore "github.com/thunder-id/thunderid/internal/system/i18n/core"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/applicationmock"
 	i18nmock "github.com/thunder-id/thunderid/tests/mocks/i18n/mgtmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oumock"
@@ -743,8 +744,8 @@ func (s *DCRServiceTestSuite) TestRegisterClient_WithIDTokenEncryption() {
 				OAuthConfig: &inboundmodel.OAuthConfigWithSecret{
 					ClientID: "client-id",
 					Scopes:   []string{"openid"},
-					Token: &inboundmodel.OAuthTokenConfig{
-						IDToken: &inboundmodel.IDTokenConfig{
+					Token: &thunderidengine.OAuthTokenConfig{
+						IDToken: &thunderidengine.IDTokenConfig{
 							EncryptionAlg: "RSA-OAEP-256",
 							EncryptionEnc: "A256GCM",
 						},

@@ -22,14 +22,14 @@ import (
 	"context"
 	"strings"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz/requestvalidator"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/resourceindicators"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
 
@@ -40,7 +40,7 @@ const requestURIPrefix = "urn:ietf:params:oauth:request_uri:"
 type PARServiceInterface interface {
 	HandlePushedAuthorizationRequest(
 		ctx context.Context, params map[string]string, resources []string,
-		oauthApp *inboundmodel.OAuthClient,
+		oauthApp *thunderidengine.OAuthClient,
 	) (*parResponse, string, string)
 	ResolvePushedAuthorizationRequest(
 		ctx context.Context, requestURI string, clientID string,
@@ -51,16 +51,22 @@ type PARServiceInterface interface {
 type parService struct {
 	store           parStoreInterface
 	resourceService resource.ResourceServiceInterface
+	parExpiresIn    int64
+	oauthPolicy     thunderidengine.OAuthPolicy
 	logger          *log.Logger
 }
 
 // newPARService creates a new PAR service instance.
 func newPARService(
-	store parStoreInterface, resourceService resource.ResourceServiceInterface,
+	store parStoreInterface,
+	resourceService resource.ResourceServiceInterface,
+	opts Options,
 ) PARServiceInterface {
 	return &parService{
 		store:           store,
 		resourceService: resourceService,
+		parExpiresIn:    opts.PARExpiresIn,
+		oauthPolicy:     opts.OAuthPolicy,
 		logger:          log.GetLogger().With(log.String(log.LoggerKeyComponentName, "PARService")),
 	}
 }
@@ -69,7 +75,7 @@ func newPARService(
 // Returns the response on success, or (errorCode, errorDescription) on failure.
 func (s *parService) HandlePushedAuthorizationRequest(
 	ctx context.Context, params map[string]string, resources []string,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 ) (*parResponse, string, string) {
 	// The request MUST NOT contain a request_uri parameter.
 	if params[oauth2const.RequestParamRequestURI] != "" {
@@ -79,7 +85,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 
 	// Validate the redirect URI.
 	redirectURI := params[oauth2const.RequestParamRedirectURI]
-	if err := oauthApp.ValidateRedirectURI(redirectURI); err != nil {
+	if err := oauthApp.ValidateRedirectURI(redirectURI, s.oauthPolicy); err != nil {
 		return nil, oauth2const.ErrorInvalidRequest, "Invalid redirect URI"
 	}
 
@@ -142,7 +148,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		OAuthParameters: oauthParams,
 	}
 
-	expiresIn := config.GetServerRuntime().Config.OAuth.PAR.ExpiresIn
+	expiresIn := s.parExpiresIn
 
 	randomKey, err := s.store.Store(ctx, parRequest, expiresIn)
 	if err != nil {

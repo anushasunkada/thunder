@@ -77,7 +77,7 @@ func (suite *InboundClientStoreTestSuite) TestNewStore() {
 	getDBProvider = func() provider.DBProviderInterface { return mockProvider }
 	defer func() { getDBProvider = originalGetDBProvider }()
 
-	st, _, err := newStore()
+	st, _, err := newStore("test-deployment")
 
 	suite.NoError(err)
 	suite.NotNil(st)

@@ -20,11 +20,11 @@ package consent
 
 import (
 	"github.com/thunder-id/thunderid/internal/consent"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the consent enforcer service and other related components.
 func Initialize(consentSvc consent.ConsentServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) ConsentEnforcerServiceInterface {
+	jwtSvc thunderidengine.JWTService) ConsentEnforcerServiceInterface {
 	return newConsentEnforcerService(consentSvc, jwtSvc)
 }

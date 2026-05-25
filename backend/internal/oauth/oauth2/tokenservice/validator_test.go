@@ -20,6 +20,7 @@ package tokenservice
 
 import (
 	"github.com/thunder-id/thunderid/internal/system/i18n/core"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 
 	"context"
 	"encoding/base64"
@@ -32,7 +33,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/idp"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/system/cmodels"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
@@ -48,9 +48,9 @@ const (
 
 type TokenValidatorTestSuite struct {
 	suite.Suite
-	mockJWTService *jwtmock.JWTServiceInterfaceMock
+	mockJWTService *jwtmock.JWTServiceMock
 	validator      *tokenValidator
-	oauthApp       *inboundmodel.OAuthClient
+	oauthApp       *thunderidengine.OAuthClient
 }
 
 func TestTokenValidatorTestSuite(t *testing.T) {
@@ -70,12 +70,18 @@ func (suite *TokenValidatorTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.validator = &tokenValidator{
 		jwtService: suite.mockJWTService,
+		opts: Options{
+			Issuer:         testConfig.JWT.Issuer,
+			Audience:       testConfig.JWT.Audience,
+			ValidityPeriod: testConfig.JWT.ValidityPeriod,
+			Leeway:         testConfig.JWT.Leeway,
+		},
 	}
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID: "test-client",
 	}
 }
@@ -144,9 +150,9 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Success_BasicToke
 
 func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Success_WithTokenConfig() {
 	// App with token config should still validate using server-level issuer from config
-	customOAuthApp := &inboundmodel.OAuthClient{
+	customOAuthApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token:    &inboundmodel.OAuthTokenConfig{},
+		Token:    &thunderidengine.OAuthTokenConfig{},
 	}
 
 	now := time.Now().Unix()
@@ -494,10 +500,10 @@ func (suite *TokenValidatorTestSuite) TestFederationScenario_FailFastOnUntrusted
 
 func (suite *TokenValidatorTestSuite) TestFederationScenario_OnlyServerIssuerIsValid() {
 	// Only the server-level issuer from config is accepted; app-level issuers are no longer supported
-	appWithTokenConfig := &inboundmodel.OAuthClient{
+	appWithTokenConfig := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{},
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{},
 		},
 	}
 
@@ -649,9 +655,9 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_NonAssertion_Acce
 	}
 	token := suite.createTestJWT(claims)
 
-	oauthAppWithID := &inboundmodel.OAuthClient{
+	oauthAppWithID := &thunderidengine.OAuthClient{
 		ClientID: "test-client",
-		ID:       "x", // Matches one element of the aud array.
+		EntityID: "x", // Matches one element of the aud array.
 	}
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
@@ -1108,7 +1114,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithAppI
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 	suite.oauthApp.ClientID = testClientID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
@@ -1139,7 +1145,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithEmpt
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1167,7 +1173,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithScop
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1196,7 +1202,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithUser
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1226,7 +1232,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_MissingAud
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1250,7 +1256,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_AudienceMi
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 	suite.oauthApp.ClientID = testClientID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
@@ -1276,7 +1282,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithDefa
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID // Different from audience
+	suite.oauthApp.EntityID = testAppID // Different from audience
 	suite.oauthApp.ClientID = testClientID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
@@ -1329,7 +1335,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_ExpiredTok
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1352,7 +1358,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_InvalidIss
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	result, err := suite.validator.ValidateSubjectToken(context.Background(), token, suite.oauthApp)
 
@@ -1372,7 +1378,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_InvalidSig
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(&serviceerror.ServiceError{
 		Type:  serviceerror.ServerErrorType,
@@ -1402,7 +1408,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_InvalidSub
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1425,7 +1431,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_TokenNotYe
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1448,7 +1454,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_MissingExp
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1472,7 +1478,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Error_InvalidAud
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1498,7 +1504,7 @@ func (suite *TokenValidatorTestSuite) TestValidateAuthAssertion_Success_WithEmpt
 	}
 	token := suite.createTestJWT(claims)
 
-	suite.oauthApp.ID = testAppID
+	suite.oauthApp.EntityID = testAppID
 
 	suite.mockJWTService.On("VerifyJWTSignature", token).Return(nil)
 
@@ -1627,16 +1633,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_Expiration
 
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
-			config.ResetServerRuntime()
-			testConfig := &config.Config{
-				JWT: config.JWTConfig{
-					Issuer:         "https://thunder.io",
-					ValidityPeriod: 3600,
-					Audience:       "application",
-					Leeway:         tc.leeway,
-				},
-			}
-			_ = config.InitializeServerRuntime("test", testConfig)
+			suite.validator.opts.Leeway = tc.leeway
 
 			now := time.Now().Unix()
 			claims := map[string]interface{}{
@@ -1659,17 +1656,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_Expiration
 }
 
 func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_ExpJustInsideBoundary_ShouldPass() {
-	// Reset and test with 30 second leeway
-	config.ResetServerRuntime()
-	testConfig := &config.Config{
-		JWT: config.JWTConfig{
-			Issuer:         "https://thunder.io",
-			ValidityPeriod: 3600,
-			Audience:       "application",
-			Leeway:         30, // 30 seconds leeway
-		},
-	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	suite.validator.opts.Leeway = 30
 
 	defaultAudience := suite.getDefaultAudience()
 
@@ -1950,10 +1937,10 @@ const (
 
 type ExternalIDPValidatorTestSuite struct {
 	suite.Suite
-	mockJWTService *jwtmock.JWTServiceInterfaceMock
+	mockJWTService *jwtmock.JWTServiceMock
 	mockIDPService *idpmock.IDPServiceInterfaceMock
 	validator      *tokenValidator
-	oauthApp       *inboundmodel.OAuthClient
+	oauthApp       *thunderidengine.OAuthClient
 }
 
 func TestExternalIDPValidatorTestSuite(t *testing.T) {
@@ -1972,13 +1959,19 @@ func (suite *ExternalIDPValidatorTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockIDPService = idpmock.NewIDPServiceInterfaceMock(suite.T())
 	suite.validator = &tokenValidator{
 		jwtService: suite.mockJWTService,
 		idpService: suite.mockIDPService,
+		opts: Options{
+			Issuer:         testConfig.JWT.Issuer,
+			Audience:       testConfig.JWT.Audience,
+			ValidityPeriod: testConfig.JWT.ValidityPeriod,
+			Leeway:         testConfig.JWT.Leeway,
+		},
 	}
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID: "test-client",
 	}
 }

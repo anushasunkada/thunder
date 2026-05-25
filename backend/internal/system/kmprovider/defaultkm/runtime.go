@@ -30,6 +30,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 type runtimeCryptoService struct {
@@ -42,7 +43,7 @@ type runtimeCryptoService struct {
 func NewRuntimeCryptoService(
 	pkiSvc pkiservice.PKIServiceInterface,
 	cfgSvc kmprovider.ConfigCryptoProvider,
-) kmprovider.RuntimeCryptoProvider {
+) thunderidengine.RuntimeCryptoProvider {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "RuntimeCryptoService"))
 	return &runtimeCryptoService{
 		pkiService: pkiSvc,
@@ -52,16 +53,23 @@ func NewRuntimeCryptoService(
 }
 
 func (s *runtimeCryptoService) Encrypt(
-	ctx context.Context, keyRef *kmprovider.KeyRef, params cryptolab.AlgorithmParams, content []byte,
+	ctx context.Context, keyRef *thunderidengine.KeyRef, params thunderidengine.AlgorithmParams, content []byte,
+) ([]byte, error) {
+	ciphertext, _, err := s.encrypt(ctx, keyRef, params, content)
+	return ciphertext, err
+}
+
+func (s *runtimeCryptoService) encrypt(
+	ctx context.Context, keyRef *thunderidengine.KeyRef, params thunderidengine.AlgorithmParams, content []byte,
 ) ([]byte, *cryptolab.CryptoDetails, error) {
 	switch params.Algorithm {
-	case cryptolab.AlgorithmAESGCM:
+	case thunderidengine.AlgorithmAESGCM:
 		if s.cfgService == nil {
 			return nil, nil, errors.New("config crypto service not initialized")
 		}
 		encrypted, err := s.cfgService.Encrypt(ctx, content)
 		return encrypted, nil, err
-	case cryptolab.AlgorithmRSAOAEP, cryptolab.AlgorithmRSAOAEP256:
+	case thunderidengine.AlgorithmRSAOAEP, thunderidengine.AlgorithmRSAOAEP256:
 		if keyRef == nil {
 			return nil, nil, fmt.Errorf("keyRef required for %s", params.Algorithm)
 		}
@@ -70,8 +78,10 @@ func (s *runtimeCryptoService) Encrypt(
 			return nil, nil, err
 		}
 		return cryptolab.Encrypt(rsaPub, &params, content)
-	case cryptolab.AlgorithmECDHES,
-		cryptolab.AlgorithmECDHESA128KW, cryptolab.AlgorithmECDHESA192KW, cryptolab.AlgorithmECDHESA256KW:
+	case thunderidengine.AlgorithmECDHES,
+		thunderidengine.AlgorithmECDHESA128KW,
+		thunderidengine.AlgorithmECDHESA192KW,
+		thunderidengine.AlgorithmECDHESA256KW:
 		if keyRef == nil {
 			return nil, nil, fmt.Errorf("keyRef required for %s", params.Algorithm)
 		}
@@ -86,15 +96,21 @@ func (s *runtimeCryptoService) Encrypt(
 }
 
 func (s *runtimeCryptoService) Decrypt(
-	ctx context.Context, keyRef *kmprovider.KeyRef, params cryptolab.AlgorithmParams, content []byte,
+	ctx context.Context, keyRef *thunderidengine.KeyRef, params thunderidengine.AlgorithmParams, content []byte,
+) ([]byte, error) {
+	return s.decrypt(ctx, keyRef, params, content)
+}
+
+func (s *runtimeCryptoService) decrypt(
+	ctx context.Context, keyRef *thunderidengine.KeyRef, params thunderidengine.AlgorithmParams, content []byte,
 ) ([]byte, error) {
 	switch params.Algorithm {
-	case cryptolab.AlgorithmAESGCM:
+	case thunderidengine.AlgorithmAESGCM:
 		if s.cfgService == nil {
 			return nil, errors.New("config crypto service not initialized")
 		}
 		return s.cfgService.Decrypt(ctx, content)
-	case cryptolab.AlgorithmRSAOAEP, cryptolab.AlgorithmRSAOAEP256:
+	case thunderidengine.AlgorithmRSAOAEP, thunderidengine.AlgorithmRSAOAEP256:
 		if keyRef == nil {
 			return nil, fmt.Errorf("keyRef required for %s", params.Algorithm)
 		}
@@ -103,8 +119,10 @@ func (s *runtimeCryptoService) Decrypt(
 			return nil, err
 		}
 		return cryptolab.Decrypt(rsaPriv, params, content)
-	case cryptolab.AlgorithmECDHES,
-		cryptolab.AlgorithmECDHESA128KW, cryptolab.AlgorithmECDHESA192KW, cryptolab.AlgorithmECDHESA256KW:
+	case thunderidengine.AlgorithmECDHES,
+		thunderidengine.AlgorithmECDHESA128KW,
+		thunderidengine.AlgorithmECDHESA192KW,
+		thunderidengine.AlgorithmECDHESA256KW:
 		if keyRef == nil {
 			return nil, fmt.Errorf("keyRef required for %s", params.Algorithm)
 		}
@@ -119,7 +137,7 @@ func (s *runtimeCryptoService) Decrypt(
 }
 
 func (s *runtimeCryptoService) Sign(
-	_ context.Context, keyRef kmprovider.KeyRef, algorithm cryptolab.SignAlgorithm, content []byte,
+	_ context.Context, keyRef thunderidengine.KeyRef, algorithm thunderidengine.SignAlgorithm, content []byte,
 ) ([]byte, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
@@ -133,8 +151,8 @@ func (s *runtimeCryptoService) Sign(
 }
 
 func (s *runtimeCryptoService) GetPublicKeys(
-	_ context.Context, filter kmprovider.PublicKeyFilter,
-) ([]kmprovider.PublicKeyInfo, error) {
+	_ context.Context, filter thunderidengine.PublicKeyFilter,
+) ([]thunderidengine.PublicKeyInfo, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
 	}
@@ -145,20 +163,20 @@ func (s *runtimeCryptoService) GetPublicKeys(
 			svcErr.Code, svcErr.Error.DefaultValue)
 	}
 
-	keys := make([]kmprovider.PublicKeyInfo, 0, len(allCerts))
+	keys := make([]thunderidengine.PublicKeyInfo, 0, len(allCerts))
 	for id, cert := range allCerts {
-		var alg cryptolab.Algorithm
+		var alg thunderidengine.Algorithm
 		switch pub := cert.PublicKey.(type) {
 		case *rsa.PublicKey:
-			alg = cryptolab.AlgorithmRS256
+			alg = thunderidengine.AlgorithmRS256
 		case *ecdsa.PublicKey:
 			switch pub.Curve.Params().Name {
 			case "P-256":
-				alg = cryptolab.AlgorithmES256
+				alg = thunderidengine.AlgorithmES256
 			case "P-384":
-				alg = cryptolab.AlgorithmES384
+				alg = thunderidengine.AlgorithmES384
 			case "P-521":
-				alg = cryptolab.AlgorithmES512
+				alg = thunderidengine.AlgorithmES512
 			default:
 				s.logger.Warn("Unsupported EC curve; skipping",
 					log.String("keyID", id),
@@ -166,7 +184,7 @@ func (s *runtimeCryptoService) GetPublicKeys(
 				continue
 			}
 		case ed25519.PublicKey:
-			alg = cryptolab.AlgorithmEdDSA
+			alg = thunderidengine.AlgorithmEdDSA
 		default:
 			s.logger.Debug("Unsupported public key type; skipping", log.String("keyID", id))
 			continue
@@ -179,7 +197,7 @@ func (s *runtimeCryptoService) GetPublicKeys(
 			continue
 		}
 
-		keys = append(keys, kmprovider.PublicKeyInfo{
+		keys = append(keys, thunderidengine.PublicKeyInfo{
 			KeyID:          id,
 			Algorithm:      alg,
 			PublicKey:      cert.PublicKey,
@@ -192,12 +210,12 @@ func (s *runtimeCryptoService) GetPublicKeys(
 }
 
 func (s *runtimeCryptoService) GetTLSMaterial(
-	_ context.Context, _ *kmprovider.KeyRef,
-) (*kmprovider.TLSMaterial, error) {
+	_ context.Context, _ *thunderidengine.KeyRef,
+) (*thunderidengine.TLSMaterial, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (s *runtimeCryptoService) getRSAPublicKey(keyRef kmprovider.KeyRef) (*rsa.PublicKey, error) {
+func (s *runtimeCryptoService) getRSAPublicKey(keyRef thunderidengine.KeyRef) (*rsa.PublicKey, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
 	}
@@ -213,7 +231,7 @@ func (s *runtimeCryptoService) getRSAPublicKey(keyRef kmprovider.KeyRef) (*rsa.P
 	return rsaPub, nil
 }
 
-func (s *runtimeCryptoService) getECPublicKey(keyRef kmprovider.KeyRef) (*ecdsa.PublicKey, error) {
+func (s *runtimeCryptoService) getECPublicKey(keyRef thunderidengine.KeyRef) (*ecdsa.PublicKey, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
 	}
@@ -229,7 +247,7 @@ func (s *runtimeCryptoService) getECPublicKey(keyRef kmprovider.KeyRef) (*ecdsa.
 	return ecPub, nil
 }
 
-func (s *runtimeCryptoService) getRSAPrivateKey(keyRef kmprovider.KeyRef) (*rsa.PrivateKey, error) {
+func (s *runtimeCryptoService) getRSAPrivateKey(keyRef thunderidengine.KeyRef) (*rsa.PrivateKey, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
 	}
@@ -245,7 +263,7 @@ func (s *runtimeCryptoService) getRSAPrivateKey(keyRef kmprovider.KeyRef) (*rsa.
 	return rsaPriv, nil
 }
 
-func (s *runtimeCryptoService) getECPrivateKey(keyRef kmprovider.KeyRef) (*ecdsa.PrivateKey, error) {
+func (s *runtimeCryptoService) getECPrivateKey(keyRef thunderidengine.KeyRef) (*ecdsa.PrivateKey, error) {
 	if s.pkiService == nil {
 		return nil, errors.New("PKI service not initialized")
 	}

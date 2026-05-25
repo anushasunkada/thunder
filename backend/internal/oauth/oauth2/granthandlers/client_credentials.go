@@ -23,8 +23,6 @@ import (
 	"slices"
 
 	"github.com/thunder-id/thunderid/internal/authz"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/resourceindicators"
@@ -32,6 +30,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // clientCredentialsGrantHandler handles the client credentials grant type.
@@ -39,7 +38,7 @@ type clientCredentialsGrantHandler struct {
 	tokenBuilder    tokenservice.TokenBuilderInterface
 	ouService       ou.OrganizationUnitServiceInterface
 	authzService    authz.AuthorizationServiceInterface
-	entityProv      entityprovider.EntityProviderInterface
+	clientProvider  thunderidengine.ClientProvider
 	resourceService resource.ResourceServiceInterface
 }
 
@@ -48,21 +47,21 @@ func newClientCredentialsGrantHandler(
 	tokenBuilder tokenservice.TokenBuilderInterface,
 	ouService ou.OrganizationUnitServiceInterface,
 	authzService authz.AuthorizationServiceInterface,
-	entityProv entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	resourceService resource.ResourceServiceInterface,
 ) GrantHandlerInterface {
 	return &clientCredentialsGrantHandler{
 		tokenBuilder:    tokenBuilder,
 		ouService:       ouService,
 		authzService:    authzService,
-		entityProv:      entityProv,
+		clientProvider:  clientProvider,
 		resourceService: resourceService,
 	}
 }
 
 // ValidateGrant validates the client credentials grant type.
 func (h *clientCredentialsGrantHandler) ValidateGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) *model.ErrorResponse {
+	oauthApp *thunderidengine.OAuthClient) *model.ErrorResponse {
 	if constants.GrantType(tokenRequest.GrantType) != constants.GrantTypeClientCredentials {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorUnsupportedGrantType,
@@ -79,7 +78,7 @@ func (h *clientCredentialsGrantHandler) ValidateGrant(ctx context.Context, token
 
 // HandleGrant handles the client credentials grant type.
 func (h *clientCredentialsGrantHandler) HandleGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) (
+	oauthApp *thunderidengine.OAuthClient) (
 	*model.TokenResponseDTO, *model.ErrorResponse) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ClientCredentialsGrantHandler"))
 
@@ -106,17 +105,14 @@ func (h *clientCredentialsGrantHandler) HandleGrant(ctx context.Context, tokenRe
 
 	if len(scopes) > 0 {
 		var groupIDs []string
-		if h.entityProv != nil {
-			groups, groupErr := h.entityProv.GetTransitiveEntityGroups(oauthApp.ID)
+		if h.clientProvider != nil {
+			groups, groupErr := h.clientProvider.GetTransitiveEntityGroups(ctx, oauthApp.EntityID)
 			if groupErr != nil {
-				// Ignore unimplemented providers to preserve existing behavior.
-				if groupErr.Code != entityprovider.ErrorCodeNotImplemented {
-					logger.Error("Failed to resolve app group memberships",
-						log.String("appID", oauthApp.ID), log.String("error", groupErr.Error()))
-					return nil, &model.ErrorResponse{
-						Error:            constants.ErrorServerError,
-						ErrorDescription: "Failed to generate token",
-					}
+				logger.Error("Failed to resolve app group memberships",
+					log.String("appID", oauthApp.EntityID), log.Error(groupErr))
+				return nil, &model.ErrorResponse{
+					Error:            constants.ErrorServerError,
+					ErrorDescription: "Failed to generate token",
 				}
 			} else {
 				for _, group := range groups {
@@ -128,13 +124,13 @@ func (h *clientCredentialsGrantHandler) HandleGrant(ctx context.Context, tokenRe
 		}
 
 		authzResp, svcErr := h.authzService.GetAuthorizedPermissions(ctx, authz.GetAuthorizedPermissionsRequest{
-			EntityID:             oauthApp.ID,
+			EntityID:             oauthApp.EntityID,
 			GroupIDs:             groupIDs,
 			RequestedPermissions: scopes,
 		})
 		if svcErr != nil {
 			logger.Error("Failed to get authorized permissions for app",
-				log.String("appID", oauthApp.ID), log.String("error", svcErr.Error.DefaultValue))
+				log.String("appID", oauthApp.EntityID), log.String("error", svcErr.Error.DefaultValue))
 			return nil, &model.ErrorResponse{
 				Error:            constants.ErrorServerError,
 				ErrorDescription: "Failed to generate token",

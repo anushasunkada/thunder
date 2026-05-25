@@ -33,19 +33,19 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientprovidertest"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/authnprovider/managermock"
-	"github.com/thunder-id/thunderid/tests/mocks/inboundclientmock"
 	"github.com/thunder-id/thunderid/tests/mocks/jose/jwtmock"
 )
 
 type ClientAuthMiddlewareTestSuite struct {
 	suite.Suite
-	mockInboundClient *inboundclientmock.InboundClientServiceInterfaceMock
-	mockAuthnProvider *managermock.AuthnProviderManagerInterfaceMock
-	mockJwtService    *jwtmock.JWTServiceInterfaceMock
+	mockClientProvider *clientprovidertest.ClientProviderMock
+	mockAuthnProvider  *managermock.AuthnProviderManagerInterfaceMock
+	mockJwtService     *jwtmock.JWTServiceMock
 }
 
 func TestClientAuthMiddlewareTestSuite(t *testing.T) {
@@ -53,9 +53,9 @@ func TestClientAuthMiddlewareTestSuite(t *testing.T) {
 }
 
 func (suite *ClientAuthMiddlewareTestSuite) SetupTest() {
-	suite.mockInboundClient = inboundclientmock.NewInboundClientServiceInterfaceMock(suite.T())
+	suite.mockClientProvider = clientprovidertest.NewClientProviderMock(suite.T())
 	suite.mockAuthnProvider = managermock.NewAuthnProviderManagerInterfaceMock(suite.T())
-	suite.mockJwtService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJwtService = jwtmock.NewJWTServiceMock(suite.T())
 
 	// Default authn mock: return success for client secret authentication.
 	// Individual tests can override with Once() for specific behavior.
@@ -68,18 +68,18 @@ func (suite *ClientAuthMiddlewareTestSuite) SetupTest() {
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_Success_ClientSecretPost() {
 	// Setup mock OAuth app
 	clientSecret := testClientSecret
-	mockApp := &inboundmodel.OAuthClient{
+	mockApp := &thunderidengine.OAuthClient{
 		ClientID:                testClientID,
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
 
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(mockApp, nil).Once()
 
 	// Create middleware (authn success mock from SetupTest applies via Maybe())
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	// Create test handler that checks context
 	var clientInfo *OAuthClientInfo
@@ -113,18 +113,18 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_Success_Cli
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_Success_ClientSecretBasic() {
 	// Setup mock OAuth app
 	clientSecret := testClientSecret
-	mockApp := &inboundmodel.OAuthClient{
+	mockApp := &thunderidengine.OAuthClient{
 		ClientID:                testClientID,
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretBasic,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
 
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(mockApp, nil).Once()
 
 	// Create middleware
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	// Create test handler
 	var clientInfo *OAuthClientInfo
@@ -152,7 +152,7 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_Success_Cli
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_MissingClientID() {
 	// Create middleware
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -176,12 +176,12 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_MissingClie
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidClient() {
 	// Mock app service to return nil (client not found)
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, "invalid-client").
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, "invalid-client").
 		Return(nil, nil).Once()
 
 	// Create middleware
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -210,13 +210,13 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidClie
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidClientSecret() {
 	// Setup mock OAuth app
-	mockApp := &inboundmodel.OAuthClient{
+	mockApp := &thunderidengine.OAuthClient{
 		ClientID:                testClientID,
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
 
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(mockApp, nil).Once()
 
 	// Override authn mock to fail for wrong secret.
@@ -233,7 +233,7 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidClie
 
 	// Create middleware with failing authn provider
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, failAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, failAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -262,12 +262,12 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidClie
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_HandlerNotCalledOnAuthFailure() {
 	// Mock app service to return nil (client not found)
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, mock.Anything).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, mock.Anything).
 		Return(nil, nil).Once()
 
 	// Create middleware
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	// Track if handler was called
 	handlerCalled := false
@@ -296,18 +296,18 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_HandlerNotC
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_ContextPropagation() {
 	// Setup mock OAuth app
 	clientSecret := testClientSecret
-	mockApp := &inboundmodel.OAuthClient{
+	mockApp := &thunderidengine.OAuthClient{
 		ClientID:                testClientID,
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
 
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(mockApp, nil).Once()
 
 	// Create middleware
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 
 	// Create nested handler that also checks context
 	var clientInfo *OAuthClientInfo
@@ -342,11 +342,11 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_ContextProp
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_BasicAuth_401_IncludesWWWAuthenticate() {
 	// Client not found with Basic auth should include WWW-Authenticate: Basic
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(nil, nil).Once()
 
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -362,13 +362,13 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_BasicAuth_4
 }
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_BasicAuth_InvalidCreds_IncludesWWWAuth() {
-	mockApp := &inboundmodel.OAuthClient{
+	mockApp := &thunderidengine.OAuthClient{
 		ClientID:                testClientID,
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretBasic,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
 
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, testClientID).
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, testClientID).
 		Return(mockApp, nil).Once()
 
 	// Override authn mock to fail for wrong secret.
@@ -384,7 +384,7 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_BasicAuth_I
 			}).Maybe()
 
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, failAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, failAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -401,11 +401,11 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_BasicAuth_I
 
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_PostAuth_401_NoWWWAuthenticate() {
 	// Client not found with POST body auth should not include WWW-Authenticate
-	suite.mockInboundClient.On("GetOAuthClientByClientID", mock.Anything, "non-existent").
+	suite.mockClientProvider.On("GetOAuthClientByClientID", mock.Anything, "non-existent").
 		Return(nil, nil).Once()
 
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
@@ -427,7 +427,7 @@ func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_PostAuth_40
 func (suite *ClientAuthMiddlewareTestSuite) TestClientAuthMiddleware_InvalidBasicAuth_IncludesWWWAuthenticate() {
 	// Invalid Basic auth header format should include WWW-Authenticate: Basic
 	middleware := ClientAuthMiddleware(
-		suite.mockInboundClient, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
+		suite.mockClientProvider, suite.mockAuthnProvider, suite.mockJwtService, "https://localhost:9443/oauth2/token")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

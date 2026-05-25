@@ -51,8 +51,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 )
 
@@ -133,18 +133,18 @@ func (suite *JWTServiceTestSuite) SetupTest() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		Sign(mock.Anything, kmprovider.KeyRef{KeyID: "test-kid"}, cryptolab.RSASHA256, mock.Anything).
+		Sign(mock.Anything, thunderidengine.KeyRef{KeyID: "test-kid"}, thunderidengine.RSASHA256, mock.Anything).
 		RunAndReturn(func(
-			_ context.Context, _ kmprovider.KeyRef, _ cryptolab.SignAlgorithm, content []byte,
+			_ context.Context, _ thunderidengine.KeyRef, _ thunderidengine.SignAlgorithm, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Generate(content, cryptolab.RSASHA256, suite.testPrivateKey)
 		}).Maybe()
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{
 			{
 				KeyID:      "test-kid",
-				Algorithm:  cryptolab.AlgorithmRS256,
+				Algorithm:  thunderidengine.AlgorithmRS256,
 				PublicKey:  &suite.testPrivateKey.PublicKey,
 				Thumbprint: "test-kid",
 			},
@@ -152,7 +152,7 @@ func (suite *JWTServiceTestSuite) SetupTest() {
 
 	suite.jwtService = &jwtService{
 		cryptoProvider: cryptoMock,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		signAlg:        cryptolab.RSASHA256,
 		jwsAlg:         jws.RS256,
 		kid:            "test-kid",
@@ -190,20 +190,20 @@ func (suite *JWTServiceTestSuite) SetupTest() {
 func (suite *JWTServiceTestSuite) TestNewJWTService() {
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-		Return([]kmprovider.PublicKeyInfo{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+		Return([]thunderidengine.PublicKeyInfo{
 			{
 				KeyID:      "test-kid",
-				Algorithm:  cryptolab.AlgorithmRS256,
+				Algorithm:  thunderidengine.AlgorithmRS256,
 				PublicKey:  &suite.testPrivateKey.PublicKey,
 				Thumbprint: "test-kid",
 			},
 		}, nil)
 
-	service, err := Initialize(cryptoMock)
+	service, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), service)
-	assert.Implements(suite.T(), (*JWTServiceInterface)(nil), service)
+	assert.Implements(suite.T(), (*thunderidengine.JWTService)(nil), service)
 }
 
 func (suite *JWTServiceTestSuite) TestInitScenarios() {
@@ -248,26 +248,26 @@ func (suite *JWTServiceTestSuite) TestInitScenarios() {
 			switch tc.name {
 			case "GetPublicKeysError":
 				cryptoMock.EXPECT().
-					GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
+					GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
 					Return(nil, errors.New("provider unavailable"))
 			case "NoPublicKeyFound":
 				cryptoMock.EXPECT().
-					GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-					Return([]kmprovider.PublicKeyInfo{}, nil)
+					GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+					Return([]thunderidengine.PublicKeyInfo{}, nil)
 			default:
 				cryptoMock.EXPECT().
-					GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-					Return([]kmprovider.PublicKeyInfo{
+					GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+					Return([]thunderidengine.PublicKeyInfo{
 						{
 							KeyID:      "test-kid",
-							Algorithm:  cryptolab.AlgorithmRS256,
+							Algorithm:  thunderidengine.AlgorithmRS256,
 							PublicKey:  &privateKey.PublicKey,
 							Thumbprint: "test-kid",
 						},
 					}, nil)
 			}
 
-			service, err := Initialize(cryptoMock)
+			service, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 
 			if tc.expectSuccess {
 				assert.NoError(t, err)
@@ -465,7 +465,7 @@ func (suite *JWTServiceTestSuite) TestGenerateJWTScenarios() {
 					Return(nil, errors.New("signing failed"))
 				return &jwtService{
 					cryptoProvider: cryptoMock,
-					keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+					keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 					logger:         log.GetLogger().With(log.String(log.LoggerKeyComponentName, "JWTService")),
 				}
 			},
@@ -1408,8 +1408,8 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTSignature() {
 			setupSvc: func() *jwtService {
 				cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 				cryptoMock.EXPECT().
-					GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-					Return([]kmprovider.PublicKeyInfo{}, nil)
+					GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+					Return([]thunderidengine.PublicKeyInfo{}, nil)
 				return &jwtService{
 					cryptoProvider: cryptoMock,
 					signAlg:        cryptolab.RSASHA256,
@@ -1977,30 +1977,30 @@ func (suite *JWTServiceTestSuite) TestInitWithECDSAKeys() {
 			alg := cryptolab.Algorithm(string(tc.expectedAlg))
 			cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(t)
 			cryptoMock.EXPECT().
-				GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-				Return([]kmprovider.PublicKeyInfo{{
+				GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+				Return([]thunderidengine.PublicKeyInfo{{
 					KeyID:      "test-kid",
 					Algorithm:  alg,
 					PublicKey:  &ecKey.PublicKey,
 					Thumbprint: "test-kid",
 				}}, nil)
 			cryptoMock.EXPECT().
-				Sign(mock.Anything, kmprovider.KeyRef{KeyID: "test-kid"}, tc.expectedSignAlg, mock.Anything).
+				Sign(mock.Anything, thunderidengine.KeyRef{KeyID: "test-kid"}, tc.expectedSignAlg, mock.Anything).
 				RunAndReturn(func(
-					_ context.Context, _ kmprovider.KeyRef, sa cryptolab.SignAlgorithm, content []byte,
+					_ context.Context, _ thunderidengine.KeyRef, sa thunderidengine.SignAlgorithm, content []byte,
 				) ([]byte, error) {
 					return cryptolab.Generate(content, sa, ecKey)
 				}).Maybe()
 			cryptoMock.EXPECT().
-				GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-				Return([]kmprovider.PublicKeyInfo{{
+				GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+				Return([]thunderidengine.PublicKeyInfo{{
 					KeyID:      "test-kid",
 					Algorithm:  alg,
 					PublicKey:  &ecKey.PublicKey,
 					Thumbprint: "test-kid",
 				}}, nil).Maybe()
 
-			service, err := Initialize(cryptoMock)
+			service, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 
 			assert.NoError(t, err)
 			assert.NotNil(t, service)
@@ -2031,30 +2031,30 @@ func (suite *JWTServiceTestSuite) TestInitWithEd25519Key() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "test-kid",
-			Algorithm:  cryptolab.AlgorithmEdDSA,
+			Algorithm:  thunderidengine.AlgorithmEdDSA,
 			PublicKey:  priv.Public(),
 			Thumbprint: "test-kid",
 		}}, nil)
 	cryptoMock.EXPECT().
-		Sign(mock.Anything, kmprovider.KeyRef{KeyID: "test-kid"}, cryptolab.ED25519, mock.Anything).
+		Sign(mock.Anything, thunderidengine.KeyRef{KeyID: "test-kid"}, thunderidengine.ED25519, mock.Anything).
 		RunAndReturn(func(
-			_ context.Context, _ kmprovider.KeyRef, sa cryptolab.SignAlgorithm, content []byte,
+			_ context.Context, _ thunderidengine.KeyRef, sa thunderidengine.SignAlgorithm, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Generate(content, sa, priv)
 		}).Maybe()
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "test-kid",
-			Algorithm:  cryptolab.AlgorithmEdDSA,
+			Algorithm:  thunderidengine.AlgorithmEdDSA,
 			PublicKey:  priv.Public(),
 			Thumbprint: "test-kid",
 		}}, nil).Maybe()
 
-	service, err := Initialize(cryptoMock)
+	service, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), service)
 
@@ -2082,15 +2082,15 @@ func (suite *JWTServiceTestSuite) TestInitWithECPrivateKeyFormat() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "test-kid",
-			Algorithm:  cryptolab.AlgorithmES256,
+			Algorithm:  thunderidengine.AlgorithmES256,
 			PublicKey:  &ecKey.PublicKey,
 			Thumbprint: "test-kid",
 		}}, nil)
 
-	service, err := Initialize(cryptoMock)
+	service, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 
 	assert.NoError(suite.T(), err)
 
@@ -2106,15 +2106,15 @@ func (suite *JWTServiceTestSuite) TestInitWithUnsupportedECCurve() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "test-kid",
-			Algorithm:  cryptolab.Algorithm("EC-P224"),
+			Algorithm:  thunderidengine.Algorithm("EC-P224"),
 			PublicKey:  &ecKey.PublicKey,
 			Thumbprint: "test-kid",
 		}}, nil)
 
-	_, err = Initialize(cryptoMock)
+	_, err = Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "unsupported algorithm")
@@ -2293,10 +2293,10 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTSignatureWithPublicKeyAlgorithmDe
 		suite.T().Run(tc.name, func(t *testing.T) {
 			priv, pub, signAlg, jwsAlg := tc.setupKey()
 			cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(t)
-			keyRef := kmprovider.KeyRef{KeyID: "test-sign-key"}
+			keyRef := thunderidengine.KeyRef{KeyID: "test-sign-key"}
 			cryptoMock.EXPECT().Sign(mock.Anything, keyRef, signAlg, mock.Anything).
 				RunAndReturn(func(
-					_ context.Context, _ kmprovider.KeyRef, _ cryptolab.SignAlgorithm, content []byte,
+					_ context.Context, _ thunderidengine.KeyRef, _ thunderidengine.SignAlgorithm, content []byte,
 				) ([]byte, error) {
 					return cryptolab.Generate(content, signAlg, priv)
 				}).Maybe()

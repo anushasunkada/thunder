@@ -23,47 +23,46 @@ import (
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/par"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the authorization handler and registers its routes.
 func Initialize(
 	mux *http.ServeMux,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	resourceService resource.ResourceServiceInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	flowExecService flowexec.FlowExecServiceInterface,
 	parService par.PARServiceInterface,
+	opts Options,
 ) (AuthorizeServiceInterface, error) {
-	authzCodeStore, authzReqStore, transactioner, err := initializeAuthorizationStores()
+	authzCodeStore, authzReqStore, transactioner, err := initializeAuthorizationStores(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize authorization stores: %w", err)
 	}
 
 	authzService := newAuthorizeService(
-		inboundClient, resourceService, jwtService, flowExecService,
-		authzCodeStore, authzReqStore, parService, transactioner,
+		clientProvider, resourceService, jwtService, flowExecService,
+		authzCodeStore, authzReqStore, parService, transactioner, opts,
 	)
-	authzHandler := newAuthorizeHandler(authzService)
+	authzHandler := newAuthorizeHandler(authzService, opts)
 	registerRoutes(mux, authzHandler)
 	return authzService, nil
 }
 
 // initializeAuthorizationStores creates the authorization code store, request store, and transactioner.
-func initializeAuthorizationStores() (
+func initializeAuthorizationStores(opts Options) (
 	AuthorizationCodeStoreInterface, authorizationRequestStoreInterface, transaction.Transactioner, error) {
-	if config.GetServerRuntime().Config.Database.Runtime.Type == provider.DataSourceTypeRedis {
+	if opts.RuntimeStoreType == provider.DataSourceTypeRedis {
 		redisProvider := provider.GetRedisProvider()
-		return newRedisAuthorizationCodeStore(redisProvider),
-			newRedisAuthorizationRequestStore(redisProvider),
+		return newRedisAuthorizationCodeStore(redisProvider, opts.DeploymentID),
+			newRedisAuthorizationRequestStore(redisProvider, opts.DeploymentID),
 			transaction.NewNoOpTransactioner(),
 			nil
 	}
@@ -72,7 +71,8 @@ func initializeAuthorizationStores() (
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	return newAuthorizationCodeStore(), newAuthorizationRequestStore(), transactioner, nil
+	return newAuthorizationCodeStore(opts.DeploymentID),
+		newAuthorizationRequestStore(opts.DeploymentID), transactioner, nil
 }
 
 // registerRoutes registers the routes for OAuth2 authorization operations.

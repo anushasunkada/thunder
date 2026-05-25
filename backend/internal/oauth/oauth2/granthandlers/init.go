@@ -23,34 +23,34 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/authz"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	oauth2authz "github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/par"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the grant handler provider with the given services.
 func Initialize(
 	mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	jwtService thunderidengine.JWTService,
+	clientProvider thunderidengine.ClientProvider,
 	flowExecService flowexec.FlowExecServiceInterface,
 	tokenBuilder tokenservice.TokenBuilderInterface,
 	tokenValidator tokenservice.TokenValidatorInterface,
 	attrCacheService attributecache.AttributeCacheServiceInterface,
 	ouService ou.OrganizationUnitServiceInterface,
 	authzService authz.AuthorizationServiceInterface,
-	entityProv entityprovider.EntityProviderInterface,
 	resourceService resource.ResourceServiceInterface,
 	parService par.PARServiceInterface,
+	authzOpts oauth2authz.Options,
+	refreshTokenRenewOnGrant bool,
+	tokenDefaults tokenservice.Options,
 ) (GrantHandlerProviderInterface, error) {
 	oauthAuthzService, err := oauth2authz.Initialize(
-		mux, inboundClient, resourceService, jwtService, flowExecService, parService,
+		mux, clientProvider, resourceService, jwtService, flowExecService, parService, authzOpts,
 	)
 	if err != nil {
 		return nil, err
@@ -63,8 +63,10 @@ func Initialize(
 		attrCacheService,
 		ouService,
 		authzService,
-		entityProv,
+		clientProvider,
 		resourceService,
+		refreshTokenRenewOnGrant,
+		tokenDefaults,
 	)
 	return grantHandlerProvider, nil
 }

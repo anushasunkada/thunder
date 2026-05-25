@@ -45,7 +45,7 @@ import (
 
 type OTPServiceTestSuite struct {
 	suite.Suite
-	mockJWTService      *jwtmock.JWTServiceInterfaceMock
+	mockJWTService      *jwtmock.JWTServiceMock
 	mockSenderService   *NotificationSenderMgtSvcInterfaceMock
 	mockTemplateService *templatemock.TemplateServiceInterfaceMock
 	service             *otpService
@@ -74,7 +74,7 @@ func (suite *OTPServiceTestSuite) SetupSuite() {
 }
 
 func (suite *OTPServiceTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockSenderService = NewNotificationSenderMgtSvcInterfaceMock(suite.T())
 	suite.mockTemplateService = templatemock.NewTemplateServiceInterfaceMock(suite.T())
 	suite.service = &otpService{

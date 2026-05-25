@@ -21,6 +21,8 @@ package authn
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/thunder-id/thunderid/internal/authn/assert"
@@ -35,7 +37,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/authn/reactsdk"
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/idp"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 )
 
@@ -44,7 +45,7 @@ func Initialize(
 	mux *http.ServeMux,
 	mcpServer *mcp.Server,
 	idpSvc idp.IDPServiceInterface,
-	jwtSvc jwt.JWTServiceInterface,
+	jwtSvc thunderidengine.JWTService,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
 	authAssertGen assert.AuthAssertGeneratorInterface,
 	passkeySvc passkey.PasskeyServiceInterface,

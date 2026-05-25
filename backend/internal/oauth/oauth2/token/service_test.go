@@ -23,11 +23,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
@@ -79,8 +80,8 @@ func (suite *TokenServiceTestSuite) newService() TokenServiceInterface {
 }
 
 // defaultApp returns an OAuthClient that allows the authorization_code grant.
-func (suite *TokenServiceTestSuite) defaultApp() *inboundmodel.OAuthClient {
-	return &inboundmodel.OAuthClient{
+func (suite *TokenServiceTestSuite) defaultApp() *thunderidengine.OAuthClient {
+	return &thunderidengine.OAuthClient{
 		ClientID:   "test-client-id",
 		GrantTypes: []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
@@ -156,7 +157,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_UnauthorizedClient()
 		GrantType: string(constants.GrantTypeClientCredentials),
 	}
 	// App only allows authorization_code — client_credentials is not permitted.
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID:   "test-client-id",
 		GrantTypes: []constants.GrantType{constants.GrantTypeAuthorizationCode},
 	}
@@ -342,7 +343,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_WithRefreshToken() {
 		Scope:     "openid",
 	}
 	// App allows both authorization_code and refresh_token.
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 		GrantTypes: []constants.GrantType{
 			constants.GrantTypeAuthorizationCode,
@@ -397,7 +398,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_RefreshTokenIssuance
 		Code:      "test-code",
 		Scope:     "openid",
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 		GrantTypes: []constants.GrantType{
 			constants.GrantTypeAuthorizationCode,
@@ -455,7 +456,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_RefreshTokenHandlerN
 		Code:      "test-code",
 		Scope:     "openid",
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 		GrantTypes: []constants.GrantType{
 			constants.GrantTypeAuthorizationCode,
@@ -498,7 +499,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_RefreshTokenHandlerC
 		Code:      "test-code",
 		Scope:     "openid",
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 		GrantTypes: []constants.GrantType{
 			constants.GrantTypeAuthorizationCode,
@@ -542,7 +543,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_TokenExchange() {
 		SubjectToken:       "subject-token",
 		RequestedTokenType: string(constants.TokenTypeIdentifierAccessToken),
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID:   "test-client-id",
 		GrantTypes: []constants.GrantType{constants.GrantTypeTokenExchange},
 	}
@@ -579,7 +580,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_TokenExchangeWithJWT
 		SubjectToken:       "subject-token",
 		RequestedTokenType: string(constants.TokenTypeIdentifierJWT),
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID:   "test-client-id",
 		GrantTypes: []constants.GrantType{constants.GrantTypeTokenExchange},
 	}
@@ -617,7 +618,7 @@ func (suite *TokenServiceTestSuite) TestProcessTokenRequest_WithRefreshToken_Use
 		Code:      "test-code",
 		Scope:     "openid",
 	}
-	app := &inboundmodel.OAuthClient{
+	app := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 		GrantTypes: []constants.GrantType{
 			constants.GrantTypeAuthorizationCode,

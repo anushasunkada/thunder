@@ -34,7 +34,7 @@ import (
 
 type InitTestSuite struct {
 	suite.Suite
-	mockJWTService       *jwtmock.JWTServiceInterfaceMock
+	mockJWTService       *jwtmock.JWTServiceMock
 	mockDiscoveryService *discoverymock.DiscoveryServiceInterfaceMock
 }
 
@@ -43,7 +43,7 @@ func TestInitTestSuite(t *testing.T) {
 }
 
 func (suite *InitTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockDiscoveryService = discoverymock.NewDiscoveryServiceInterfaceMock(suite.T())
 	suite.mockDiscoveryService.On("GetOAuth2AuthorizationServerMetadata", mock.Anything).
 		Return(&discovery.OAuth2AuthorizationServerMetadata{

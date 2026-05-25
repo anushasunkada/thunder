@@ -39,7 +39,7 @@ const (
 
 type InitTestSuite struct {
 	suite.Suite
-	mockJWTService      *jwtmock.JWTServiceInterfaceMock
+	mockJWTService      *jwtmock.JWTServiceMock
 	mockTemplateService *templatemock.TemplateServiceInterfaceMock
 	mux                 *http.ServeMux
 }
@@ -74,7 +74,7 @@ func (suite *InitTestSuite) SetupSuite() {
 }
 
 func (suite *InitTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockTemplateService = templatemock.NewTemplateServiceInterfaceMock(suite.T())
 	suite.mux = http.NewServeMux()
 }

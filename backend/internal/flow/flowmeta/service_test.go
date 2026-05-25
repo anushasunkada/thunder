@@ -28,18 +28,58 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/design/common"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/design/resolvemock"
-	"github.com/thunder-id/thunderid/tests/mocks/entityprovidermock"
 	"github.com/thunder-id/thunderid/tests/mocks/i18n/mgtmock"
-	"github.com/thunder-id/thunderid/tests/mocks/inboundclientmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oumock"
 )
+
+type clientProviderMock struct {
+	mock.Mock
+}
+
+func (m *clientProviderMock) GetOAuthClientByClientID(
+	ctx context.Context, clientID string,
+) (*thunderidengine.OAuthClient, error) {
+	args := m.Called(ctx, clientID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*thunderidengine.OAuthClient), args.Error(1)
+}
+
+func (m *clientProviderMock) GetTransitiveEntityGroups(
+	ctx context.Context, entityID string,
+) ([]thunderidengine.EntityGroup, error) {
+	args := m.Called(ctx, entityID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]thunderidengine.EntityGroup), args.Error(1)
+}
+
+func (m *clientProviderMock) GetFlowApplicationByID(
+	ctx context.Context, appID string,
+) (*thunderidengine.FlowApplication, error) {
+	args := m.Called(ctx, appID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*thunderidengine.FlowApplication), args.Error(1)
+}
+
+func (m *clientProviderMock) GetApplicationByID(
+	ctx context.Context, appID string,
+) (*thunderidengine.Application, error) {
+	args := m.Called(ctx, appID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*thunderidengine.Application), args.Error(1)
+}
 
 const (
 	testAppID = "app-123"
@@ -50,8 +90,7 @@ const (
 
 type FlowMetaServiceTestSuite struct {
 	suite.Suite
-	mockInboundClient  *inboundclientmock.InboundClientServiceInterfaceMock
-	mockEntityProvider *entityprovidermock.EntityProviderInterfaceMock
+	mockClientProvider *clientProviderMock
 	mockOUService      *oumock.OrganizationUnitServiceInterfaceMock
 	mockDesignResolve  *resolvemock.DesignResolveServiceInterfaceMock
 	mockI18nService    *mgtmock.I18nServiceInterfaceMock
@@ -64,14 +103,12 @@ func TestFlowMetaServiceTestSuite(t *testing.T) {
 }
 
 func (suite *FlowMetaServiceTestSuite) SetupTest() {
-	suite.mockInboundClient = inboundclientmock.NewInboundClientServiceInterfaceMock(suite.T())
-	suite.mockEntityProvider = entityprovidermock.NewEntityProviderInterfaceMock(suite.T())
+	suite.mockClientProvider = &clientProviderMock{}
 	suite.mockOUService = oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
 	suite.mockDesignResolve = resolvemock.NewDesignResolveServiceInterfaceMock(suite.T())
 	suite.mockI18nService = mgtmock.NewI18nServiceInterfaceMock(suite.T())
 	suite.service = newFlowMetaService(
-		suite.mockInboundClient,
-		suite.mockEntityProvider,
+		suite.mockClientProvider,
 		suite.mockOUService,
 		suite.mockDesignResolve,
 		suite.mockI18nService,
@@ -88,20 +125,27 @@ func (suite *FlowMetaServiceTestSuite) TearDownTest() {
 func (suite *FlowMetaServiceTestSuite) expectInboundLookup(
 	appID string, name string, isRegEnabled bool, props map[string]interface{},
 ) {
-	client := &inboundmodel.InboundClient{
+	application := &thunderidengine.Application{
 		ID:                        appID,
+		Name:                      name,
 		IsRegistrationFlowEnabled: isRegEnabled,
 		Properties:                props,
 	}
-	sysAttrs, _ := json.Marshal(map[string]interface{}{"name": name})
-	entity := &entityprovider.Entity{
-		ID:               appID,
-		Category:         entityprovider.EntityCategoryApp,
-		SystemAttributes: sysAttrs,
+	if props != nil {
+		if v, ok := props["logo_url"].(string); ok {
+			application.LogoURL = v
+		}
+		if v, ok := props["url"].(string); ok {
+			application.URL = v
+		}
+		if v, ok := props["tos_uri"].(string); ok {
+			application.TosURI = v
+		}
+		if v, ok := props["policy_uri"].(string); ok {
+			application.PolicyURI = v
+		}
 	}
-	suite.mockInboundClient.On("GetInboundClientByEntityID", mock.Anything, appID).Return(client, nil)
-	suite.mockEntityProvider.On("GetEntity", appID).
-		Return(entity, (*entityprovider.EntityProviderError)(nil))
+	suite.mockClientProvider.On("GetApplicationByID", mock.Anything, appID).Return(application, nil)
 }
 
 func (suite *FlowMetaServiceTestSuite) TestGetFlowMetadata_APP_Success() {
@@ -238,8 +282,8 @@ func (suite *FlowMetaServiceTestSuite) TestGetFlowMetadata_ApplicationNotFound()
 	metaType := MetaTypeAPP
 	appID := "non-existent"
 
-	suite.mockInboundClient.On("GetInboundClientByEntityID", mock.Anything, appID).
-		Return(nil, inboundclient.ErrInboundClientNotFound)
+	suite.mockClientProvider.On("GetApplicationByID", mock.Anything, appID).
+		Return(nil, thunderidengine.ErrApplicationNotFound)
 
 	// Act
 	result, svcErr := suite.service.GetFlowMetadata(suite.ctx, metaType, appID, nil, nil)

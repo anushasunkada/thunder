@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/authn/common"
 	authnoauth "github.com/thunder-id/thunderid/internal/authn/oauth"
 	authnoidc "github.com/thunder-id/thunderid/internal/authn/oidc"
@@ -47,13 +49,13 @@ type GoogleOIDCAuthnServiceInterface interface {
 // googleOIDCAuthnService is the default implementation of GoogleOIDCAuthnServiceInterface.
 type googleOIDCAuthnService struct {
 	internal   authnoidc.OIDCAuthnServiceInterface
-	jwtService jwt.JWTServiceInterface
+	jwtService thunderidengine.JWTService
 	logger     *log.Logger
 }
 
 // newGoogleOIDCAuthnService creates a new instance of Google OIDC authenticator service.
 func newGoogleOIDCAuthnService(internal authnoidc.OIDCAuthnServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) GoogleOIDCAuthnServiceInterface {
+	jwtSvc thunderidengine.JWTService) GoogleOIDCAuthnServiceInterface {
 	return &googleOIDCAuthnService{
 		internal:   internal,
 		jwtService: jwtSvc,

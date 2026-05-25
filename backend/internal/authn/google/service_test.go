@@ -51,7 +51,7 @@ const (
 type GoogleOIDCAuthnServiceTestSuite struct {
 	suite.Suite
 	mockOIDCService *oidcmock.OIDCAuthnServiceInterfaceMock
-	mockJWTService  *jwtmock.JWTServiceInterfaceMock
+	mockJWTService  *jwtmock.JWTServiceMock
 	service         *googleOIDCAuthnService
 }
 
@@ -61,7 +61,7 @@ func TestGoogleOIDCAuthnServiceTestSuite(t *testing.T) {
 
 func (suite *GoogleOIDCAuthnServiceTestSuite) SetupTest() {
 	suite.mockOIDCService = oidcmock.NewOIDCAuthnServiceInterfaceMock(suite.T())
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.service = &googleOIDCAuthnService{
 		internal:   suite.mockOIDCService,
 		jwtService: suite.mockJWTService,

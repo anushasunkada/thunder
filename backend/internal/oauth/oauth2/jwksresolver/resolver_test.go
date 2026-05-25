@@ -35,7 +35,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/httpmock"
 )
 
@@ -105,7 +105,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_NilCertificate() {
 
 func (suite *ResolverTestSuite) TestResolveEncryptionKey_EmptyCertType() {
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: "", Value: "{}"}
+	cert := &thunderidengine.Certificate{Type: "", Value: "{}"}
 	pub, kid, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseLenientEnc)
 	assert.Nil(suite.T(), pub)
 	assert.Empty(suite.T(), kid)
@@ -114,7 +114,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_EmptyCertType() {
 
 func (suite *ResolverTestSuite) TestResolveEncryptionKey_UnsupportedCertType() {
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: "UNKNOWN", Value: "{}"}
+	cert := &thunderidengine.Certificate{Type: "UNKNOWN", Value: "{}"}
 	pub, kid, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseLenientEnc)
 	assert.Nil(suite.T(), pub)
 	assert.Empty(suite.T(), kid)
@@ -131,7 +131,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_InlineJWKS_LenientPolic
 	jwks := rsaJWKS(&priv.PublicKey, "enc", "k1")
 
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
 	pub, kid, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseLenientEnc)
 	assert.NotNil(suite.T(), pub)
 	assert.Equal(suite.T(), "k1", kid)
@@ -144,7 +144,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_InlineJWKS_LenientPolic
 	jwks := rsaJWKS(&priv.PublicKey, "", "k2") // no "use" field
 
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
 	pub, kid, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseLenientEnc)
 	assert.NotNil(suite.T(), pub)
 	assert.Equal(suite.T(), "k2", kid)
@@ -157,7 +157,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_InlineJWKS_StrictPolicy
 	jwks := rsaJWKS(&priv.PublicKey, "enc", "")
 
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
 	pub, _, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseStrictEnc)
 	assert.NotNil(suite.T(), pub)
 	assert.Nil(suite.T(), svcErr)
@@ -169,7 +169,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_StrictPolicy_AbsentUse_
 	jwks := rsaJWKS(&priv.PublicKey, "", "") // no "use" field
 
 	r := newJWKSResolver(nil)
-	cert := &inboundmodel.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKS, Value: jwks}
 	pub, _, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseStrictEnc)
 	assert.Nil(suite.T(), pub) // strict mode: absent "use" is skipped
 	assert.NotNil(suite.T(), svcErr)
@@ -193,7 +193,7 @@ func (suite *ResolverTestSuite) TestResolveEncryptionKey_JWKSURI_Success() {
 	}, nil)
 
 	r := newJWKSResolver(mockHTTP)
-	cert := &inboundmodel.Certificate{Type: certmodel.CertificateTypeJWKSURI, Value: testJWKSURI}
+	cert := &thunderidengine.Certificate{Type: certmodel.CertificateTypeJWKSURI, Value: testJWKSURI}
 	pub, kid, svcErr := r.ResolveEncryptionKey(context.Background(), cert, "RSA-OAEP-256", KeyUseLenientEnc)
 	assert.NotNil(suite.T(), pub)
 	assert.Equal(suite.T(), "remote-kid", kid)

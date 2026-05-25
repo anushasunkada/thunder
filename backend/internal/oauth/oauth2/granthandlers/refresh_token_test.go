@@ -24,12 +24,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
@@ -54,12 +55,12 @@ const testRS02URI = "https://rs02.example.com"
 type RefreshTokenGrantHandlerTestSuite struct {
 	suite.Suite
 	handler              *refreshTokenGrantHandler
-	mockJWTService       *jwtmock.JWTServiceInterfaceMock
+	mockJWTService       *jwtmock.JWTServiceMock
 	mockTokenBuilder     *tokenservicemock.TokenBuilderInterfaceMock
 	mockTokenValidator   *tokenservicemock.TokenValidatorInterfaceMock
 	mockAttrCacheService *attributecachemock.AttributeCacheServiceInterfaceMock
 	mockResourceService  *resourcemock.ResourceServiceInterfaceMock
-	oauthApp             *inboundmodel.OAuthClient
+	oauthApp             *thunderidengine.OAuthClient
 	validRefreshToken    string
 	validClaims          map[string]interface{}
 	testTokenReq         *model.TokenRequest
@@ -87,7 +88,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 	suite.mockTokenValidator = tokenservicemock.NewTokenValidatorInterfaceMock(suite.T())
 	suite.mockAttrCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
@@ -108,14 +109,19 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 		tokenValidator:   suite.mockTokenValidator,
 		attrCacheService: suite.mockAttrCacheService,
 		resourceService:  suite.mockResourceService,
+		renewOnGrant:     false,
+		tokenDefaults: tokenservice.Options{
+			ValidityPeriod:       3600,
+			RefreshTokenValidity: 86400,
+		},
 	}
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID:                testRefreshTokenClientID,
 		GrantTypes:              []constants.GrantType{constants.GrantTypeRefreshToken},
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				UserAttributes: []string{"email", "username"},
 			},
 		},
@@ -152,6 +158,8 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestNewRefreshTokenGrantHandler(
 		suite.mockTokenValidator,
 		suite.mockAttrCacheService,
 		suite.mockResourceService,
+		false,
+		tokenservice.Options{ValidityPeriod: 3600, RefreshTokenValidity: 86400},
 	)
 	assert.NotNil(suite.T(), handler)
 	assert.Implements(suite.T(), (*RefreshTokenGrantHandlerInterface)(nil), handler)
@@ -341,7 +349,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_Success_WithRene
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_Success_WithRenewOnGrantEnabled() {
 	// Enable RenewOnGrant in config
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	// Mock successful refresh token validation
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
@@ -439,7 +447,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_BuildAccessToken
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_IssueRefreshTokenError() {
 	// Enable RenewOnGrant in config
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	// Mock successful refresh token validation
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
@@ -782,7 +790,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_NoRenewOnGrant_E
 }
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_ExtendsAttributeCacheTTL() {
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
 		Return(&tokenservice.RefreshTokenClaims{
@@ -827,7 +835,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_Ext
 }
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_ExtendAttributeCacheTTLError() {
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
 		Return(&tokenservice.RefreshTokenClaims{
@@ -1016,7 +1024,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestExtendCacheTTL_ExtendFails_R
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_IDTokenWithRenewOnGrant() {
 	// Enable RenewOnGrant in config
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	// Mock successful refresh token validation with openid scope
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
@@ -1235,7 +1243,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_NoResourceParam_
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_OriginalAudPreservedInNewRefreshToken() {
 	// RFC 8707 §5: when renewRefreshToken=true and narrowing occurs, the new refresh token must
 	// carry the ORIGINAL (un-narrowed) audiences so future refreshes can recover dropped resources.
-	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	suite.handler.renewOnGrant = true
 
 	suite.mockTokenValidator.On("ValidateRefreshToken", suite.validRefreshToken, testRefreshTokenClientID).
 		Return(&tokenservice.RefreshTokenClaims{

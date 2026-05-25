@@ -21,10 +21,10 @@ package authz
 import (
 	"testing"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	sysconfig "github.com/thunder-id/thunderid/internal/system/config"
@@ -33,7 +33,7 @@ import (
 type AuthorizationValidatorTestSuite struct {
 	suite.Suite
 	validator AuthorizationValidatorInterface
-	oauthApp  *inboundmodel.OAuthClient
+	oauthApp  *thunderidengine.OAuthClient
 }
 
 func TestAuthorizationValidatorTestSuite(t *testing.T) {
@@ -47,9 +47,9 @@ func (suite *AuthorizationValidatorTestSuite) SetupTest() {
 	})
 	suite.Require().NoError(err)
 
-	suite.validator = newAuthorizationValidator()
+	suite.validator = newAuthorizationValidator(thunderidengine.OAuthPolicy{AllowWildcardRedirectURI: true})
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID:                "test-client-id",
 		RedirectURIs:            []string{"https://client.example.com/callback"},
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
@@ -63,7 +63,7 @@ func (suite *AuthorizationValidatorTestSuite) TearDownTest() {
 }
 
 func (suite *AuthorizationValidatorTestSuite) TestnewAuthorizationValidator() {
-	validator := newAuthorizationValidator()
+	validator := newAuthorizationValidator(thunderidengine.OAuthPolicy{})
 	assert.NotNil(suite.T(), validator)
 	assert.Implements(suite.T(), (*AuthorizationValidatorInterface)(nil), validator)
 }
@@ -120,7 +120,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzRequest_CodeGrantNotAllowed() {
 	// Create an app that doesn't allow authorization code grant type
-	restrictedApp := &inboundmodel.OAuthClient{
+	restrictedApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -163,7 +163,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRequest_UnsupportedResponseType() {
 	// Create an app that doesn't support "code" response type
-	restrictedApp := &inboundmodel.OAuthClient{
+	restrictedApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -380,7 +380,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_MissingCodeChallenge() {
 	// Create an app that requires PKCE
-	pkceApp := &inboundmodel.OAuthClient{
+	pkceApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -409,7 +409,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_InvalidCodeChallenge() {
 	// Create an app that requires PKCE
-	pkceApp := &inboundmodel.OAuthClient{
+	pkceApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -439,7 +439,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRequest_PKCERequired_ValidPKCE() {
 	// Create an app that requires PKCE
-	pkceApp := &inboundmodel.OAuthClient{
+	pkceApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -471,7 +471,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_MissingCodeChallengeMethod() {
 	// Create an app that requires PKCE
-	pkceApp := &inboundmodel.OAuthClient{
+	pkceApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -501,7 +501,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCERequired_
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRequest_PKCENotRequired() {
 	// Create an app that doesn't require PKCE
-	nonPKCEApp := &inboundmodel.OAuthClient{
+	nonPKCEApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -530,7 +530,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 func (suite *AuthorizationValidatorTestSuite) TestValidateAuthzReq_PKCENotRequired_InvalidPKCEParams() {
 	// Create an app that doesn't require PKCE
-	nonPKCEApp := &inboundmodel.OAuthClient{
+	nonPKCEApp := &thunderidengine.OAuthClient{
 		ClientID: "test-client-id",
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
@@ -794,7 +794,7 @@ func (suite *AuthorizationValidatorTestSuite) TestValidateInitialAuthorizationRe
 
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
-			app := &inboundmodel.OAuthClient{
+			app := &thunderidengine.OAuthClient{
 				ClientID:                "test-client-id",
 				RedirectURIs:            tt.registeredURIs,
 				GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},

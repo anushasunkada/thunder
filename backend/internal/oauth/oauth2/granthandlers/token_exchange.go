@@ -21,7 +21,8 @@ package granthandlers
 import (
 	"context"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/resourceindicators"
@@ -52,7 +53,7 @@ func newTokenExchangeGrantHandler(
 
 // ValidateGrant validates the token exchange grant type request.
 func (h *tokenExchangeGrantHandler) ValidateGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) *model.ErrorResponse {
+	oauthApp *thunderidengine.OAuthClient) *model.ErrorResponse {
 	if constants.GrantType(tokenRequest.GrantType) != constants.GrantTypeTokenExchange {
 		return &model.ErrorResponse{
 			Error:            constants.ErrorUnsupportedGrantType,
@@ -131,7 +132,7 @@ func (h *tokenExchangeGrantHandler) ValidateGrant(ctx context.Context, tokenRequ
 
 // HandleGrant handles the token exchange grant type.
 func (h *tokenExchangeGrantHandler) HandleGrant(ctx context.Context, tokenRequest *model.TokenRequest,
-	oauthApp *inboundmodel.OAuthClient) (
+	oauthApp *thunderidengine.OAuthClient) (
 	*model.TokenResponseDTO, *model.ErrorResponse) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "TokenExchangeGrantHandler"))
 

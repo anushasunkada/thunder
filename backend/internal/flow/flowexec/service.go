@@ -26,21 +26,18 @@ import (
 	"fmt"
 
 	appmodel "github.com/thunder-id/thunderid/internal/application/model"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	sysContext "github.com/thunder-id/thunderid/internal/system/context"
-	"github.com/thunder-id/thunderid/internal/system/cryptolab"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/internal/system/observability/event"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // FlowExecServiceInterface defines the interface for flow orchestration and acts as the
@@ -60,32 +57,29 @@ const (
 
 // flowExecService is the implementation of FlowExecServiceInterface
 type flowExecService struct {
-	flowEngine           flowEngineInterface
-	flowMgtService       flowmgt.FlowMgtServiceInterface
-	flowStore            flowStoreInterface
-	inboundClientService inboundclient.InboundClientServiceInterface
-	entityProvider       entityprovider.EntityProviderInterface
-	observabilitySvc     observability.ObservabilityServiceInterface
-	transactioner        transaction.Transactioner
-	cryptoSvc            kmprovider.RuntimeCryptoProvider
+	flowEngine       flowEngineInterface
+	flowMgtService   flowmgt.FlowMgtServiceInterface
+	flowStore        flowStoreInterface
+	clientProvider   thunderidengine.ClientProvider
+	observabilitySvc observability.ObservabilityServiceInterface
+	transactioner    transaction.Transactioner
+	cryptoSvc        thunderidengine.RuntimeCryptoProvider
 }
 
 func newFlowExecService(flowMgtService flowmgt.FlowMgtServiceInterface,
 	flowStore flowStoreInterface, flowEngine flowEngineInterface,
-	inboundClientService inboundclient.InboundClientServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	observabilitySvc observability.ObservabilityServiceInterface,
 	transactioner transaction.Transactioner,
-	cryptoSvc kmprovider.RuntimeCryptoProvider) FlowExecServiceInterface {
+	cryptoSvc thunderidengine.RuntimeCryptoProvider) FlowExecServiceInterface {
 	return &flowExecService{
-		flowMgtService:       flowMgtService,
-		flowStore:            flowStore,
-		flowEngine:           flowEngine,
-		inboundClientService: inboundClientService,
-		entityProvider:       entityProvider,
-		observabilitySvc:     observabilitySvc,
-		transactioner:        transactioner,
-		cryptoSvc:            cryptoSvc,
+		flowMgtService:   flowMgtService,
+		flowStore:        flowStore,
+		flowEngine:       flowEngine,
+		clientProvider:   clientProvider,
+		observabilitySvc: observabilitySvc,
+		transactioner:    transactioner,
+		cryptoSvc:        cryptoSvc,
 	}
 }
 
@@ -334,68 +328,57 @@ func (s *flowExecService) setApplicationToContext(engineCtx *EngineContext,
 func (s *flowExecService) buildFlowApplication(
 	ctx context.Context, appID string, logger *log.Logger,
 ) (*appmodel.Application, *serviceerror.ServiceError) {
-	client, err := s.inboundClientService.GetInboundClientByEntityID(ctx, appID)
+	flowApp, err := s.clientProvider.GetFlowApplicationByID(ctx, appID)
 	if err != nil {
-		if errors.Is(err, inboundclient.ErrInboundClientNotFound) {
+		if errors.Is(err, thunderidengine.ErrApplicationNotFound) {
 			return nil, &ErrorInvalidAppID
 		}
-		logger.Error("Server error while retrieving inbound client",
+		logger.Error("Server error while retrieving flow application",
 			log.String("appID", appID), log.Error(err))
 		return nil, &serviceerror.InternalServerError
 	}
-	if client == nil {
+	if flowApp == nil {
 		return nil, &ErrorInvalidAppID
 	}
 
-	entity, epErr := s.entityProvider.GetEntity(appID)
-	if epErr != nil && epErr.Code != entityprovider.ErrorCodeEntityNotFound {
-		logger.Error("Failed to retrieve entity for flow context",
-			log.String("appID", appID), log.Error(epErr))
-		return nil, &serviceerror.InternalServerError
-	}
-
 	app := &appmodel.Application{
-		ID: client.ID,
+		ID:   flowApp.ID,
+		Name: flowApp.Name,
 		InboundAuthProfile: inboundmodel.InboundAuthProfile{
-			Assertion:        client.Assertion,
-			LoginConsent:     client.LoginConsent,
-			AllowedUserTypes: client.AllowedUserTypes,
+			Assertion:        toInboundAssertionConfig(flowApp.Assertion),
+			LoginConsent:     toInboundLoginConsentConfig(flowApp.LoginConsent),
+			AllowedUserTypes: flowApp.AllowedUserTypes,
 		},
+		Metadata: flowApp.Metadata,
 	}
-
-	entityAttrs := readEntitySystemAttributes(entity)
-	if name, ok := entityAttrs["name"].(string); ok {
-		app.Name = name
-	}
-	if metadata, ok := client.Properties["metadata"].(map[string]interface{}); ok {
-		app.Metadata = metadata
-	}
-
-	if clientID, _ := entityAttrs["clientId"].(string); clientID != "" {
+	if flowApp.OAuthClientID != "" {
 		app.InboundAuthConfig = []inboundmodel.InboundAuthConfigWithSecret{
 			{
 				Type: inboundmodel.OAuthInboundAuthType,
 				OAuthConfig: &inboundmodel.OAuthConfigWithSecret{
-					ClientID: clientID,
+					ClientID: flowApp.OAuthClientID,
 				},
 			},
 		}
 	}
-
 	return app, nil
 }
 
-// readEntitySystemAttributes returns the entity's system-attribute blob as a map, or an empty
-// map when the blob is missing or unparseable.
-func readEntitySystemAttributes(entity *entityprovider.Entity) map[string]interface{} {
-	if entity == nil || len(entity.SystemAttributes) == 0 {
-		return map[string]interface{}{}
+func toInboundAssertionConfig(src *thunderidengine.AssertionConfig) *inboundmodel.AssertionConfig {
+	if src == nil {
+		return nil
 	}
-	var attrs map[string]interface{}
-	if err := json.Unmarshal(entity.SystemAttributes, &attrs); err != nil || attrs == nil {
-		return map[string]interface{}{}
+	return &inboundmodel.AssertionConfig{
+		ValidityPeriod: src.ValidityPeriod,
+		UserAttributes: src.UserAttributes,
 	}
-	return attrs
+}
+
+func toInboundLoginConsentConfig(src *thunderidengine.LoginConsentConfig) *inboundmodel.LoginConsentConfig {
+	if src == nil {
+		return nil
+	}
+	return &inboundmodel.LoginConsentConfig{ValidityPeriod: src.ValidityPeriod}
 }
 
 // removeContext removes the flow context from the store.
@@ -480,8 +463,8 @@ func (s *flowExecService) encryptEngineContext(ctx context.Context, engineCtx *E
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize engine context: %w", err)
 	}
-	params := cryptolab.AlgorithmParams{Algorithm: cryptolab.AlgorithmAESGCM}
-	ciphertext, _, err := s.cryptoSvc.Encrypt(ctx, nil, params, []byte(serialized.Context))
+	params := thunderidengine.AlgorithmParams{Algorithm: thunderidengine.AlgorithmAESGCM}
+	ciphertext, err := s.cryptoSvc.Encrypt(ctx, nil, params, []byte(serialized.Context))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt context: %w", err)
 	}
@@ -502,48 +485,47 @@ func (s *flowExecService) getFlowGraph(ctx context.Context, appID string, flowTy
 		return "", &ErrorInvalidAppID
 	}
 
-	client, err := s.inboundClientService.GetInboundClientByEntityID(ctx, appID)
+	application, err := s.clientProvider.GetApplicationByID(ctx, appID)
 	if err != nil {
-		if errors.Is(err, inboundclient.ErrInboundClientNotFound) {
+		if errors.Is(err, thunderidengine.ErrApplicationNotFound) {
 			return "", &ErrorInvalidAppID
 		}
-		logger.Error("Server error while retrieving inbound client", log.String("appID", appID), log.Error(err))
+		logger.Error("Server error while retrieving application", log.String("appID", appID), log.Error(err))
 		return "", &serviceerror.InternalServerError
 	}
-	if client == nil {
+	if application == nil {
 		return "", &ErrorInvalidAppID
 	}
 
 	if flowType == common.FlowTypeRegistration {
-		if !client.IsRegistrationFlowEnabled {
+		if !application.IsRegistrationFlowEnabled {
 			return "", &ErrorRegistrationFlowDisabled
-		} else if client.RegistrationFlowID == "" {
+		} else if application.RegistrationFlowID == "" {
 			logger.Error("Registration flow is not configured for the entity",
 				log.String("appID", appID))
 			return "", &serviceerror.InternalServerError
 		}
-		return client.RegistrationFlowID, nil
+		return application.RegistrationFlowID, nil
 	}
 
 	if flowType == common.FlowTypeRecovery {
-		if !client.IsRecoveryFlowEnabled {
+		if !application.IsRecoveryFlowEnabled {
 			return "", &ErrorRecoveryFlowDisabled
-		} else if client.RecoveryFlowID == "" {
+		} else if application.RecoveryFlowID == "" {
 			logger.Error("Recovery flow is not configured for the application",
 				log.String("appID", appID))
 			return "", &serviceerror.InternalServerError
 		}
-		return client.RecoveryFlowID, nil
+		return application.RecoveryFlowID, nil
 	}
 
-	// Default to authentication flow ID
-	if client.AuthFlowID == "" {
+	if application.AuthFlowID == "" {
 		logger.Error("Authentication flow is not configured for the entity",
 			log.String("appID", appID))
 		return "", &serviceerror.InternalServerError
 	}
 
-	return client.AuthFlowID, nil
+	return application.AuthFlowID, nil
 }
 
 // validateFlowType validates the provided flow type string and returns the corresponding FlowType.
@@ -674,7 +656,7 @@ func (s *flowExecService) getFlowContext(ctx context.Context, executionID string
 	}
 
 	if isContextEncrypted(dbModel.Context) {
-		decryptParams := cryptolab.AlgorithmParams{Algorithm: cryptolab.AlgorithmAESGCM}
+		decryptParams := thunderidengine.AlgorithmParams{Algorithm: thunderidengine.AlgorithmAESGCM}
 		decrypted, decryptErr := s.cryptoSvc.Decrypt(ctx, nil, decryptParams, []byte(dbModel.Context))
 		if decryptErr != nil {
 			logger.Error("Failed to decrypt flow context",

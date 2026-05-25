@@ -32,8 +32,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/system/config"
-	"github.com/thunder-id/thunderid/internal/system/cryptolab"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 )
 
@@ -107,18 +106,18 @@ func (suite *InitTestSuite) TestInitialize_Success() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "test-kid",
-			Algorithm:  cryptolab.AlgorithmRS256,
+			Algorithm:  thunderidengine.AlgorithmRS256,
 			PublicKey:  &suite.testPrivateKey.PublicKey,
 			Thumbprint: "test-kid",
 		}}, nil)
 
-	jwtService, err := Initialize(cryptoMock)
+	jwtService, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), jwtService)
-	assert.Implements(suite.T(), (*JWTServiceInterface)(nil), jwtService)
+	assert.Implements(suite.T(), (*thunderidengine.JWTService)(nil), jwtService)
 }
 
 func (suite *InitTestSuite) TestInitialize_PublicKeyRetrievalError() {
@@ -134,10 +133,10 @@ func (suite *InitTestSuite) TestInitialize_PublicKeyRetrievalError() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-kid"}).
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-kid"}).
 		Return(nil, errors.New("provider unavailable"))
 
-	jwtService, err := Initialize(cryptoMock)
+	jwtService, err := Initialize(cryptoMock, Config{PreferredKeyID: "test-kid"})
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), jwtService)
 	assert.Contains(suite.T(), err.Error(), "failed to retrieve public key")
@@ -156,15 +155,15 @@ func (suite *InitTestSuite) TestInitialize_WithoutPreferredKeyID() {
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	cryptoMock.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: ""}).
-		Return([]kmprovider.PublicKeyInfo{{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: ""}).
+		Return([]thunderidengine.PublicKeyInfo{{
 			KeyID:      "",
-			Algorithm:  cryptolab.AlgorithmRS256,
+			Algorithm:  thunderidengine.AlgorithmRS256,
 			PublicKey:  &suite.testPrivateKey.PublicKey,
 			Thumbprint: "test-kid",
 		}}, nil)
 
-	jwtService, err := Initialize(cryptoMock)
+	jwtService, err := Initialize(cryptoMock, Config{})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), jwtService)
 }

@@ -69,22 +69,6 @@ packages:
       pkgname: certmock
       filename: "{{.InterfaceName}}_mock.go"
 
-  github.com/thunder-id/thunderid/internal/system/jose/jwt:
-    config:
-      all: true
-      dir: tests/mocks/jose/jwtmock
-      structname: '{{.InterfaceName}}Mock'
-      pkgname: jwtmock
-      filename: "{{.InterfaceName}}_mock.go"
-
-  github.com/thunder-id/thunderid/internal/system/jose/jwe:
-    config:
-      all: true
-      dir: tests/mocks/jose/jwemock
-      structname: '{{.InterfaceName}}Mock'
-      pkgname: jwemock
-      filename: "{{.InterfaceName}}_mock.go"
-
   github.com/thunder-id/thunderid/internal/oauth/scope:
     config:
       all: true
@@ -451,12 +435,34 @@ packages:
       filename: "{{.InterfaceName}}_mock.go"
 
   github.com/thunder-id/thunderid/internal/system/kmprovider:
-    config:
-      all: true
-      dir: tests/mocks/crypto/cryptomock
-      structname: '{{.InterfaceName}}Mock'
-      pkgname: cryptomock
-      filename: "{{.InterfaceName}}_mock.go"
+    interfaces:
+      ConfigCryptoProvider:
+        config:
+          dir: tests/mocks/crypto/cryptomock
+          structname: '{{.InterfaceName}}Mock'
+          pkgname: cryptomock
+          filename: "{{.InterfaceName}}_mock.go"
+
+  github.com/thunder-id/thunderid/pkg/thunderidengine:
+    interfaces:
+      RuntimeCryptoProvider:
+        config:
+          dir: tests/mocks/crypto/cryptomock
+          structname: '{{.InterfaceName}}Mock'
+          pkgname: cryptomock
+          filename: "{{.InterfaceName}}_mock.go"
+      JWTService:
+        config:
+          dir: tests/mocks/jose/jwtmock
+          structname: '{{.InterfaceName}}Mock'
+          pkgname: jwtmock
+          filename: "{{.InterfaceName}}_mock.go"
+      JWEService:
+        config:
+          dir: tests/mocks/jose/jwemock
+          structname: '{{.InterfaceName}}Mock'
+          pkgname: jwemock
+          filename: "{{.InterfaceName}}_mock.go"
 
   github.com/thunder-id/thunderid/internal/resource:
     config:

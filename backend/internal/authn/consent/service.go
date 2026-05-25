@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	authnprovidercm "github.com/thunder-id/thunderid/internal/authnprovider/common"
 	"github.com/thunder-id/thunderid/internal/consent"
 	"github.com/thunder-id/thunderid/internal/resource"
@@ -58,13 +60,13 @@ type ConsentEnforcerServiceInterface interface {
 // consentEnforcerService is the default implementation of ConsentEnforcerServiceInterface.
 type consentEnforcerService struct {
 	consentService consent.ConsentServiceInterface
-	jwtService     jwt.JWTServiceInterface
+	jwtService     thunderidengine.JWTService
 	logger         *log.Logger
 }
 
 // newConsentEnforcerService creates a new instance of consentEnforcerService.
 func newConsentEnforcerService(consentSvc consent.ConsentServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) ConsentEnforcerServiceInterface {
+	jwtSvc thunderidengine.JWTService) ConsentEnforcerServiceInterface {
 	return &consentEnforcerService{
 		consentService: consentSvc,
 		jwtService:     jwtSvc,

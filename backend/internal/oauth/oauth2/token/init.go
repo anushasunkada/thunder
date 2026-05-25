@@ -22,13 +22,13 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientauth"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/granthandlers"
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
@@ -37,8 +37,8 @@ import (
 // Initialize initializes the token handler and registers its routes.
 func Initialize(
 	mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	jwtService thunderidengine.JWTService,
+	clientProvider thunderidengine.ClientProvider,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
 	grantHandlerProvider granthandlers.GrantHandlerProviderInterface,
 	scopeValidator scope.ScopeValidatorInterface,
@@ -48,7 +48,7 @@ func Initialize(
 ) TokenHandlerInterface {
 	tokenSvc := newTokenService(grantHandlerProvider, scopeValidator, observabilitySvc, transactioner)
 	tokenHandler := newTokenHandler(tokenSvc, observabilitySvc)
-	registerRoutes(mux, tokenHandler, inboundClient, authnProvider, jwtService, discoveryService)
+	registerRoutes(mux, tokenHandler, clientProvider, authnProvider, jwtService, discoveryService)
 	return tokenHandler
 }
 
@@ -56,9 +56,9 @@ func Initialize(
 func registerRoutes(
 	mux *http.ServeMux,
 	tokenHandler TokenHandlerInterface,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	discoveryService discovery.DiscoveryServiceInterface,
 ) {
 	corsOpts := middleware.CORSOptions{
@@ -69,7 +69,7 @@ func registerRoutes(
 	}
 
 	endpointURL := discoveryService.GetOAuth2AuthorizationServerMetadata(context.Background()).TokenEndpoint
-	clientAuthMiddleware := clientauth.ClientAuthMiddleware(inboundClient, authnProvider, jwtService, endpointURL)
+	clientAuthMiddleware := clientauth.ClientAuthMiddleware(clientProvider, authnProvider, jwtService, endpointURL)
 	handler := clientAuthMiddleware(http.HandlerFunc(tokenHandler.HandleTokenRequest))
 
 	pattern, wrappedHandler := middleware.WithCORS(

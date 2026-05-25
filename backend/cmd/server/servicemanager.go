@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/thunder-id/thunderid/internal/adapter"
 	"github.com/thunder-id/thunderid/internal/agent"
 	"github.com/thunder-id/thunderid/internal/application"
 	"github.com/thunder-id/thunderid/internal/attributecache"
@@ -58,6 +59,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/notification"
 	"github.com/thunder-id/thunderid/internal/oauth"
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/role"
@@ -71,8 +73,7 @@ import (
 	healthcheckservice "github.com/thunder-id/thunderid/internal/system/healthcheck/service"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/importer"
-	"github.com/thunder-id/thunderid/internal/system/jose"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	_ "github.com/thunder-id/thunderid/internal/system/jose"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -82,13 +83,14 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
 	"github.com/thunder-id/thunderid/internal/system/template"
 	"github.com/thunder-id/thunderid/internal/user"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // observabilitySvc is the observability service instance. This is used for graceful shutdown.
 var observabilitySvc observability.ObservabilityServiceInterface
 
 // registerServices registers all the services with the provided HTTP multiplexer.
-func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterface) jwt.JWTServiceInterface {
+func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterface) thunderidengine.JWTService {
 	logger := log.GetLogger()
 
 	// Load the server's private key for signing JWTs.
@@ -103,7 +105,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	}
 	runtimeCryptoSvc := defaultkm.NewRuntimeCryptoService(pkiService, configCryptoSvc)
 
-	jwtService, jweService, err := jose.Initialize(runtimeCryptoSvc)
+	jwtService, jweService, err := thunderidengine.InitializeJose(runtimeCryptoSvc)
 	if err != nil {
 		logger.Fatal("Failed to initialize JOSE services", log.Error(err))
 	}
@@ -295,9 +297,11 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	}
 	exporters = append(exporters, layoutExporter)
 
+	oauthOpts := oauthOptionsFromConfig(&config.GetServerRuntime().Config)
+
 	inboundClientService, err := inboundclient.Initialize(
 		cacheManager, certservice, entityProvider,
-		themeMgtService, layoutMgtService, flowMgtService, entityTypeService, consentService)
+		themeMgtService, layoutMgtService, flowMgtService, entityTypeService, consentService, oauthOpts)
 	if err != nil {
 		logger.Fatal("Failed to initialize InboundClientService", log.Error(err))
 	}
@@ -320,7 +324,8 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	designResolveService := resolve.Initialize(mux, themeMgtService, layoutMgtService, applicationService)
 
 	// Initialize flow metadata service
-	_ = flowmeta.Initialize(mux, inboundClientService, entityProvider, ouService, designResolveService, i18nService)
+	clientProvider := adapter.NewClientProvider(entityProvider, inboundClientService)
+	_ = flowmeta.Initialize(mux, clientProvider, ouService, designResolveService, i18nService)
 
 	// Initialize export service with collected exporters
 	_ = export.Initialize(mux, exporters)
@@ -344,16 +349,21 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		agentService,
 	)
 
-	flowExecService, err := flowexec.Initialize(mux, flowMgtService, inboundClientService, entityProvider,
+	flowExecService, err := flowexec.Initialize(mux, flowMgtService, clientProvider,
 		execRegistry, observabilitySvc, runtimeCryptoSvc)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
 	}
 
-	// Initialize OAuth services.
-	err = oauth.Initialize(mux, applicationService, inboundClientService, authnProvider, jwtService, jweService,
+	runtimeTransactioner, err := dbprovider.GetDBProvider().GetRuntimeDBTransactioner()
+	if err != nil {
+		logger.Fatal("Failed to initialize runtime transactioner for DCR", log.Error(err))
+	}
+	dcr.Initialize(mux, applicationService, ouService, i18nService, runtimeTransactioner, oauthOpts.DCRInsecure)
+
+	err = oauth.Initialize(mux, clientProvider, authnProvider, jwtService, jweService,
 		flowExecService, observabilitySvc, runtimeCryptoSvc, ouService, attributeCacheService, authZService,
-		entityProvider, resourceService, i18nService, idpService)
+		resourceService, idpService, oauthOpts)
 	if err != nil {
 		logger.Fatal("Failed to initialize OAuth services", log.Error(err))
 	}

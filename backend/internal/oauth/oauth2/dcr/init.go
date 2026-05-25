@@ -36,9 +36,10 @@ func Initialize(
 	ouService ou.OrganizationUnitServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 	transactioner transaction.Transactioner,
+	dcrInsecure bool,
 ) DCRServiceInterface {
 	dcrService := newDCRService(appService, ouService, i18nService, transactioner)
-	dcrHandler := newDCRHandler(dcrService)
+	dcrHandler := newDCRHandler(dcrService, dcrInsecure)
 	registerRoutes(mux, dcrHandler)
 	return dcrService
 }

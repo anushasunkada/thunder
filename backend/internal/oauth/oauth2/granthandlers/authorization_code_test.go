@@ -24,12 +24,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -77,12 +78,12 @@ func convertToStringSlice(groups interface{}) []string {
 type AuthorizationCodeGrantHandlerTestSuite struct {
 	suite.Suite
 	handler              *authorizationCodeGrantHandler
-	mockJWTService       *jwtmock.JWTServiceInterfaceMock
+	mockJWTService       *jwtmock.JWTServiceMock
 	mockTokenBuilder     *tokenservicemock.TokenBuilderInterfaceMock
 	mockAuthzService     *authzmock.AuthorizeServiceInterfaceMock
 	mockAttrCacheService *attributecachemock.AttributeCacheServiceInterfaceMock
 	mockResourceService  *resourcemock.ResourceServiceInterfaceMock
-	oauthApp             *inboundmodel.OAuthClient
+	oauthApp             *thunderidengine.OAuthClient
 	testAuthzCode        authz.AuthorizationCode
 	testTokenReq         *model.TokenRequest
 }
@@ -100,7 +101,7 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) SetupTest() {
 	}
 	_ = config.InitializeServerRuntime("test", testConfig)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 	suite.mockAuthzService = authzmock.NewAuthorizeServiceInterfaceMock(suite.T())
 	suite.mockAttrCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
@@ -124,15 +125,15 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) SetupTest() {
 		resourceService: suite.mockResourceService,
 	}
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
+	suite.oauthApp = &thunderidengine.OAuthClient{
 		ClientID: testClientID,
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 		ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				UserAttributes: []string{"email", "username"},
 			},
 		},
@@ -479,7 +480,7 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithGroups(
 		suite.Run(tc.name, func() {
 			// Reset mocks for each test case
 			suite.mockAuthzService = authzmock.NewAuthorizeServiceInterfaceMock(suite.T())
-			suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+			suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 			suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 			suite.mockAttrCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
 			suite.mockResourceService = resourcemock.NewResourceServiceInterfaceMock(suite.T())
@@ -496,33 +497,33 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithGroups(
 			if tc.includeInAccessToken {
 				accessTokenAttrs = append(accessTokenAttrs, constants.UserAttributeGroups)
 			}
-			var idTokenConfig *inboundmodel.IDTokenConfig
+			var idTokenConfig *thunderidengine.IDTokenConfig
 			var scopeClaims map[string][]string
 			if tc.includeInIDToken {
 				if tc.scopeClaimsForGroups {
 					// Include groups in ID token config with scope claims mapping
-					idTokenConfig = &inboundmodel.IDTokenConfig{
+					idTokenConfig = &thunderidengine.IDTokenConfig{
 						UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
 					}
 					scopeClaims = map[string][]string{
 						"openid": {"email", "username", constants.UserAttributeGroups},
 					}
 				} else {
-					idTokenConfig = &inboundmodel.IDTokenConfig{
+					idTokenConfig = &thunderidengine.IDTokenConfig{
 						UserAttributes: []string{"email", "username"},
 					}
 				}
 			}
 
-			oauthAppWithGroups := &inboundmodel.OAuthClient{
+			oauthAppWithGroups := &thunderidengine.OAuthClient{
 				ClientID: testClientID,
 
 				RedirectURIs:            []string{"https://client.example.com/callback"},
 				GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 				ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
 				TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
-				Token: &inboundmodel.OAuthTokenConfig{
-					AccessToken: &inboundmodel.AccessTokenConfig{
+				Token: &thunderidengine.OAuthTokenConfig{
+					AccessToken: &thunderidengine.AccessTokenConfig{
 						UserAttributes: accessTokenAttrs,
 					},
 					IDToken: idTokenConfig,
@@ -676,7 +677,7 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithEmptyGr
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.mockAuthzService = authzmock.NewAuthorizeServiceInterfaceMock(suite.T())
-			suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+			suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 			suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 			suite.mockAttrCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
 			suite.mockResourceService = resourcemock.NewResourceServiceInterfaceMock(suite.T())
@@ -693,32 +694,32 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_WithEmptyGr
 			if tc.includeInAccessToken {
 				accessTokenAttrs = append(accessTokenAttrs, constants.UserAttributeGroups)
 			}
-			var idTokenConfig *inboundmodel.IDTokenConfig
+			var idTokenConfig *thunderidengine.IDTokenConfig
 			var scopeClaims map[string][]string
 			if tc.includeInIDToken {
 				if tc.scopeClaimsForGroups {
-					idTokenConfig = &inboundmodel.IDTokenConfig{
+					idTokenConfig = &thunderidengine.IDTokenConfig{
 						UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
 					}
 					scopeClaims = map[string][]string{
 						"openid": {"email", "username", constants.UserAttributeGroups},
 					}
 				} else {
-					idTokenConfig = &inboundmodel.IDTokenConfig{
+					idTokenConfig = &thunderidengine.IDTokenConfig{
 						UserAttributes: []string{"email", "username"},
 					}
 				}
 			}
 
-			oauthAppWithGroups := &inboundmodel.OAuthClient{
+			oauthAppWithGroups := &thunderidengine.OAuthClient{
 				ClientID: testClientID,
 
 				RedirectURIs:            []string{"https://client.example.com/callback"},
 				GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 				ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
 				TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
-				Token: &inboundmodel.OAuthTokenConfig{
-					AccessToken: &inboundmodel.AccessTokenConfig{
+				Token: &thunderidengine.OAuthTokenConfig{
+					AccessToken: &thunderidengine.AccessTokenConfig{
 						UserAttributes: accessTokenAttrs,
 					},
 					IDToken: idTokenConfig,
@@ -974,15 +975,15 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestValidateGrant_ResourceP
 func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_FetchUserGroupsError() {
 	// Test that groups are retrieved from authorization code (not fetched from DB)
 	// Create OAuth app with groups configured
-	oauthAppWithGroups := &inboundmodel.OAuthClient{
+	oauthAppWithGroups := &thunderidengine.OAuthClient{
 		ClientID: testClientID,
 
 		RedirectURIs:            []string{"https://client.example.com/callback"},
 		GrantTypes:              []constants.GrantType{constants.GrantTypeAuthorizationCode},
 		ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				UserAttributes: []string{"email", "username", constants.UserAttributeGroups},
 			},
 		},
@@ -1056,8 +1057,8 @@ func (suite *AuthorizationCodeGrantHandlerTestSuite) TestHandleGrant_AttributeCa
 }
 
 // createPKCEApp creates a test OAuth app with PKCE required
-func (suite *AuthorizationCodeGrantHandlerTestSuite) createPKCEApp() *inboundmodel.OAuthClient {
-	return &inboundmodel.OAuthClient{
+func (suite *AuthorizationCodeGrantHandlerTestSuite) createPKCEApp() *thunderidengine.OAuthClient {
+	return &thunderidengine.OAuthClient{
 		ClientID: testClientID,
 
 		RedirectURIs:            []string{testClientCallbackURL},

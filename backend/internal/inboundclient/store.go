@@ -24,7 +24,6 @@ import (
 	"fmt"
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
@@ -73,7 +72,7 @@ type store struct {
 var getDBProvider = provider.GetDBProvider
 
 // newStore returns a database-backed inbound client store along with its transactioner.
-func newStore() (inboundClientStoreInterface, transaction.Transactioner, error) {
+func newStore(deploymentID string) (inboundClientStoreInterface, transaction.Transactioner, error) {
 	dbProvider := getDBProvider()
 	client, err := dbProvider.GetConfigDBClient()
 	if err != nil {
@@ -85,7 +84,6 @@ func newStore() (inboundClientStoreInterface, transaction.Transactioner, error) 
 		return nil, nil, err
 	}
 
-	deploymentID := config.GetServerRuntime().Config.Server.Identifier
 	if _, err := client.QueryContext(context.Background(), queryGetInboundClientCount, deploymentID); err != nil {
 		return nil, nil, fmt.Errorf("failed to verify inbound client table: %w", err)
 	}

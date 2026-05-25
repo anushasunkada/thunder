@@ -38,12 +38,12 @@ import (
 // JWTAuthenticatorTestSuite defines the test suite for JWTAuthenticator
 type JWTAuthenticatorTestSuite struct {
 	suite.Suite
-	mockJWT       *jwtmock.JWTServiceInterfaceMock
+	mockJWT       *jwtmock.JWTServiceMock
 	authenticator *jwtAuthenticator
 }
 
 func (suite *JWTAuthenticatorTestSuite) SetupTest() {
-	suite.mockJWT = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWT = jwtmock.NewJWTServiceMock(suite.T())
 	suite.authenticator = newJWTAuthenticator(suite.mockJWT)
 	// Initialize an empty runtime so verifyFederatedToken sees an unconfigured trusted issuer
 	// and returns false cleanly. Tests that need a specific trusted issuer config override this.
@@ -116,14 +116,14 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 	tests := []struct {
 		name           string
 		authHeader     string
-		setupMock      func(*jwtmock.JWTServiceInterfaceMock)
+		setupMock      func(*jwtmock.JWTServiceMock)
 		expectedError  error
 		validateResult func(*testing.T, *SecurityContext)
 	}{
 		{
 			name:       "Successful authentication with system scope",
 			authHeader: "Bearer " + validToken,
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", validToken, "", "").Return(nil)
 			},
 			expectedError: nil,
@@ -136,25 +136,25 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 		{
 			name:          "Missing Authorization header",
 			authHeader:    "",
-			setupMock:     func(m *jwtmock.JWTServiceInterfaceMock) {},
+			setupMock:     func(m *jwtmock.JWTServiceMock) {},
 			expectedError: errMissingAuthHeader,
 		},
 		{
 			name:          "Invalid header format",
 			authHeader:    "Basic dXNlcjpwYXNz",
-			setupMock:     func(m *jwtmock.JWTServiceInterfaceMock) {},
+			setupMock:     func(m *jwtmock.JWTServiceMock) {},
 			expectedError: errMissingAuthHeader,
 		},
 		{
 			name:          "Empty token",
 			authHeader:    "Bearer   ",
-			setupMock:     func(m *jwtmock.JWTServiceInterfaceMock) {},
+			setupMock:     func(m *jwtmock.JWTServiceMock) {},
 			expectedError: errInvalidToken,
 		},
 		{
 			name:       "Invalid JWT signature",
 			authHeader: "Bearer invalid.jwt.token",
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", "invalid.jwt.token", "", "").Return(&serviceerror.ServiceError{
 					Type:             serviceerror.ServerErrorType,
 					Code:             "INVALID_SIGNATURE",
@@ -167,7 +167,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 		{
 			name:       "Expired JWT token",
 			authHeader: "Bearer expired.jwt.token",
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", "expired.jwt.token", "", "").Return(&serviceerror.ServiceError{
 					Type:             serviceerror.ClientErrorType,
 					Code:             "JWT-60005",
@@ -180,7 +180,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 		{
 			name:       "Invalid JWT format - decoding error",
 			authHeader: "Bearer invalidjwtformat", // Not 3 parts separated by dots
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", "invalidjwtformat", "", "").Return(nil)
 			},
 			expectedError: errInvalidToken,
@@ -188,7 +188,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 		{
 			name:       "Invalid JWT payload - malformed base64",
 			authHeader: "Bearer eyJhbGciOiJIUzI1NiJ9.invalid!base64!payload.signature",
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", "eyJhbGciOiJIUzI1NiJ9.invalid!base64!payload.signature", "", "").Return(nil)
 			},
 			expectedError: errInvalidToken,
@@ -196,7 +196,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 		{
 			name:       "Invalid JWT payload - malformed JSON",
 			authHeader: "Bearer eyJhbGciOiJIUzI1NiJ9.bm90X3ZhbGlkX2pzb24.signature", // "not_valid_json" base64 encoded
-			setupMock: func(m *jwtmock.JWTServiceInterfaceMock) {
+			setupMock: func(m *jwtmock.JWTServiceMock) {
 				m.On("VerifyJWT", "eyJhbGciOiJIUzI1NiJ9.bm90X3ZhbGlkX2pzb24.signature", "", "").Return(nil)
 			},
 			expectedError: errInvalidToken,
@@ -206,7 +206,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate() {
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
 			// Reset mock for each test case
-			suite.mockJWT = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+			suite.mockJWT = jwtmock.NewJWTServiceMock(suite.T())
 			if tt.setupMock != nil {
 				tt.setupMock(suite.mockJWT)
 			}
@@ -392,7 +392,7 @@ func (suite *JWTAuthenticatorTestSuite) TestExtractPermissionsFromJWTClaims_Edge
 }
 
 func (suite *JWTAuthenticatorTestSuite) TestNewJWTAuthenticator() {
-	mockJWTService := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWTService := jwtmock.NewJWTServiceMock(suite.T())
 
 	authenticator := newJWTAuthenticator(mockJWTService)
 
@@ -539,7 +539,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_JWKSVerificatio
 		map[string]interface{}{"sub": "user1", "iss": issuer},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	mockJWT.On("VerifyJWTWithJWKS", token, jwksURL, audience, issuer).Return(nil)
 	auth := newJWTAuthenticator(mockJWT)
 
@@ -574,7 +574,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_JWKSVerificatio
 		map[string]interface{}{"sub": "user1", "iss": issuer},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	mockJWT.On("VerifyJWTWithJWKS", token, jwksURL, audience, issuer).Return(&serviceerror.ServiceError{
 		Type:  serviceerror.ServerErrorType,
 		Code:  "JWKS_ERROR",
@@ -670,7 +670,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_RequiredClaims(
 				tc.payloadClaims,
 			)
 
-			mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+			mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 			mockJWT.On("VerifyJWTWithJWKS", token, jwksURL, audience, issuer).Return(nil)
 			auth := newJWTAuthenticator(mockJWT)
 
@@ -736,7 +736,7 @@ func (suite *JWTAuthenticatorTestSuite) TestVerifyFederatedToken_InvalidPayload(
 			}
 			_ = config.InitializeServerRuntime("", cfg)
 
-			mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+			mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 			auth := newJWTAuthenticator(mockJWT)
 
 			result := auth.verifyFederatedToken(tc.token)
@@ -780,7 +780,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_FederatedTokenFailure()
 		},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	mockJWT.On("VerifyJWTWithJWKS", token, jwksURL, audience, issuer).Return(&serviceerror.ServiceError{
 		Type:  serviceerror.ServerErrorType,
 		Code:  "JWKS_ERROR",
@@ -829,7 +829,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_FederatedTokenSuccess()
 		},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	// When trusted issuer is configured, the local-key path is skipped entirely.
 	mockJWT.On("VerifyJWTWithJWKS", token, jwksURL, audience, issuer).Return(nil)
 	auth := newJWTAuthenticator(mockJWT)
@@ -883,7 +883,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_SelfIssuedTokenUnderFed
 		},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	mockJWT.On("VerifyJWT", token, "", "").Return(nil)
 	auth := newJWTAuthenticator(mockJWT)
 
@@ -912,7 +912,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_SelfIssuedTokenInvalidU
 		map[string]interface{}{"sub": "service-app", "iss": testLocalIssuer},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	mockJWT.On("VerifyJWT", token, "", "").Return(&serviceerror.ServiceError{
 		Type:  serviceerror.ServerErrorType,
 		Code:  "INVALID_SIGNATURE",
@@ -943,7 +943,7 @@ func (suite *JWTAuthenticatorTestSuite) TestAuthenticate_UnknownIssuerUnderFeder
 		map[string]interface{}{"sub": "attacker", "iss": "https://rogue-issuer:9999"},
 	)
 
-	mockJWT := jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	mockJWT := jwtmock.NewJWTServiceMock(suite.T())
 	auth := newJWTAuthenticator(mockJWT)
 
 	req := httptest.NewRequest(http.MethodGet, "/users", nil)

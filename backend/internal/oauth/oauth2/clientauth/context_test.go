@@ -25,8 +25,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 type ContextTestSuite struct {
@@ -52,7 +52,7 @@ func (suite *ContextTestSuite) TestGetOAuthClient_WithExistingClient() {
 	expectedClient := &OAuthClientInfo{
 		ClientID:     "test-client-id",
 		ClientSecret: "test-secret",
-		OAuthApp: &inboundmodel.OAuthClient{
+		OAuthApp: &thunderidengine.OAuthClient{
 			ClientID: "test-client-id",
 		},
 	}
@@ -70,7 +70,7 @@ func (suite *ContextTestSuite) TestWithOAuthClient() {
 	expectedClient := &OAuthClientInfo{
 		ClientID:     "test-client-id",
 		ClientSecret: "test-secret",
-		OAuthApp: &inboundmodel.OAuthClient{
+		OAuthApp: &thunderidengine.OAuthClient{
 			ClientID:                "test-client-id",
 			TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretPost,
 		},

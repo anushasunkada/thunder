@@ -22,7 +22,8 @@ import (
 	"context"
 	"fmt"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -47,21 +48,24 @@ type TokenBuilderInterface interface {
 
 // TokenBuilder implements TokenBuilderInterface.
 type tokenBuilder struct {
-	jwtService   jwt.JWTServiceInterface
-	jweService   jwe.JWEServiceInterface
+	jwtService   thunderidengine.JWTService
+	jweService   thunderidengine.JWEService
 	jwksResolver *jwksresolver.Resolver
+	opts         Options
 }
 
 // newTokenBuilder creates a new TokenBuilder instance.
 func newTokenBuilder(
-	jwtService jwt.JWTServiceInterface,
-	jweService jwe.JWEServiceInterface,
+	jwtService thunderidengine.JWTService,
+	jweService thunderidengine.JWEService,
 	resolver *jwksresolver.Resolver,
+	opts Options,
 ) TokenBuilderInterface {
 	return &tokenBuilder{
 		jwtService:   jwtService,
 		jweService:   jweService,
 		jwksResolver: resolver,
+		opts:         opts,
 	}
 }
 
@@ -71,7 +75,7 @@ func (tb *tokenBuilder) BuildAccessToken(ctx *AccessTokenBuildContext) (*oauth2m
 		return nil, fmt.Errorf("build context cannot be nil")
 	}
 
-	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeAccess)
+	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeAccess, tb.opts)
 
 	userAttributes := tb.buildAccessTokenUserAttributes(ctx.UserAttributes, ctx.OAuthApp)
 	jwtClaims, claimsErr := tb.buildAccessTokenClaims(ctx, userAttributes)
@@ -182,7 +186,7 @@ func (tb *tokenBuilder) buildAccessTokenClaims(
 // buildAccessTokenUserAttributes builds user attributes for the access token based on app configuration.
 func (tb *tokenBuilder) buildAccessTokenUserAttributes(
 	attrs map[string]interface{},
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 ) map[string]interface{} {
 	accessTokenAttributes := make(map[string]interface{})
 
@@ -236,7 +240,7 @@ func (tb *tokenBuilder) BuildRefreshToken(ctx *RefreshTokenBuildContext) (*oauth
 		return nil, fmt.Errorf("build context cannot be nil")
 	}
 
-	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeRefresh)
+	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeRefresh, tb.opts)
 
 	claims, claimsErr := tb.buildRefreshTokenClaims(ctx)
 	if claimsErr != nil {
@@ -315,7 +319,7 @@ func (tb *tokenBuilder) BuildIDToken(ctx *IDTokenBuildContext) (*oauth2model.Tok
 		return nil, fmt.Errorf("build context cannot be nil")
 	}
 
-	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeID)
+	tokenConfig := ResolveTokenConfig(ctx.OAuthApp, TokenTypeID, tb.opts)
 
 	jwtClaims := tb.buildIDTokenClaims(ctx)
 
@@ -346,7 +350,7 @@ func (tb *tokenBuilder) BuildIDToken(ctx *IDTokenBuildContext) (*oauth2model.Tok
 	if ctx.OAuthApp != nil && ctx.OAuthApp.Token != nil && ctx.OAuthApp.Token.IDToken != nil {
 		idTokenCfg := ctx.OAuthApp.Token.IDToken
 		rt := idTokenCfg.ResponseType
-		if rt == inboundmodel.IDTokenResponseTypeJWE || rt == inboundmodel.IDTokenResponseTypeNESTEDJWT {
+		if rt == thunderidengine.IDTokenResponseTypeJWE || rt == thunderidengine.IDTokenResponseTypeNestedJWT {
 			if tb.jweService == nil {
 				return nil, fmt.Errorf("JWE service is not configured")
 			}

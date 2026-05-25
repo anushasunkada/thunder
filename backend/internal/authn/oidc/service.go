@@ -23,6 +23,8 @@ import (
 	"context"
 	"strings"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	authncm "github.com/thunder-id/thunderid/internal/authn/common"
 	authnoauth "github.com/thunder-id/thunderid/internal/authn/oauth"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
@@ -52,13 +54,13 @@ type OIDCAuthnServiceInterface interface {
 // oidcAuthnService is the default implementation of OIDCAuthnServiceInterface.
 type oidcAuthnService struct {
 	internal   authnoauth.OAuthAuthnServiceInterface
-	jwtService jwt.JWTServiceInterface
+	jwtService thunderidengine.JWTService
 	logger     *log.Logger
 }
 
 // newOIDCAuthnService creates a new instance of OIDC authenticator service.
 func newOIDCAuthnService(internal authnoauth.OAuthAuthnServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) OIDCAuthnServiceInterface {
+	jwtSvc thunderidengine.JWTService) OIDCAuthnServiceInterface {
 	return &oidcAuthnService{
 		internal:   internal,
 		jwtService: jwtSvc,

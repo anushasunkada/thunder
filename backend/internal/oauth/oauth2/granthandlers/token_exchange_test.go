@@ -27,11 +27,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
@@ -55,12 +56,12 @@ const (
 
 type TokenExchangeGrantHandlerTestSuite struct {
 	suite.Suite
-	mockJWTService      *jwtmock.JWTServiceInterfaceMock
+	mockJWTService      *jwtmock.JWTServiceMock
 	mockTokenBuilder    *tokenservicemock.TokenBuilderInterfaceMock
 	mockTokenValidator  *tokenservicemock.TokenValidatorInterfaceMock
 	mockResourceService *resourcemock.ResourceServiceInterfaceMock
 	handler             *tokenExchangeGrantHandler
-	oauthApp            *inboundmodel.OAuthClient
+	oauthApp            *thunderidengine.OAuthClient
 }
 
 func TestTokenExchangeGrantHandlerSuite(t *testing.T) {
@@ -78,7 +79,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 	err := config.InitializeServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 	suite.mockTokenValidator = tokenservicemock.NewTokenValidatorInterfaceMock(suite.T())
 	suite.mockResourceService = resourcemock.NewResourceServiceInterfaceMock(suite.T())
@@ -98,15 +99,15 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 		resourceService: suite.mockResourceService,
 	}
 
-	suite.oauthApp = &inboundmodel.OAuthClient{
-		ID:                      "app123",
+	suite.oauthApp = &thunderidengine.OAuthClient{
+		EntityID:                "app123",
 		ClientID:                testClientID,
 		RedirectURIs:            []string{"https://example.com/callback"},
 		GrantTypes:              []constants.GrantType{constants.GrantTypeTokenExchange},
 		ResponseTypes:           []constants.ResponseType{constants.ResponseTypeCode},
 		TokenEndpointAuthMethod: constants.TokenEndpointAuthMethodClientSecretBasic,
-		Token: &inboundmodel.OAuthTokenConfig{
-			AccessToken: &inboundmodel.AccessTokenConfig{
+		Token: &thunderidengine.OAuthTokenConfig{
+			AccessToken: &thunderidengine.AccessTokenConfig{
 				ValidityPeriod: 7200,
 			},
 		},
@@ -1026,7 +1027,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) TestHandleGrant_UsesDefaultConf
 	}
 
 	// Use app without custom token config
-	oauthAppNoConfig := &inboundmodel.OAuthClient{
+	oauthAppNoConfig := &thunderidengine.OAuthClient{
 		ClientID:   testClientID,
 		GrantTypes: []constants.GrantType{constants.GrantTypeTokenExchange},
 	}
@@ -1813,7 +1814,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) TestHandleGrant_ServerAuthAsser
 	claims := map[string]interface{}{
 		"sub":                    testUserID,
 		"iss":                    testCustomIssuer,
-		"aud":                    suite.oauthApp.ID, // Match client app_id
+		"aud":                    suite.oauthApp.EntityID, // Match client app_id
 		"exp":                    float64(now + 3600),
 		"nbf":                    float64(now - 60),
 		"assurance":              map[string]interface{}{"aal": "AAL1", "ial": "IAL1"}, // Make it an auth assertion
@@ -1833,7 +1834,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) TestHandleGrant_ServerAuthAsser
 		Return(&tokenservice.SubjectTokenClaims{
 			Sub:            testUserID,
 			Iss:            testCustomIssuer,
-			Aud:            []string{suite.oauthApp.ID},
+			Aud:            []string{suite.oauthApp.EntityID},
 			Scopes:         []string{"read:documents", "write:documents"},
 			UserAttributes: map[string]interface{}{"userType": "person"},
 			NestedAct:      nil,

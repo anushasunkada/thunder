@@ -23,6 +23,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -35,11 +37,11 @@ type TokenIntrospectionServiceInterface interface {
 
 // tokenIntrospectionService implements the TokenIntrospectionServiceInterface.
 type tokenIntrospectionService struct {
-	jwtService jwt.JWTServiceInterface
+	jwtService thunderidengine.JWTService
 }
 
 // newTokenIntrospectionService creates a new tokenIntrospectionService instance (internal use).
-func newTokenIntrospectionService(jwtService jwt.JWTServiceInterface) TokenIntrospectionServiceInterface {
+func newTokenIntrospectionService(jwtService thunderidengine.JWTService) TokenIntrospectionServiceInterface {
 	return &tokenIntrospectionService{
 		jwtService: jwtService,
 	}

@@ -26,29 +26,33 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/design/common"
 	"github.com/thunder-id/thunderid/internal/design/resolve"
-	"github.com/thunder-id/thunderid/internal/entityprovider"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
-// MetaType represents the type of metadata being requested.
-type MetaType string
+const loggerComponentName = "FlowMetaService"
 
+type (
+	// MetaType identifies which metadata aggregate is requested.
+	MetaType = thunderidengine.MetaType
+	// ApplicationMetadata is application-scoped flow metadata.
+	ApplicationMetadata = thunderidengine.ApplicationMetadata
+	// OUMetadata is organizational-unit-scoped flow metadata.
+	OUMetadata = thunderidengine.OUMetadata
+	// DesignMetadata is resolved theme and layout metadata.
+	DesignMetadata = thunderidengine.DesignMetadata
+	// I18nMetadata is resolved translation metadata.
+	I18nMetadata = thunderidengine.I18nMetadata
+)
+
+//nolint:revive // re-exported thunderidengine metadata type constants.
 const (
-	loggerComponentName = "FlowMetaService"
-	// MetaTypeAPP represents the APP type for flow metadata.
-	MetaTypeAPP MetaType = "APP"
-	// MetaTypeOU represents the OU type for flow metadata.
-	MetaTypeOU MetaType = "OU"
+	MetaTypeAPP = thunderidengine.MetaTypeAPP
+	MetaTypeOU  = thunderidengine.MetaTypeOU
 )
-
-// IsValid checks if the MetaType is valid.
-func (mt MetaType) IsValid() bool {
-	return mt == MetaTypeAPP || mt == MetaTypeOU
-}
 
 // FlowMetaServiceInterface defines the interface for flow metadata operations.
 type FlowMetaServiceInterface interface {
@@ -63,30 +67,27 @@ type FlowMetaServiceInterface interface {
 
 // flowMetaService is the implementation of FlowMetaServiceInterface.
 type flowMetaService struct {
-	inboundClientService inboundclient.InboundClientServiceInterface
-	entityProvider       entityprovider.EntityProviderInterface
-	ouService            ou.OrganizationUnitServiceInterface
-	designResolve        resolve.DesignResolveServiceInterface
-	i18nService          i18nmgt.I18nServiceInterface
-	logger               *log.Logger
+	clientProvider thunderidengine.ClientProvider
+	ouService      ou.OrganizationUnitServiceInterface
+	designResolve  resolve.DesignResolveServiceInterface
+	i18nService    i18nmgt.I18nServiceInterface
+	logger         *log.Logger
 }
 
 // newFlowMetaService creates a new instance of flowMetaService with injected dependencies.
 func newFlowMetaService(
-	inboundClientService inboundclient.InboundClientServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	ouService ou.OrganizationUnitServiceInterface,
 	designResolve resolve.DesignResolveServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 ) FlowMetaServiceInterface {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, loggerComponentName))
 	return &flowMetaService{
-		inboundClientService: inboundClientService,
-		entityProvider:       entityProvider,
-		ouService:            ouService,
-		designResolve:        designResolve,
-		i18nService:          i18nService,
-		logger:               logger,
+		clientProvider: clientProvider,
+		ouService:      ouService,
+		designResolve:  designResolve,
+		i18nService:    i18nService,
+		logger:         logger,
 	}
 }
 
@@ -168,27 +169,21 @@ func (fms *flowMetaService) populateTypeMetadata(
 		return id, nil
 	}
 
-	client, err := fms.inboundClientService.GetInboundClientByEntityID(ctx, id)
+	application, err := fms.clientProvider.GetApplicationByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, inboundclient.ErrInboundClientNotFound) {
+		if errors.Is(err, thunderidengine.ErrApplicationNotFound) {
 			return "", &ErrorApplicationNotFound
 		}
-		fms.logger.Error("Failed to get inbound client", log.String("appID", id), log.Error(err))
+		fms.logger.Error("Failed to get application", log.String("appID", id), log.Error(err))
 		return "", &ErrorApplicationFetchFailed
 	}
-	if client == nil {
+	if application == nil {
 		return "", &ErrorApplicationNotFound
 	}
 
-	entity, epErr := fms.entityProvider.GetEntity(id)
-	if epErr != nil && epErr.Code != entityprovider.ErrorCodeEntityNotFound {
-		fms.logger.Error("Failed to get entity", log.String("appID", id), log.Error(epErr))
-		return "", &ErrorApplicationFetchFailed
-	}
-
-	response.IsRegistrationFlowEnabled = client.IsRegistrationFlowEnabled
-	response.IsRecoveryFlowEnabled = client.IsRecoveryFlowEnabled
-	response.Application = buildApplicationMetadata(client.ID, entity, client.Properties)
+	response.IsRegistrationFlowEnabled = application.IsRegistrationFlowEnabled
+	response.IsRecoveryFlowEnabled = application.IsRecoveryFlowEnabled
+	response.Application = buildApplicationMetadata(application.ID, application)
 
 	ouList, ouErr := fms.ouService.GetOrganizationUnitList(ctx, 1, 0, nil)
 	if ouErr != nil {
@@ -304,36 +299,18 @@ func (fms *flowMetaService) populateI18nMetadata(response *FlowMetadataResponse,
 	response.I18n.Languages = languages
 }
 
-// buildApplicationMetadata composes the /flow/meta application view from the inbound-client +
-// entity records. Entity-agnostic: works for applications and agents alike.
+// buildApplicationMetadata composes the /flow/meta application view from the application record.
 func buildApplicationMetadata(
-	id string, entity *entityprovider.Entity, props map[string]interface{},
+	id string, application *thunderidengine.Application,
 ) *ApplicationMetadata {
 	meta := &ApplicationMetadata{ID: id}
-	if entity != nil && len(entity.SystemAttributes) > 0 {
-		var attrs map[string]interface{}
-		if err := json.Unmarshal(entity.SystemAttributes, &attrs); err == nil && attrs != nil {
-			if name, ok := attrs["name"].(string); ok {
-				meta.Name = name
-			}
-			if desc, ok := attrs["description"].(string); ok {
-				meta.Description = desc
-			}
-		}
-	}
-	if props != nil {
-		if v, ok := props["logo_url"].(string); ok {
-			meta.LogoURL = v
-		}
-		if v, ok := props["url"].(string); ok {
-			meta.URL = v
-		}
-		if v, ok := props["tos_uri"].(string); ok {
-			meta.TosURI = v
-		}
-		if v, ok := props["policy_uri"].(string); ok {
-			meta.PolicyURI = v
-		}
+	if application != nil {
+		meta.Name = application.Name
+		meta.Description = application.Description
+		meta.LogoURL = application.LogoURL
+		meta.URL = application.URL
+		meta.TosURI = application.TosURI
+		meta.PolicyURI = application.PolicyURI
 	}
 	return meta
 }

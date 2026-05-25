@@ -31,8 +31,8 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolab"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 
 	"github.com/stretchr/testify/assert"
@@ -74,15 +74,15 @@ func (suite *JWEServiceTestSuite) TestEncryptDecrypt_RSA() {
 	mockProvider := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	mockProvider.EXPECT().Decrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		RunAndReturn(func(
-			ctx context.Context, keyRef *kmprovider.KeyRef,
-			params cryptolab.AlgorithmParams, content []byte,
+			ctx context.Context, keyRef *thunderidengine.KeyRef,
+			params thunderidengine.AlgorithmParams, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Decrypt(suite.testRSAPrivateKey, params, content)
 		}).Times(len(encAlgs))
 
 	suite.jweService = &jweService{
 		cryptoProvider: mockProvider,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		logger:         log.GetLogger(),
 	}
 
@@ -113,15 +113,15 @@ func (suite *JWEServiceTestSuite) TestEncryptDecrypt_ECDH() {
 	mockProvider := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	mockProvider.EXPECT().Decrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		RunAndReturn(func(
-			ctx context.Context, keyRef *kmprovider.KeyRef,
-			params cryptolab.AlgorithmParams, content []byte,
+			ctx context.Context, keyRef *thunderidengine.KeyRef,
+			params thunderidengine.AlgorithmParams, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Decrypt(suite.testECPrivateKey, params, content)
 		}).Times(len(testCases))
 
 	suite.jweService = &jweService{
 		cryptoProvider: mockProvider,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		logger:         log.GetLogger(),
 	}
 
@@ -157,7 +157,7 @@ func (suite *JWEServiceTestSuite) TestDecrypt_Errors() {
 	mockProvider := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	suite.jweService = &jweService{
 		cryptoProvider: mockProvider,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		logger:         log.GetLogger(),
 	}
 
@@ -180,8 +180,8 @@ func (suite *JWEServiceTestSuite) TestDecrypt_Errors() {
 	// DecryptContent failure (tampered tag): provider returns correct CEK but tag is wrong
 	mockProvider.EXPECT().Decrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		RunAndReturn(func(
-			ctx context.Context, keyRef *kmprovider.KeyRef,
-			params cryptolab.AlgorithmParams, content []byte,
+			ctx context.Context, keyRef *thunderidengine.KeyRef,
+			params thunderidengine.AlgorithmParams, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Decrypt(suite.testRSAPrivateKey, params, content)
 		}).Once()
@@ -196,7 +196,7 @@ func (suite *JWEServiceTestSuite) TestDecrypt_Errors() {
 func (suite *JWEServiceTestSuite) TestInitialize() {
 	mockProvider := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 
-	service, err := Initialize(mockProvider)
+	service, err := Initialize(mockProvider, Config{PreferredKeyID: "test-kid"})
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), service)
 }
@@ -323,7 +323,7 @@ func (suite *JWEServiceTestSuite) TestBuildDecryptParams() {
 func (suite *JWEServiceTestSuite) TestEncrypt_WithKidAndCty() {
 	suite.jweService = &jweService{
 		cryptoProvider: nil,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		logger:         log.GetLogger(),
 	}
 
@@ -366,15 +366,15 @@ func (suite *JWEServiceTestSuite) TestEncryptDecrypt_CBC() {
 	mockProvider := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	mockProvider.EXPECT().Decrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		RunAndReturn(func(
-			ctx context.Context, keyRef *kmprovider.KeyRef,
-			params cryptolab.AlgorithmParams, content []byte,
+			ctx context.Context, keyRef *thunderidengine.KeyRef,
+			params thunderidengine.AlgorithmParams, content []byte,
 		) ([]byte, error) {
 			return cryptolab.Decrypt(suite.testRSAPrivateKey, params, content)
 		}).Times(len(encAlgs))
 
 	suite.jweService = &jweService{
 		cryptoProvider: mockProvider,
-		keyRef:         kmprovider.KeyRef{KeyID: "test-kid"},
+		keyRef:         thunderidengine.KeyRef{KeyID: "test-kid"},
 		logger:         log.GetLogger(),
 	}
 

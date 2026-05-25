@@ -26,8 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientprovidertest"
 	"github.com/thunder-id/thunderid/tests/mocks/attributecachemock"
-	"github.com/thunder-id/thunderid/tests/mocks/inboundclientmock"
 	"github.com/thunder-id/thunderid/tests/mocks/jose/jwtmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oauth/oauth2/tokenservicemock"
 	"github.com/thunder-id/thunderid/tests/mocks/oumock"
@@ -35,9 +35,9 @@ import (
 
 type InitTestSuite struct {
 	suite.Suite
-	mockJWTService            *jwtmock.JWTServiceInterfaceMock
+	mockJWTService            *jwtmock.JWTServiceMock
 	mockTokenValidator        *tokenservicemock.TokenValidatorInterfaceMock
-	mockInboundClient         *inboundclientmock.InboundClientServiceInterfaceMock
+	mockClientProvider        *clientprovidertest.ClientProviderMock
 	mockOUService             *oumock.OrganizationUnitServiceInterfaceMock
 	mockAttributeCacheService *attributecachemock.AttributeCacheServiceInterfaceMock
 	mockTransactioner         *MockTransactioner
@@ -48,9 +48,9 @@ func TestInitTestSuite(t *testing.T) {
 }
 
 func (suite *InitTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockTokenValidator = tokenservicemock.NewTokenValidatorInterfaceMock(suite.T())
-	suite.mockInboundClient = inboundclientmock.NewInboundClientServiceInterfaceMock(suite.T())
+	suite.mockClientProvider = clientprovidertest.NewClientProviderMock(suite.T())
 	suite.mockOUService = oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
 	suite.mockAttributeCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
 	suite.mockTransactioner = &MockTransactioner{}
@@ -59,19 +59,22 @@ func (suite *InitTestSuite) SetupTest() {
 func (suite *InitTestSuite) TestInitialize() {
 	mux := http.NewServeMux()
 
+	testUserInfoOpts := Options{Issuer: "test-issuer", ValidityPeriod: 600}
+
 	service := Initialize(mux, suite.mockJWTService, nil, nil,
-		suite.mockTokenValidator, suite.mockInboundClient,
-		suite.mockOUService, suite.mockAttributeCacheService, suite.mockTransactioner)
+		suite.mockTokenValidator, suite.mockClientProvider,
+		suite.mockOUService, suite.mockAttributeCacheService, suite.mockTransactioner, testUserInfoOpts)
 
 	assert.NotNil(suite.T(), service)
 }
 
 func (suite *InitTestSuite) TestInitialize_RegistersRoutes() {
 	mux := http.NewServeMux()
+	testUserInfoOpts := Options{Issuer: "test-issuer", ValidityPeriod: 600}
 
 	Initialize(mux, suite.mockJWTService, nil, nil,
-		suite.mockTokenValidator, suite.mockInboundClient,
-		suite.mockOUService, suite.mockAttributeCacheService, suite.mockTransactioner)
+		suite.mockTokenValidator, suite.mockClientProvider,
+		suite.mockOUService, suite.mockAttributeCacheService, suite.mockTransactioner, testUserInfoOpts)
 
 	// Verify that the routes are registered by attempting to get a handler for them.
 	// The pattern includes the method because of CORS middleware wrapping.

@@ -29,7 +29,7 @@ import (
 
 type InitTestSuite struct {
 	suite.Suite
-	mockJWTService *jwtmock.JWTServiceInterfaceMock
+	mockJWTService *jwtmock.JWTServiceMock
 }
 
 func TestInitTestSuite(t *testing.T) {
@@ -37,11 +37,11 @@ func TestInitTestSuite(t *testing.T) {
 }
 
 func (suite *InitTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 }
 
 func (suite *InitTestSuite) TestInitialize() {
-	tokenBuilder, tokenValidator := Initialize(suite.mockJWTService, nil, nil, nil)
+	tokenBuilder, tokenValidator := Initialize(suite.mockJWTService, nil, nil, nil, Options{})
 
 	assert.NotNil(suite.T(), tokenBuilder)
 	assert.Implements(suite.T(), (*TokenBuilderInterface)(nil), tokenBuilder)

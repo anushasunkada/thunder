@@ -36,7 +36,6 @@ import (
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
@@ -44,6 +43,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/security"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // InboundClientServiceInterface is the public API of the inbound client subsystem.
@@ -93,6 +93,7 @@ type inboundClientService struct {
 	flowMgt        flowmgt.FlowMgtServiceInterface
 	entityType     entitytype.EntityTypeServiceInterface
 	consentService consent.ConsentServiceInterface
+	opts           thunderidengine.Options
 	logger         *log.Logger
 }
 
@@ -105,6 +106,7 @@ func newInboundClientService(store inboundClientStoreInterface, transactioner tr
 	flowMgt flowmgt.FlowMgtServiceInterface,
 	entityType entitytype.EntityTypeServiceInterface,
 	consentService consent.ConsentServiceInterface,
+	opts thunderidengine.Options,
 ) InboundClientServiceInterface {
 	return &inboundClientService{
 		store:          store,
@@ -116,6 +118,7 @@ func newInboundClientService(store inboundClientStoreInterface, transactioner tr
 		flowMgt:        flowMgt,
 		entityType:     entityType,
 		consentService: consentService,
+		opts:           opts,
 		logger:         log.GetLogger().With(log.String(log.LoggerKeyComponentName, "InboundClientService")),
 	}
 }
@@ -141,11 +144,11 @@ func (s *inboundClientService) CreateInboundClient(ctx context.Context, client *
 		return err
 	}
 	if oauthProfile != nil {
-		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
+		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret, s.opts.AllowWildcardRedirectURI); vErr != nil {
 			return vErr
 		}
 	}
-	applyInboundDefaults(client, oauthProfile)
+	applyInboundDefaults(client, oauthProfile, s.opts.ValidityPeriod)
 	oauthClientID := s.resolveClientID(client.ID)
 	return s.transactioner.Transact(ctx, func(txCtx context.Context) error {
 		if _, vErr, opErr := s.createCertificate(
@@ -214,11 +217,11 @@ func (s *inboundClientService) UpdateInboundClient(ctx context.Context, client *
 		return err
 	}
 	if oauthProfile != nil {
-		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
+		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret, s.opts.AllowWildcardRedirectURI); vErr != nil {
 			return vErr
 		}
 	}
-	applyInboundDefaults(client, oauthProfile)
+	applyInboundDefaults(client, oauthProfile, s.opts.ValidityPeriod)
 	// Capture existing OAuth client_id before the caller updates entity system attributes.
 	oldOAuthClientID := s.resolveClientID(client.ID)
 	return s.transactioner.Transact(ctx, func(txCtx context.Context) error {
@@ -281,7 +284,7 @@ func (s *inboundClientService) Validate(ctx context.Context, client *inboundmode
 		return err
 	}
 	if oauthProfile != nil {
-		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret); vErr != nil {
+		if vErr := validateOAuthProfile(oauthProfile, hasClientSecret, s.opts.AllowWildcardRedirectURI); vErr != nil {
 			return vErr
 		}
 	}
@@ -484,7 +487,7 @@ func (s *inboundClientService) resolveFlowDefaults(ctx context.Context, c *inbou
 		return nil
 	}
 	if c.AuthFlowID == "" {
-		defaultHandle := config.GetServerRuntime().Config.Flow.DefaultAuthFlowHandle
+		defaultHandle := s.opts.Flow.DefaultAuthFlowHandle
 		flow, svcErr := s.flowMgt.GetFlowByHandle(ctx, defaultHandle, flowcommon.FlowTypeAuthentication)
 		if svcErr != nil {
 			if svcErr.Type == serviceerror.ServerErrorType {
@@ -494,7 +497,7 @@ func (s *inboundClientService) resolveFlowDefaults(ctx context.Context, c *inbou
 		}
 		c.AuthFlowID = flow.ID
 	}
-	if c.RegistrationFlowID == "" && c.AuthFlowID != "" && config.GetServerRuntime().Config.Flow.AutoInferRegistration {
+	if c.RegistrationFlowID == "" && c.AuthFlowID != "" && s.opts.Flow.AutoInferRegistration {
 		authFlow, svcErr := s.flowMgt.GetFlow(ctx, c.AuthFlowID)
 		if svcErr != nil {
 			if svcErr.Type == serviceerror.ServerErrorType {
@@ -640,11 +643,11 @@ func validateCertificateInput(refType cert.CertificateReferenceType,
 }
 
 // validateOAuthProfile validates all fields of an OAuth profile data object.
-func validateOAuthProfile(p *inboundmodel.OAuthProfile, hasClientSecret bool) error {
+func validateOAuthProfile(p *inboundmodel.OAuthProfile, hasClientSecret bool, allowWildcardRedirectURI bool) error {
 	if p == nil {
 		return nil
 	}
-	if err := validateRedirectURIs(p); err != nil {
+	if err := validateRedirectURIs(p, allowWildcardRedirectURI); err != nil {
 		return err
 	}
 	if err := validateGrantAndResponseTypes(p); err != nil {
@@ -773,7 +776,7 @@ func validateIDTokenConfig(p *inboundmodel.OAuthProfile) error {
 }
 
 // validateRedirectURIs validates redirect URIs and authorization_code grant requirements.
-func validateRedirectURIs(p *inboundmodel.OAuthProfile) error {
+func validateRedirectURIs(p *inboundmodel.OAuthProfile, allowWildcardRedirectURI bool) error {
 	for _, redirectURI := range p.RedirectURIs {
 		// Reject wildcards in the scheme before URL parsing — url.Parse may misinterpret them.
 		if idx := strings.Index(redirectURI, "://"); idx != -1 {
@@ -791,7 +794,7 @@ func validateRedirectURIs(p *inboundmodel.OAuthProfile) error {
 		if parsedURI.Fragment != "" {
 			return ErrOAuthRedirectURIFragmentNotAllowed
 		}
-		wildcardEnabled := config.GetServerRuntime().Config.OAuth.AllowWildcardRedirectURI
+		wildcardEnabled := allowWildcardRedirectURI
 		if strings.ContainsRune(parsedURI.Host, '*') {
 			if !wildcardEnabled {
 				return ErrOAuthInvalidRedirectURI
@@ -1163,9 +1166,9 @@ func collectConfiguredUserAttributes(
 }
 
 // applyInboundDefaults fills default values for assertion, OAuth tokens, user info, and scope claims.
-func applyInboundDefaults(c *inboundmodel.InboundClient, oauthProfile *inboundmodel.OAuthProfile) {
+func applyInboundDefaults(c *inboundmodel.InboundClient, oauthProfile *inboundmodel.OAuthProfile, jwtValidity int64) {
 	if c != nil {
-		c.Assertion = resolveAssertion(c.Assertion, getDefaultAssertionFromDeployment())
+		c.Assertion = resolveAssertion(c.Assertion, &inboundmodel.AssertionConfig{ValidityPeriod: jwtValidity})
 	}
 	if oauthProfile == nil {
 		return
@@ -1178,12 +1181,6 @@ func applyInboundDefaults(c *inboundmodel.InboundClient, oauthProfile *inboundmo
 	oauthProfile.Token = &inboundmodel.OAuthTokenConfig{AccessToken: accessToken, IDToken: idToken}
 	oauthProfile.UserInfo = resolveUserInfo(oauthProfile.UserInfo, idToken)
 	oauthProfile.ScopeClaims = resolveScopeClaims(oauthProfile.ScopeClaims)
-}
-
-// getDefaultAssertionFromDeployment returns the assertion config from the deployment-level JWT settings.
-func getDefaultAssertionFromDeployment() *inboundmodel.AssertionConfig {
-	jwtConfig := config.GetServerRuntime().Config.JWT
-	return &inboundmodel.AssertionConfig{ValidityPeriod: jwtConfig.ValidityPeriod}
 }
 
 // resolveAssertion merges the input assertion config with the deployment default.

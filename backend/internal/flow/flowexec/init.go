@@ -21,16 +21,14 @@ package flowexec
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/entityprovider"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	dbprovider "github.com/thunder-id/thunderid/internal/system/database/provider"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize creates and configures the flow execution service components.
@@ -38,11 +36,10 @@ import (
 func Initialize(
 	mux *http.ServeMux,
 	flowMgtService flowmgt.FlowMgtServiceInterface,
-	inboundClientService inboundclient.InboundClientServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface,
+	clientProvider thunderidengine.ClientProvider,
 	executorRegistry executor.ExecutorRegistryInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
-	cryptoSvc kmprovider.RuntimeCryptoProvider,
+	cryptoSvc thunderidengine.RuntimeCryptoProvider,
 ) (FlowExecServiceInterface, error) {
 	var flowStore flowStoreInterface
 	var transactioner transaction.Transactioner
@@ -61,7 +58,7 @@ func Initialize(
 	}
 	flowEngine := newFlowEngine(executorRegistry, observabilitySvc)
 	flowExecService := newFlowExecService(flowMgtService, flowStore, flowEngine,
-		inboundClientService, entityProvider, observabilitySvc, transactioner, cryptoSvc)
+		clientProvider, observabilitySvc, transactioner, cryptoSvc)
 
 	handler := newFlowExecutionHandler(flowExecService)
 	registerRoutes(mux, handler)

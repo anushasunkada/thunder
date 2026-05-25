@@ -72,7 +72,7 @@ const (
 type AuthenticationServiceTestSuite struct {
 	suite.Suite
 	mockIDPService      *idpmock.IDPServiceInterfaceMock
-	mockJWTService      *jwtmock.JWTServiceInterfaceMock
+	mockJWTService      *jwtmock.JWTServiceMock
 	mockAssertGenerator *assertmock.AuthAssertGeneratorInterfaceMock
 	mockAuthnProvider   *managermock.AuthnProviderManagerInterfaceMock
 	mockOTPService      *otpmock.OTPAuthnServiceInterfaceMock
@@ -122,7 +122,7 @@ func (suite *AuthenticationServiceTestSuite) SetupSuite() {
 
 func (suite *AuthenticationServiceTestSuite) SetupTest() {
 	suite.mockIDPService = idpmock.NewIDPServiceInterfaceMock(suite.T())
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockAssertGenerator = &assertmock.AuthAssertGeneratorInterfaceMock{}
 	suite.mockAuthnProvider = &managermock.AuthnProviderManagerInterfaceMock{}
 	suite.mockOTPService = &otpmock.OTPAuthnServiceInterfaceMock{}

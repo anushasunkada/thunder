@@ -19,27 +19,11 @@
 // Package kmprovider defines interfaces for key manager providers.
 package kmprovider
 
-import (
-	"context"
-
-	"github.com/thunder-id/thunderid/internal/system/cryptolab"
-)
+import "context"
 
 // ConfigCryptoProvider provides symmetric encryption and decryption functionality
 // using statically configured keys.
 type ConfigCryptoProvider interface {
 	Encrypt(ctx context.Context, content []byte) ([]byte, error)
 	Decrypt(ctx context.Context, content []byte) ([]byte, error)
-}
-
-// RuntimeCryptoProvider provides asymmetric cryptographic operations including
-// encryption, decryption, signing, and key discovery.
-type RuntimeCryptoProvider interface {
-	Encrypt(
-		ctx context.Context, keyRef *KeyRef, params cryptolab.AlgorithmParams, content []byte,
-	) ([]byte, *cryptolab.CryptoDetails, error)
-	Decrypt(ctx context.Context, keyRef *KeyRef, params cryptolab.AlgorithmParams, content []byte) ([]byte, error)
-	Sign(ctx context.Context, keyRef KeyRef, algorithm cryptolab.SignAlgorithm, content []byte) ([]byte, error)
-	GetPublicKeys(ctx context.Context, filter PublicKeyFilter) ([]PublicKeyInfo, error)
-	GetTLSMaterial(ctx context.Context, keyRef *KeyRef) (*TLSMaterial, error)
 }

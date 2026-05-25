@@ -24,10 +24,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientprovidertest"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
+	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	"github.com/thunder-id/thunderid/tests/mocks/attributecachemock"
 	rbacauthzmock "github.com/thunder-id/thunderid/tests/mocks/authzmock"
-	"github.com/thunder-id/thunderid/tests/mocks/entityprovidermock"
 	"github.com/thunder-id/thunderid/tests/mocks/jose/jwtmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oauth/oauth2/authzmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oauth/oauth2/tokenservicemock"
@@ -37,16 +38,16 @@ import (
 
 type GrantHandlerProviderTestSuite struct {
 	suite.Suite
-	provider             GrantHandlerProviderInterface
-	mockJWTService       *jwtmock.JWTServiceInterfaceMock
-	authzService         *authzmock.AuthorizeServiceInterfaceMock
-	mockTokenBuilder     *tokenservicemock.TokenBuilderInterfaceMock
-	mockTokenValidator   *tokenservicemock.TokenValidatorInterfaceMock
-	mockAttrCacheService *attributecachemock.AttributeCacheServiceInterfaceMock
-	mockOUService        *oumock.OrganizationUnitServiceInterfaceMock
-	mockRBACAuthzService *rbacauthzmock.AuthorizationServiceInterfaceMock
-	mockEntityProvider   *entityprovidermock.EntityProviderInterfaceMock
-	mockResourceService  *resourcemock.ResourceServiceInterfaceMock
+	provider               GrantHandlerProviderInterface
+	mockJWTService         *jwtmock.JWTServiceMock
+	authzService           *authzmock.AuthorizeServiceInterfaceMock
+	mockTokenBuilder       *tokenservicemock.TokenBuilderInterfaceMock
+	mockTokenValidator     *tokenservicemock.TokenValidatorInterfaceMock
+	mockAttrCacheService   *attributecachemock.AttributeCacheServiceInterfaceMock
+	mockOUService          *oumock.OrganizationUnitServiceInterfaceMock
+	mockRBACAuthzService   *rbacauthzmock.AuthorizationServiceInterfaceMock
+	mockClientProviderider *clientprovidertest.ClientProviderMock
+	mockResourceService    *resourcemock.ResourceServiceInterfaceMock
 }
 
 func TestGrantHandlerProviderSuite(t *testing.T) {
@@ -54,14 +55,14 @@ func TestGrantHandlerProviderSuite(t *testing.T) {
 }
 
 func (suite *GrantHandlerProviderTestSuite) SetupTest() {
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.authzService = authzmock.NewAuthorizeServiceInterfaceMock(suite.T())
 	suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
 	suite.mockTokenValidator = tokenservicemock.NewTokenValidatorInterfaceMock(suite.T())
 	suite.mockAttrCacheService = attributecachemock.NewAttributeCacheServiceInterfaceMock(suite.T())
 	suite.mockOUService = oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
 	suite.mockRBACAuthzService = rbacauthzmock.NewAuthorizationServiceInterfaceMock(suite.T())
-	suite.mockEntityProvider = entityprovidermock.NewEntityProviderInterfaceMock(suite.T())
+	suite.mockClientProviderider = clientprovidertest.NewClientProviderMock(suite.T())
 	suite.mockResourceService = resourcemock.NewResourceServiceInterfaceMock(suite.T())
 	suite.provider = newGrantHandlerProvider(
 		suite.mockJWTService,
@@ -71,8 +72,10 @@ func (suite *GrantHandlerProviderTestSuite) SetupTest() {
 		suite.mockAttrCacheService,
 		suite.mockOUService,
 		suite.mockRBACAuthzService,
-		suite.mockEntityProvider,
+		suite.mockClientProviderider,
 		suite.mockResourceService,
+		false,
+		tokenservice.Options{},
 	)
 }
 
@@ -85,8 +88,10 @@ func (suite *GrantHandlerProviderTestSuite) TestNewGrantHandlerProvider() {
 		suite.mockAttrCacheService,
 		suite.mockOUService,
 		suite.mockRBACAuthzService,
-		suite.mockEntityProvider,
+		suite.mockClientProviderider,
 		suite.mockResourceService,
+		false,
+		tokenservice.Options{},
 	)
 	assert.NotNil(suite.T(), provider)
 	assert.Implements(suite.T(), (*GrantHandlerProviderInterface)(nil), provider)

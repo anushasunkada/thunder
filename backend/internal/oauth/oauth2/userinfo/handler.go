@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"net/http"
 
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 const handlerLoggerComponentName = "UserInfoHandler"
@@ -72,11 +72,11 @@ func (h *userInfoHandler) HandleUserInfo(w http.ResponseWriter, r *http.Request)
 	w.Header().Set(serverconst.PragmaHeaderName, serverconst.PragmaNoCache)
 
 	switch result.Type {
-	case inboundmodel.UserInfoResponseTypeJWS:
+	case thunderidengine.UserInfoResponseTypeJWS:
 		w.Header().Set(serverconst.ContentTypeHeaderName, serverconst.ContentTypeJWT)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(result.JWTBody))
-	case inboundmodel.UserInfoResponseTypeJWE, inboundmodel.UserInfoResponseTypeNESTEDJWT:
+	case thunderidengine.UserInfoResponseTypeJWE, thunderidengine.UserInfoResponseTypeNestedJWT:
 		w.Header().Set(serverconst.ContentTypeHeaderName, serverconst.ContentTypeJWT)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(result.JWTBody))

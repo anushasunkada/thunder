@@ -24,11 +24,11 @@ import (
 	"slices"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/idp"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 )
 
@@ -36,28 +36,34 @@ import (
 type TokenValidatorInterface interface {
 	ValidateAccessToken(token string) (*AccessTokenClaims, error)
 	ValidateRefreshToken(token string, clientID string) (*RefreshTokenClaims, error)
-	ValidateSubjectToken(ctx context.Context, token string, oauthApp *inboundmodel.OAuthClient) (
+	ValidateSubjectToken(ctx context.Context, token string, oauthApp *thunderidengine.OAuthClient) (
 		*SubjectTokenClaims, error)
 }
 
 // TokenValidator implements TokenValidatorInterface.
 type tokenValidator struct {
-	jwtService jwt.JWTServiceInterface
+	jwtService thunderidengine.JWTService
 	idpService idp.IDPServiceInterface
+	opts       Options
 }
 
 // NewTokenValidator creates a new TokenValidator instance.
-func newTokenValidator(jwtService jwt.JWTServiceInterface, idpService idp.IDPServiceInterface) TokenValidatorInterface {
+func newTokenValidator(
+	jwtService thunderidengine.JWTService,
+	idpService idp.IDPServiceInterface,
+	opts Options,
+) TokenValidatorInterface {
 	return &tokenValidator{
 		jwtService: jwtService,
 		idpService: idpService,
+		opts:       opts,
 	}
 }
 
 // ValidateAccessToken validates an access token and extracts the claims.
 func (tv *tokenValidator) ValidateAccessToken(token string) (*AccessTokenClaims, error) {
 	// Verify signature and standard claims.
-	expectedIss := config.GetServerRuntime().Config.JWT.Issuer
+	expectedIss := tv.opts.Issuer
 	if err := tv.jwtService.VerifyJWT(token, "", expectedIss); err != nil {
 		return nil, fmt.Errorf("access token verification failed: %v", err.Error)
 	}
@@ -166,7 +172,7 @@ func (tv *tokenValidator) ValidateRefreshToken(token string, clientID string) (*
 func (tv *tokenValidator) ValidateSubjectToken(
 	ctx context.Context,
 	token string,
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 ) (*SubjectTokenClaims, error) {
 	claims, err := jwt.DecodeJWTPayload(token)
 	if err != nil {
@@ -179,7 +185,7 @@ func (tv *tokenValidator) ValidateSubjectToken(
 	}
 
 	// Try the server's own issuer first.
-	if isSelfIssuer(iss) {
+	if isSelfIssuer(iss, tv.opts.Issuer) {
 		if err := tv.verifyTokenSignatureByIssuer(token, iss); err != nil {
 			return nil, fmt.Errorf("invalid subject token signature: %w", err)
 		}
@@ -198,7 +204,7 @@ func (tv *tokenValidator) ValidateSubjectToken(
 	}
 
 	// Validate that the external token's audience contains this server's issuer.
-	serverIssuer := config.GetServerRuntime().Config.JWT.Issuer
+	serverIssuer := tv.opts.Issuer
 	auds, audErr := extractAudiences(claims)
 	if audErr != nil {
 		return nil, fmt.Errorf("failed to extract audience from external token: %w", audErr)
@@ -249,7 +255,7 @@ func (tv *tokenValidator) extractSubjectTokenClaims(
 	_ string,
 	iss string,
 	claims map[string]interface{},
-	oauthApp *inboundmodel.OAuthClient,
+	oauthApp *thunderidengine.OAuthClient,
 ) (*SubjectTokenClaims, error) {
 	sub, err := extractStringClaim(claims, "sub")
 	if err != nil {
@@ -277,8 +283,8 @@ func (tv *tokenValidator) extractSubjectTokenClaims(
 			return nil, fmt.Errorf("auth assertion must have a single audience")
 		}
 
-		defaultAudience := config.GetServerRuntime().Config.JWT.Audience
-		clientAppID := oauthApp.ID
+		defaultAudience := tv.opts.Audience
+		clientAppID := oauthApp.EntityID
 
 		if !slices.Contains([]string{defaultAudience, clientAppID}, auds[0]) {
 			return nil, fmt.Errorf("auth assertion audience mismatch")
@@ -316,7 +322,7 @@ func (tv *tokenValidator) verifyTokenSignatureByIssuer(
 	token string,
 	issuer string,
 ) error {
-	if !isSelfIssuer(issuer) {
+	if !isSelfIssuer(issuer, tv.opts.Issuer) {
 		return fmt.Errorf("no verification method configured for issuer: %s", issuer)
 	}
 	svcErr := tv.jwtService.VerifyJWTSignature(token)
@@ -329,7 +335,7 @@ func (tv *tokenValidator) verifyTokenSignatureByIssuer(
 // validateTimeClaims validates time-based claims (exp, nbf).
 func (tv *tokenValidator) validateTimeClaims(claims map[string]interface{}) error {
 	// Get leeway from config to account for clock skew
-	leeway := config.GetServerRuntime().Config.JWT.Leeway
+	leeway := tv.opts.Leeway
 	now := time.Now().Unix()
 
 	exp, err := extractInt64Claim(claims, "exp")

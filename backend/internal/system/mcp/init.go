@@ -22,12 +22,13 @@ package mcp
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/modelcontextprotocol/go-sdk/auth"
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/modelcontextprotocol/go-sdk/oauthex"
 
 	"github.com/thunder-id/thunderid/internal/system/config"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	mcpauth "github.com/thunder-id/thunderid/internal/system/mcp/auth"
 	"github.com/thunder-id/thunderid/internal/system/security"
@@ -36,7 +37,7 @@ import (
 // Initialize initializes the MCP server and registers its routes with the provided mux.
 func Initialize(
 	mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 ) *mcpsdk.Server {
 	cfg := config.GetServerRuntime().Config
 	baseURL := config.GetServerURL(&cfg.Server)

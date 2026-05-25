@@ -62,7 +62,7 @@ const (
 
 type AuthAssertExecutorTestSuite struct {
 	suite.Suite
-	mockJWTService        *jwtmock.JWTServiceInterfaceMock
+	mockJWTService        *jwtmock.JWTServiceMock
 	mockOUService         *oumock.OrganizationUnitServiceInterfaceMock
 	mockAssertGenerator   *assertmock.AuthAssertGeneratorInterfaceMock
 	mockAuthnProvider     *managermock.AuthnProviderManagerInterfaceMock
@@ -81,7 +81,7 @@ func (suite *AuthAssertExecutorTestSuite) SetupTest() {
 	// Initialize runtime for JWT config access
 	_ = initializeTestRuntime()
 
-	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
+	suite.mockJWTService = jwtmock.NewJWTServiceMock(suite.T())
 	suite.mockOUService = oumock.NewOrganizationUnitServiceInterfaceMock(suite.T())
 	suite.mockAssertGenerator = assertmock.NewAuthAssertGeneratorInterfaceMock(suite.T())
 	suite.mockAuthnProvider = managermock.NewAuthnProviderManagerInterfaceMock(suite.T())

@@ -30,11 +30,11 @@ import (
 	"net/url"
 
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // KeyUsePolicy controls how the "use" field in a JWK is interpreted when selecting an encryption key.
@@ -70,7 +70,7 @@ func newJWKSResolver(httpClient syshttp.HTTPClientInterface) *Resolver {
 // encryptionAlg is used to filter incompatible keys. policy controls "use" field strictness.
 func (r *Resolver) ResolveEncryptionKey(
 	ctx context.Context,
-	certificate *inboundmodel.Certificate,
+	certificate *thunderidengine.Certificate,
 	encryptionAlg string,
 	policy KeyUsePolicy,
 ) (crypto.PublicKey, string, *serviceerror.ServiceError) {

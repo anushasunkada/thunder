@@ -30,14 +30,13 @@ import (
 
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/cert"
-	"github.com/thunder-id/thunderid/internal/inboundclient"
-	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // authenticate authenticates the OAuth2 client from the request.
@@ -47,9 +46,9 @@ import (
 func authenticate(
 	ctx context.Context,
 	r *http.Request,
-	inboundClient inboundclient.InboundClientServiceInterface,
+	clientProvider thunderidengine.ClientProvider,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	endpointURL string,
 ) (*OAuthClientInfo, *authError) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ClientAuthMiddleware"))
@@ -130,7 +129,7 @@ func authenticate(
 		return nil, errClientIDMismatch
 	}
 
-	oauthApp, err := inboundClient.GetOAuthClientByClientID(ctx, clientID)
+	oauthApp, err := clientProvider.GetOAuthClientByClientID(ctx, clientID)
 	if err != nil {
 		logger.Error("Failed to retrieve OAuth client", log.Error(err), log.MaskedString("clientID", clientID))
 		return nil, errInvalidClientCredentials
@@ -233,8 +232,8 @@ func extractClientIDFromAssertion(assertion string) (string, *authError) {
 // validateClientAssertion validates the provided client assertion JWT using the configured certificate and JWT service.
 // The endpointURL is used as the expected audience for JWT validation.
 func validateClientAssertion(
-	oauthApp *inboundmodel.OAuthClient,
-	jwtService jwt.JWTServiceInterface,
+	oauthApp *thunderidengine.OAuthClient,
+	jwtService thunderidengine.JWTService,
 	endpointURL string,
 	clientID, clientAssertion string) error {
 	if oauthApp.Certificate == nil {

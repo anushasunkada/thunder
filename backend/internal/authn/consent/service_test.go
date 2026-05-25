@@ -41,7 +41,7 @@ import (
 type ConsentEnforcerServiceTestSuite struct {
 	suite.Suite
 	mockConsentSvc *consentmock.ConsentServiceInterfaceMock
-	mockJWTSvc     *jwtmock.JWTServiceInterfaceMock
+	mockJWTSvc     *jwtmock.JWTServiceMock
 	service        *consentEnforcerService
 }
 
@@ -61,7 +61,7 @@ func (s *ConsentEnforcerServiceTestSuite) SetupSuite() {
 
 func (s *ConsentEnforcerServiceTestSuite) SetupTest() {
 	s.mockConsentSvc = consentmock.NewConsentServiceInterfaceMock(s.T())
-	s.mockJWTSvc = jwtmock.NewJWTServiceInterfaceMock(s.T())
+	s.mockJWTSvc = jwtmock.NewJWTServiceMock(s.T())
 	s.service = &consentEnforcerService{
 		consentService: s.mockConsentSvc,
 		jwtService:     s.mockJWTSvc,

@@ -28,17 +28,18 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
 	"github.com/thunder-id/thunderid/internal/system/log"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 var (
-	globalRuntimeSvc kmprovider.RuntimeCryptoProvider
+	globalRuntimeSvc thunderidengine.RuntimeCryptoProvider
 	globalCfgSvc     kmprovider.ConfigCryptoProvider
 	globalOnce       sync.Once
 	initErr          error
 )
 
 // GetRuntimeCryptoService returns the singleton RuntimeCryptoProvider for the default key manager.
-func GetRuntimeCryptoService() (kmprovider.RuntimeCryptoProvider, error) {
+func GetRuntimeCryptoService() (thunderidengine.RuntimeCryptoProvider, error) {
 	globalOnce.Do(func() {
 		globalRuntimeSvc, globalCfgSvc, initErr = Initialize()
 	})
@@ -59,7 +60,7 @@ func InitConfigProvider() (kmprovider.ConfigCryptoProvider, error) {
 }
 
 // Initialize returns a fully wired RuntimeCryptoProvider and ConfigCryptoProvider.
-func Initialize() (kmprovider.RuntimeCryptoProvider, kmprovider.ConfigCryptoProvider, error) {
+func Initialize() (thunderidengine.RuntimeCryptoProvider, kmprovider.ConfigCryptoProvider, error) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "defaultkm"))
 
 	cfgSvc, err := initConfigProvider()

@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/authn/assert"
 	authncm "github.com/thunder-id/thunderid/internal/authn/common"
@@ -51,7 +53,7 @@ const (
 // authAssertExecutor is an executor that handles authentication assertions in the flow.
 type authAssertExecutor struct {
 	core.ExecutorInterface
-	jwtService          jwt.JWTServiceInterface
+	jwtService          thunderidengine.JWTService
 	ouService           ou.OrganizationUnitServiceInterface
 	authAssertGenerator assert.AuthAssertGeneratorInterface
 	authnProvider       authnprovidermgr.AuthnProviderManagerInterface
@@ -66,7 +68,7 @@ var _ core.ExecutorInterface = (*authAssertExecutor)(nil)
 // newAuthAssertExecutor creates a new instance of AuthAssertExecutor.
 func newAuthAssertExecutor(
 	flowFactory core.FlowFactoryInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	ouService ou.OrganizationUnitServiceInterface,
 	assertGenerator assert.AuthAssertGeneratorInterface,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,

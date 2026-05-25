@@ -25,6 +25,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/modelcontextprotocol/go-sdk/auth"
 
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
@@ -35,7 +37,7 @@ import (
 // issued by the OAuth server. This implements the auth.TokenVerifier
 // function type from the MCP SDK.
 func NewTokenVerifier(
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	issuer string,
 	mcpURL string,
 ) auth.TokenVerifier {

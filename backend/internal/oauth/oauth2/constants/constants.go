@@ -23,6 +23,7 @@ import (
 	"errors"
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // OAuth2 request parameters.
@@ -113,96 +114,28 @@ const (
 	OAuth2PAREndpoint           string = "/oauth2/par"
 )
 
-// GrantType defines a type for OAuth2 grant types.
-type GrantType string
-
-const (
-	// GrantTypeAuthorizationCode represents the authorization code grant type.
-	GrantTypeAuthorizationCode GrantType = "authorization_code"
-	// GrantTypeClientCredentials represents the client credentials grant type.
-	GrantTypeClientCredentials GrantType = "client_credentials"
-	// GrantTypeRefreshToken represents the refresh token grant type.
-	GrantTypeRefreshToken GrantType = "refresh_token"
-	// GrantTypeTokenExchange represents the token exchange grant type.
-	GrantTypeTokenExchange GrantType = "urn:ietf:params:oauth:grant-type:token-exchange" //nolint:gosec
+type (
+	// GrantType is an OAuth 2.0 grant type.
+	GrantType = thunderidengine.GrantType
+	// ResponseType is an OAuth 2.0 authorization response type.
+	ResponseType = thunderidengine.ResponseType
+	// TokenEndpointAuthMethod is a token endpoint client authentication method.
+	TokenEndpointAuthMethod = thunderidengine.TokenEndpointAuthMethod
 )
 
-// supportedGrantTypes is the single source of truth for all supported grant types.
-var supportedGrantTypes = []GrantType{
-	GrantTypeAuthorizationCode,
-	GrantTypeClientCredentials,
-	GrantTypeRefreshToken,
-	GrantTypeTokenExchange,
-}
-
-// IsValid checks if the GrantType is valid.
-func (gt GrantType) IsValid() bool {
-	for _, valid := range supportedGrantTypes {
-		if gt == valid {
-			return true
-		}
-	}
-	return false
-}
-
-// ResponseType defines a type for OAuth2 response types.
-type ResponseType string
-
+//nolint:revive // re-exported thunderidengine OAuth enum values.
 const (
-	// ResponseTypeCode represents the authorization code response type.
-	ResponseTypeCode ResponseType = "code"
-	// ResponseTypeIDToken represents the id token response type.
-	ResponseTypeIDToken ResponseType = "id_token"
+	GrantTypeAuthorizationCode               = thunderidengine.GrantTypeAuthorizationCode
+	GrantTypeClientCredentials               = thunderidengine.GrantTypeClientCredentials
+	GrantTypeRefreshToken                    = thunderidengine.GrantTypeRefreshToken
+	GrantTypeTokenExchange                   = thunderidengine.GrantTypeTokenExchange
+	ResponseTypeCode                         = thunderidengine.ResponseTypeCode
+	ResponseTypeIDToken                      = thunderidengine.ResponseTypeIDToken
+	TokenEndpointAuthMethodClientSecretBasic = thunderidengine.TokenEndpointAuthMethodClientSecretBasic
+	TokenEndpointAuthMethodClientSecretPost  = thunderidengine.TokenEndpointAuthMethodClientSecretPost
+	TokenEndpointAuthMethodPrivateKeyJWT     = thunderidengine.TokenEndpointAuthMethodPrivateKeyJWT
+	TokenEndpointAuthMethodNone              = thunderidengine.TokenEndpointAuthMethodNone
 )
-
-// supportedResponseTypes is the single source of truth for all supported response types.
-var supportedResponseTypes = []ResponseType{
-	ResponseTypeCode,
-}
-
-// IsValid checks if the ResponseType is valid.
-func (rt ResponseType) IsValid() bool {
-	for _, valid := range supportedResponseTypes {
-		if rt == valid {
-			return true
-		}
-	}
-	return false
-}
-
-// TokenEndpointAuthMethod defines a type for token endpoint authentication methods.
-type TokenEndpointAuthMethod string
-
-const (
-	// TokenEndpointAuthMethodClientSecretBasic represents the client secret basic authentication method.
-	TokenEndpointAuthMethodClientSecretBasic TokenEndpointAuthMethod = "client_secret_basic"
-	// TokenEndpointAuthMethodClientSecretPost represents the client secret post authentication method.
-	TokenEndpointAuthMethodClientSecretPost TokenEndpointAuthMethod = "client_secret_post"
-	// TokenEndpointAuthMethodPrivateKeyJWT represents the private key JWT authentication method.
-	// #nosec G101 - This is not a hardcoded credential, but a constant representing an authentication method.
-	TokenEndpointAuthMethodPrivateKeyJWT TokenEndpointAuthMethod = "private_key_jwt"
-	// TokenEndpointAuthMethodNone represents no authentication method.
-	TokenEndpointAuthMethodNone TokenEndpointAuthMethod = "none"
-)
-
-// supportedTokenEndpointAuthMethods is the single source of truth for all supported token endpoint
-// authentication methods.
-var supportedTokenEndpointAuthMethods = []TokenEndpointAuthMethod{
-	TokenEndpointAuthMethodClientSecretBasic,
-	TokenEndpointAuthMethodClientSecretPost,
-	TokenEndpointAuthMethodPrivateKeyJWT,
-	TokenEndpointAuthMethodNone,
-}
-
-// IsValid checks if the TokenEndpointAuthMethod is valid.
-func (tam TokenEndpointAuthMethod) IsValid() bool {
-	for _, valid := range supportedTokenEndpointAuthMethods {
-		if tam == valid {
-			return true
-		}
-	}
-	return false
-}
 
 // OAuth2 token types.
 const (
@@ -354,29 +287,17 @@ const (
 
 // GetSupportedResponseTypes returns all supported OAuth2 response types.
 func GetSupportedResponseTypes() []string {
-	result := make([]string, len(supportedResponseTypes))
-	for i, rt := range supportedResponseTypes {
-		result[i] = string(rt)
-	}
-	return result
+	return thunderidengine.SupportedResponseTypeStrings()
 }
 
 // GetSupportedGrantTypes returns all supported OAuth2 grant types.
 func GetSupportedGrantTypes() []string {
-	result := make([]string, len(supportedGrantTypes))
-	for i, gt := range supportedGrantTypes {
-		result[i] = string(gt)
-	}
-	return result
+	return thunderidengine.SupportedGrantTypeStrings()
 }
 
 // GetSupportedTokenEndpointAuthMethods returns all supported token endpoint authentication methods.
 func GetSupportedTokenEndpointAuthMethods() []string {
-	result := make([]string, len(supportedTokenEndpointAuthMethods))
-	for i, tam := range supportedTokenEndpointAuthMethods {
-		result[i] = string(tam)
-	}
-	return result
+	return thunderidengine.SupportedTokenEndpointAuthMethodStrings()
 }
 
 // GetSupportedSubjectTypes returns all supported OIDC subject types.

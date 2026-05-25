@@ -40,8 +40,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/role"
 	"github.com/thunder-id/thunderid/internal/system/email"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/template"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 
 	"github.com/thunder-id/thunderid/internal/entitytype"
 )
@@ -52,7 +52,7 @@ func Initialize(
 	ouService ou.OrganizationUnitServiceInterface,
 	idpService idp.IDPServiceInterface,
 	notifSenderSvc notification.NotificationSenderServiceInterface,
-	jwtService jwt.JWTServiceInterface,
+	jwtService thunderidengine.JWTService,
 	authAssertGen assert.AuthAssertGeneratorInterface,
 	consentEnforcer consent.ConsentEnforcerServiceInterface,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,

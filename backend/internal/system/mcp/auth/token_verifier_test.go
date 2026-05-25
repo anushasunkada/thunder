@@ -42,7 +42,7 @@ const (
 	testMCPURL = "https://localhost:8090/mcp"
 )
 
-// MockJWTService is a mock implementation of jwt.JWTServiceInterface
+// MockJWTService is a mock implementation of thunderidengine.JWTService
 type MockJWTService struct {
 	mock.Mock
 }

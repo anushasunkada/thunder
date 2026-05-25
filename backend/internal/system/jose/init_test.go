@@ -29,10 +29,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/system/config"
-	"github.com/thunder-id/thunderid/internal/system/cryptolab"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 )
 
@@ -79,31 +76,31 @@ func (suite *JOSEInitTestSuite) TearDownTest() {
 
 func (suite *JOSEInitTestSuite) TestInitialize_Success() {
 	suite.mockRuntime.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-key-id"}).
-		Return([]kmprovider.PublicKeyInfo{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-key-id"}).
+		Return([]thunderidengine.PublicKeyInfo{
 			{
 				KeyID:      "test-key-id",
-				Algorithm:  cryptolab.AlgorithmRS256,
+				Algorithm:  thunderidengine.AlgorithmRS256,
 				PublicKey:  &suite.testPrivateKey.PublicKey,
 				Thumbprint: "test-thumbprint",
 			},
 		}, nil)
 
-	jwtService, jweService, err := Initialize(suite.mockRuntime)
+	jwtService, jweService, err := InitializeJose(suite.mockRuntime)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), jwtService)
 	assert.NotNil(suite.T(), jweService)
-	assert.Implements(suite.T(), (*jwt.JWTServiceInterface)(nil), jwtService)
-	assert.Implements(suite.T(), (*jwe.JWEServiceInterface)(nil), jweService)
+	assert.Implements(suite.T(), (*thunderidengine.JWTService)(nil), jwtService)
+	assert.Implements(suite.T(), (*thunderidengine.JWEService)(nil), jweService)
 }
 
 func (suite *JOSEInitTestSuite) TestInitialize_JWTInitializationFailure() {
 	suite.mockRuntime.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-key-id"}).
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-key-id"}).
 		Return(nil, errors.New("provider unavailable"))
 
-	jwtService, jweService, err := Initialize(suite.mockRuntime)
+	jwtService, jweService, err := InitializeJose(suite.mockRuntime)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), jwtService)
@@ -118,7 +115,7 @@ func (suite *JOSEInitTestSuite) TestInitialize_NilRuntimeProvider() {
 		}
 	}()
 
-	jwtService, jweService, err := Initialize(nil)
+	jwtService, jweService, err := InitializeJose(nil)
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), jwtService)
@@ -127,23 +124,23 @@ func (suite *JOSEInitTestSuite) TestInitialize_NilRuntimeProvider() {
 
 func (suite *JOSEInitTestSuite) TestInitialize_ValidatesServiceInterfaces() {
 	suite.mockRuntime.EXPECT().
-		GetPublicKeys(mock.Anything, kmprovider.PublicKeyFilter{KeyID: "test-key-id"}).
-		Return([]kmprovider.PublicKeyInfo{
+		GetPublicKeys(mock.Anything, thunderidengine.PublicKeyFilter{KeyID: "test-key-id"}).
+		Return([]thunderidengine.PublicKeyInfo{
 			{
 				KeyID:      "test-key-id",
-				Algorithm:  cryptolab.AlgorithmRS256,
+				Algorithm:  thunderidengine.AlgorithmRS256,
 				PublicKey:  &suite.testPrivateKey.PublicKey,
 				Thumbprint: "test-thumbprint",
 			},
 		}, nil)
 
-	jwtService, jweService, err := Initialize(suite.mockRuntime)
+	jwtService, jweService, err := InitializeJose(suite.mockRuntime)
 
 	assert.NoError(suite.T(), err)
 	if jwtService != nil {
-		assert.Implements(suite.T(), (*jwt.JWTServiceInterface)(nil), jwtService)
+		assert.Implements(suite.T(), (*thunderidengine.JWTService)(nil), jwtService)
 	}
 	if jweService != nil {
-		assert.Implements(suite.T(), (*jwe.JWEServiceInterface)(nil), jweService)
+		assert.Implements(suite.T(), (*thunderidengine.JWEService)(nil), jweService)
 	}
 }

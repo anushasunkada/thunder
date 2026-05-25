@@ -20,11 +20,11 @@ package google
 
 import (
 	authnoidc "github.com/thunder-id/thunderid/internal/authn/oidc"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the Google OIDC authentication service.
 func Initialize(oidcSvc authnoidc.OIDCAuthnServiceInterface,
-	jwtSvc jwt.JWTServiceInterface) GoogleOIDCAuthnServiceInterface {
+	jwtSvc thunderidengine.JWTService) GoogleOIDCAuthnServiceInterface {
 	return newGoogleOIDCAuthnService(oidcSvc, jwtSvc)
 }

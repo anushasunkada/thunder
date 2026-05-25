@@ -21,13 +21,17 @@ package discovery
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // Initialize initializes the discovery service and registers its routes
-func Initialize(mux *http.ServeMux, cryptoProvider kmprovider.RuntimeCryptoProvider) DiscoveryServiceInterface {
-	discoveryService := newDiscoveryService(cryptoProvider)
+func Initialize(
+	mux *http.ServeMux,
+	cryptoProvider thunderidengine.RuntimeCryptoProvider,
+	opts Options,
+) DiscoveryServiceInterface {
+	discoveryService := newDiscoveryService(cryptoProvider, opts)
 	discoveryHandler := newDiscoveryHandler(discoveryService)
 	registerRoutes(mux, discoveryHandler)
 	return discoveryService

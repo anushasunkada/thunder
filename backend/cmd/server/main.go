@@ -33,12 +33,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
+
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/cors"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
-	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pkiservice"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -180,7 +181,7 @@ func loadCertConfig(logger *log.Logger, cfg *config.Config, serverHome string) *
 
 // createHTTPServer creates and configures an HTTP server with common settings.
 func createHTTPServer(logger *log.Logger, cfg *config.Config, mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface) *http.Server {
+	jwtService thunderidengine.JWTService) *http.Server {
 	securityMiddleware := createSecurityMiddleware(logger, mux, jwtService)
 
 	// Build the middleware chain with proper execution order.
@@ -222,7 +223,7 @@ func createTLSListener(logger *log.Logger, server *http.Server, tlsConfig *tls.C
 }
 
 func createSecurityMiddleware(logger *log.Logger, mux *http.ServeMux,
-	jwtService jwt.JWTServiceInterface) http.Handler {
+	jwtService thunderidengine.JWTService) http.Handler {
 	middlewareFunc, err := security.Initialize(jwtService)
 	if err != nil {
 		logger.Fatal("Failed to initialize security middleware", log.Error(err))
