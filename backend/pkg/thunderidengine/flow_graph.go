@@ -1,0 +1,42 @@
+/*
+ * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package thunderidengine
+
+import "context"
+
+// FlowGraph is a built runtime graph used by flow execution.
+type FlowGraph interface {
+	GetID() string
+	FlowType() string
+}
+
+// GraphCache caches built flow graphs by flow ID.
+type GraphCache interface{}
+
+// GraphBuilder builds and caches runtime graphs from flow definitions.
+type GraphBuilder interface {
+	GetGraph(ctx context.Context, flow *FlowDefinition) (FlowGraph, error)
+	InvalidateCache(ctx context.Context, flowID string)
+}
+
+// GraphBuilderOptions configures graph builder construction via pkg/flowgraphbridge.
+type GraphBuilderOptions struct {
+	Executors ExecutorRegistry
+	Cache     GraphCache
+}

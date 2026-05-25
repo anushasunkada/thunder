@@ -43,6 +43,7 @@ func Initialize(
 	flowFactory core.FlowFactoryInterface,
 	executorRegistry executor.ExecutorRegistryInterface,
 	graphCache core.GraphCacheInterface,
+	graphBuilder GraphBuilder,
 ) (FlowMgtServiceInterface, declarativeresource.ResourceExporter, error) {
 	store, compositeStore, transactioner, err := initializeStore(cacheManager)
 	if err != nil {
@@ -50,7 +51,9 @@ func Initialize(
 	}
 
 	inferenceService := newFlowInferenceService()
-	graphBuilder := newGraphBuilder(flowFactory, executorRegistry, graphCache)
+	if graphBuilder == nil {
+		graphBuilder = NewGraphBuilder(flowFactory, executorRegistry, graphCache)
+	}
 	service := newFlowMgtService(store, inferenceService, graphBuilder, executorRegistry, compositeStore, transactioner)
 
 	handler := newFlowMgtHandler(service)

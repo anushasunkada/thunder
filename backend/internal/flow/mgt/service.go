@@ -73,7 +73,7 @@ type FlowMgtServiceInterface interface {
 type flowMgtService struct {
 	store            flowStoreInterface
 	inferenceService flowInferenceServiceInterface
-	graphBuilder     graphBuilderInterface
+	graphBuilder     GraphBuilder
 	executorRegistry executor.ExecutorRegistryInterface
 	compositeStore   *compositeFlowStore
 	transactioner    transaction.Transactioner
@@ -84,7 +84,7 @@ type flowMgtService struct {
 func newFlowMgtService(
 	store flowStoreInterface,
 	inferenceService flowInferenceServiceInterface,
-	graphBuilder graphBuilderInterface,
+	graphBuilder GraphBuilder,
 	executorRegistry executor.ExecutorRegistryInterface,
 	compositeStore *compositeFlowStore,
 	transactioner transaction.Transactioner,

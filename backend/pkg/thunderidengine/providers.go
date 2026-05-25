@@ -77,6 +77,7 @@ type IDPProvider interface {
 type FlowDefinitionProvider interface {
 	GetFlowByID(ctx context.Context, id string) (*FlowDefinition, error)
 	GetFlowByHandle(ctx context.Context, appID, handle string) (*FlowDefinition, error)
+	GetFlowByHandleAndType(ctx context.Context, handle, flowType string) (*FlowDefinition, error)
 }
 
 // ObservabilityProvider publishes runtime events.

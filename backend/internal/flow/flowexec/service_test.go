@@ -29,7 +29,7 @@ import (
 	authncm "github.com/thunder-id/thunderid/internal/authn/common"
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/core"
-	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
+	"github.com/thunder-id/thunderid/pkg/flowgraphbridge"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -39,8 +39,24 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
-	"github.com/thunder-id/thunderid/tests/mocks/flow/flowmgtmock"
 )
+
+type flowGraphProviderMock struct {
+	mock.Mock
+}
+
+func (m *flowGraphProviderMock) GetGraph(ctx context.Context, flowID string) (thunderidengine.FlowGraph, error) {
+	args := m.Called(ctx, flowID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(thunderidengine.FlowGraph), args.Error(1)
+}
+
+func (m *flowGraphProviderMock) GetFlowIDByHandle(ctx context.Context, handle, flowType string) (string, error) {
+	args := m.Called(ctx, handle, flowType)
+	return args.String(0), args.Error(1)
+}
 
 func TestInitiateFlowNilContext(t *testing.T) {
 	// Setup
@@ -187,14 +203,14 @@ func TestInitiateFlowSuccessScenarios(t *testing.T) {
 			// Setup mocks
 			flowStore, mockStore := newTestFlowRuntimeStore(t)
 			mockClientProvider := &clientProviderMock{}
-			mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+			mockFlowGraph := new(flowGraphProviderMock)
 			mockCrypto := cryptomock.NewRuntimeCryptoProviderMock(t)
 			mockCrypto.EXPECT().Encrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				Return([]byte("encrypted-ctx"), nil)
 
 			// Create service with mocked dependencies
 			service := &flowExecService{
-				flowMgtService: mockFlowMgtSvc,
+				flowGraph: mockFlowGraph,
 				flowStore:      flowStore,
 				clientProvider: mockClientProvider,
 				flowEngine:     nil,
@@ -216,14 +232,12 @@ func TestInitiateFlowSuccessScenarios(t *testing.T) {
 				initContext.FlowType = string(common.FlowTypeUserOnboarding)
 				initContext.ApplicationID = "" // System flows don't need app ID
 
-				// Mock flow management service to return flow by handle
-				mockFlow := &flowmgt.CompleteFlowDefinition{ID: "onboarding-flow-123"}
-				mockFlowMgtSvc.EXPECT().GetFlowByHandle(mock.Anything,
-					mock.Anything, common.FlowTypeUserOnboarding).Return(mockFlow, nil)
+				mockFlowGraph.On("GetFlowIDByHandle", mock.Anything,
+					mock.Anything, string(common.FlowTypeUserOnboarding)).Return("onboarding-flow-123", nil)
 
-				// Mock GetGraph call which is made during initContext
 				inviteGraph := flowFactory.CreateGraph("onboarding-flow-123", common.FlowTypeUserOnboarding)
-				mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "onboarding-flow-123").Return(inviteGraph, nil)
+				mockFlowGraph.On("GetGraph", mock.Anything, "onboarding-flow-123").
+					Return(flowgraphbridge.WrapCoreGraph(inviteGraph), nil)
 
 				mockStore.EXPECT().StoreFlowContext(mock.Anything, mock.MatchedBy(func(encryptedEngineCtx FlowContextDB) bool {
 					return encryptedEngineCtx.ExecutionID != ""
@@ -233,7 +247,8 @@ func TestInitiateFlowSuccessScenarios(t *testing.T) {
 					&thunderidengine.Application{ID: appID, AuthFlowID: "auth-graph-1"}, nil)
 				mockClientProvider.On("GetFlowApplicationByID", mock.Anything, appID).Return(
 					&thunderidengine.FlowApplication{ID: appID}, nil)
-				mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "auth-graph-1").Return(testGraph, nil)
+				mockFlowGraph.On("GetGraph", mock.Anything, "auth-graph-1").
+					Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 				mockStore.EXPECT().StoreFlowContext(mock.Anything, mock.MatchedBy(func(encryptedEngineCtx FlowContextDB) bool {
 					return encryptedEngineCtx.ExecutionID != ""
 				}), mock.Anything).Return(nil)
@@ -264,7 +279,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 		setupMocks func(
 			*flowStoreInterfaceMock,
 			*clientProviderMock,
-			*flowmgtmock.FlowMgtServiceInterfaceMock,
+			*flowGraphProviderMock,
 		)
 		expectedErrorCode        string
 		expectedErrorDescription string
@@ -274,7 +289,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			setupMocks: func(
 				mockStore *flowStoreInterfaceMock,
 				mockClientProvider *clientProviderMock,
-				mockFlowMgtSvc *flowmgtmock.FlowMgtServiceInterfaceMock,
+				mockFlowGraph *flowGraphProviderMock,
 			) {
 				mockClientProvider.On("GetApplicationByID", mock.Anything, appID).
 					Return((*thunderidengine.Application)(nil), thunderidengine.ErrApplicationNotFound)
@@ -286,7 +301,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			setupMocks: func(
 				mockStore *flowStoreInterfaceMock,
 				mockClientProvider *clientProviderMock,
-				mockFlowMgtSvc *flowmgtmock.FlowMgtServiceInterfaceMock,
+				mockFlowGraph *flowGraphProviderMock,
 			) {
 				mockClientProvider.On("GetApplicationByID", mock.Anything, appID).
 					Return((*thunderidengine.Application)(nil), assert.AnError)
@@ -298,7 +313,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			setupMocks: func(
 				mockStore *flowStoreInterfaceMock,
 				mockClientProvider *clientProviderMock,
-				mockFlowMgtSvc *flowmgtmock.FlowMgtServiceInterfaceMock,
+				mockFlowGraph *flowGraphProviderMock,
 			) {
 				mockClientProvider.On("GetApplicationByID", mock.Anything, appID).
 					Return(&thunderidengine.Application{ID: appID, AuthFlowID: "auth-graph-1"}, nil)
@@ -306,8 +321,8 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 					&thunderidengine.FlowApplication{ID: appID}, nil).Maybe()
 
 				// Mock flow management service to return error (graph not found)
-				mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "auth-graph-1").
-					Return(nil, &serviceerror.InternalServerError)
+				mockFlowGraph.On("GetGraph", mock.Anything, "auth-graph-1").
+					Return(nil, flowgraphbridge.AsServiceError(&serviceerror.InternalServerError))
 			},
 			expectedErrorCode: serviceerror.InternalServerError.Code,
 		},
@@ -316,7 +331,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			setupMocks: func(
 				mockStore *flowStoreInterfaceMock,
 				mockClientProvider *clientProviderMock,
-				mockFlowMgtSvc *flowmgtmock.FlowMgtServiceInterfaceMock,
+				mockFlowGraph *flowGraphProviderMock,
 			) {
 				mockClientProvider.On("GetApplicationByID", mock.Anything, appID).
 					Return(&thunderidengine.Application{ID: appID, AuthFlowID: "auth-graph-1"}, nil)
@@ -325,7 +340,8 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 
 				// Mock flow management service to return valid graph
 				testGraph := flowFactory.CreateGraph("auth-graph-1", common.FlowTypeAuthentication)
-				mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "auth-graph-1").Return(testGraph, nil)
+				mockFlowGraph.On("GetGraph", mock.Anything, "auth-graph-1").
+					Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 
 				// Mock store to return error
 				mockStore.EXPECT().StoreFlowContext(
@@ -341,14 +357,14 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			// Setup mocks
 			flowStore, mockStore := newTestFlowRuntimeStore(t)
 			mockClientProvider := &clientProviderMock{}
-			mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+			mockFlowGraph := new(flowGraphProviderMock)
 			mockCrypto := cryptomock.NewRuntimeCryptoProviderMock(t)
 			mockCrypto.EXPECT().Encrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 				Return([]byte("encrypted-ctx"), nil).Maybe()
 
 			// Create service with mocked dependencies
 			service := &flowExecService{
-				flowMgtService: mockFlowMgtSvc,
+				flowGraph: mockFlowGraph,
 				flowStore:      flowStore,
 				clientProvider: mockClientProvider,
 				flowEngine:     nil,
@@ -364,7 +380,7 @@ func TestInitiateFlowErrorScenarios(t *testing.T) {
 			}
 
 			// Setup test-specific mocks
-			tt.setupMocks(mockStore, mockClientProvider, mockFlowMgtSvc)
+			tt.setupMocks(mockStore, mockClientProvider, mockFlowGraph)
 
 			// Execute
 			executionID, svcErr := service.InitiateFlow(context.Background(), initContext)
@@ -430,7 +446,7 @@ func TestEncryptedPayloadStoredBeforeWrite(t *testing.T) {
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
 	mockClientProvider := &clientProviderMock{}
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockCrypto := cryptomock.NewRuntimeCryptoProviderMock(t)
 	mockCrypto.EXPECT().Encrypt(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return([]byte(encryptedPayload), nil)
@@ -439,7 +455,7 @@ func TestEncryptedPayloadStoredBeforeWrite(t *testing.T) {
 		&thunderidengine.Application{ID: "test-app", AuthFlowID: "auth-graph-1"}, nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app").Return(
 		&thunderidengine.FlowApplication{ID: "test-app"}, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "auth-graph-1").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "auth-graph-1").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockStore.EXPECT().StoreFlowContext(
 		mock.Anything,
 		mock.MatchedBy(func(dbModel FlowContextDB) bool {
@@ -448,7 +464,7 @@ func TestEncryptedPayloadStoredBeforeWrite(t *testing.T) {
 		mock.Anything).Return(nil)
 
 	service := &flowExecService{
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowStore:      flowStore,
 		clientProvider: mockClientProvider,
 		cryptoSvc:      mockCrypto,
@@ -489,7 +505,7 @@ func TestDecryptCalledForEncryptedStoredContext(t *testing.T) {
 	}
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 	mockCrypto := cryptomock.NewRuntimeCryptoProviderMock(t)
@@ -503,7 +519,7 @@ func TestDecryptCalledForEncryptedStoredContext(t *testing.T) {
 		Return([]byte("re-encrypted"), nil)
 
 	mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(encryptedStoredCtx, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 		&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 
@@ -518,7 +534,7 @@ func TestDecryptCalledForEncryptedStoredContext(t *testing.T) {
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 		cryptoSvc:      mockCrypto,
@@ -744,7 +760,7 @@ func TestExecute_ContextDecryptionSuccess(t *testing.T) {
 	assert.NoError(t, err)
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 	mockCrypto := cryptomock.NewRuntimeCryptoProviderMock(t)
@@ -752,7 +768,7 @@ func TestExecute_ContextDecryptionSuccess(t *testing.T) {
 		Return([]byte("encrypted-ctx"), nil)
 
 	mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(storedCtx, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 		&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 	challengeToken := "test-challenge-token"
@@ -765,7 +781,7 @@ func TestExecute_ContextDecryptionSuccess(t *testing.T) {
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 		cryptoSvc:      mockCrypto,
@@ -799,12 +815,12 @@ func TestExecute_ExistingFlowWithoutChallengeToken(t *testing.T) {
 	assert.NoError(t, err)
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 
 	mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(storedCtx, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 		&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 
@@ -821,7 +837,7 @@ func TestExecute_ExistingFlowWithoutChallengeToken(t *testing.T) {
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 		cryptoSvc:      mockCrypto,
@@ -882,12 +898,12 @@ func TestExecute_ExistingFlowWithDifferentChallengeTokens(t *testing.T) {
 			assert.NoError(t, err)
 
 			flowStore, mockStore := newTestFlowRuntimeStore(t)
-			mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+			mockFlowGraph := new(flowGraphProviderMock)
 			mockEngine := newFlowEngineInterfaceMock(t)
 			mockClientProvider := &clientProviderMock{}
 
 			mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(storedCtx, nil)
-			mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+			mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 			mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 				&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 
@@ -905,7 +921,7 @@ func TestExecute_ExistingFlowWithDifferentChallengeTokens(t *testing.T) {
 
 			service := &flowExecService{
 				flowStore:      flowStore,
-				flowMgtService: mockFlowMgtSvc,
+				flowGraph: mockFlowGraph,
 				flowEngine:     mockEngine,
 				clientProvider: mockClientProvider,
 				cryptoSvc:      mockCrypto,
@@ -941,12 +957,12 @@ func TestExecute_EngineError_InvalidChallengeToken_PreservesContext(t *testing.T
 	assert.NoError(t, err)
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 
 	mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(storedCtx, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 		&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 
@@ -956,7 +972,7 @@ func TestExecute_EngineError_InvalidChallengeToken_PreservesContext(t *testing.T
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 	}
@@ -989,12 +1005,12 @@ func TestExecute_EngineError_NonChallengeToken_RemovesContext(t *testing.T) {
 	assert.NoError(t, err)
 
 	flowStore, mockStore := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 
 	mockStore.EXPECT().GetFlowContext(mock.Anything, "existing-execution-id").Return(storedCtx, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "test-graph-id").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "test-graph-id").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app-id").Return(
 		&thunderidengine.FlowApplication{ID: "test-app-id"}, nil)
 
@@ -1018,7 +1034,7 @@ func TestExecute_EngineError_NonChallengeToken_RemovesContext(t *testing.T) {
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 	}
@@ -1040,20 +1056,20 @@ func TestExecute_EngineError_NewFlow_ContextNeverRemoved(t *testing.T) {
 	testGraph := flowFactory.CreateGraph("auth-graph-1", common.FlowTypeAuthentication)
 
 	flowStore, _ := newTestFlowRuntimeStore(t)
-	mockFlowMgtSvc := flowmgtmock.NewFlowMgtServiceInterfaceMock(t)
+	mockFlowGraph := new(flowGraphProviderMock)
 	mockEngine := newFlowEngineInterfaceMock(t)
 	mockClientProvider := &clientProviderMock{}
 	mockClientProvider.On("GetApplicationByID", mock.Anything, "test-app").Return(
 		&thunderidengine.Application{ID: "test-app", AuthFlowID: "auth-graph-1"}, nil)
 	mockClientProvider.On("GetFlowApplicationByID", mock.Anything, "test-app").Return(
 		&thunderidengine.FlowApplication{ID: "test-app"}, nil)
-	mockFlowMgtSvc.EXPECT().GetGraph(mock.Anything, "auth-graph-1").Return(testGraph, nil)
+	mockFlowGraph.On("GetGraph", mock.Anything, "auth-graph-1").Return(flowgraphbridge.WrapCoreGraph(testGraph), nil)
 	mockEngine.EXPECT().Execute(mock.Anything).Return(FlowStep{}, &ErrorInvalidChallengeToken)
 	// DeleteFlowContext must NOT be called — new flows have no persisted context to clean up
 
 	service := &flowExecService{
 		flowStore:      flowStore,
-		flowMgtService: mockFlowMgtSvc,
+		flowGraph: mockFlowGraph,
 		flowEngine:     mockEngine,
 		clientProvider: mockClientProvider,
 	}

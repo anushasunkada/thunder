@@ -22,7 +22,6 @@ import (
 	"net/http"
 
 	"github.com/thunder-id/thunderid/internal/flow/executor"
-	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
@@ -32,7 +31,7 @@ import (
 // The observabilitySvc parameter is optional (can be nil) - if nil, observability events won't be published.
 func Initialize(
 	mux *http.ServeMux,
-	flowMgtService flowmgt.FlowMgtServiceInterface,
+	flowGraph thunderidengine.FlowGraphProvider,
 	clientProvider thunderidengine.ClientProvider,
 	executorRegistry executor.ExecutorRegistryInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
@@ -40,7 +39,7 @@ func Initialize(
 	flowStore thunderidengine.RuntimeStore,
 ) (FlowExecServiceInterface, error) {
 	flowEngine := newFlowEngine(executorRegistry, observabilitySvc)
-	flowExecService := newFlowExecService(flowMgtService, flowStore, flowEngine,
+	flowExecService := newFlowExecService(flowGraph, flowStore, flowEngine,
 		clientProvider, observabilitySvc, cryptoSvc)
 
 	handler := newFlowExecutionHandler(flowExecService)

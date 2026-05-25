@@ -21,9 +21,14 @@ package core
 
 import "github.com/thunder-id/thunderid/internal/system/cache"
 
+// NewFlowFactory creates a flow component factory.
+func NewFlowFactory() FlowFactoryInterface {
+	return newFlowFactory()
+}
+
 // Initialize initializes the core flow package
 func Initialize(cacheManager cache.CacheManagerInterface) (FlowFactoryInterface, GraphCacheInterface) {
-	flowFactory := newFlowFactory()
+	flowFactory := NewFlowFactory()
 	graphCacheInst := cache.GetInMemoryCache[*graph](cacheManager, "FlowGraphCache")
 	graphCache := newGraphCache(graphCacheInst)
 	return flowFactory, graphCache

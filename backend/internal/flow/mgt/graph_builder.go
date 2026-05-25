@@ -31,13 +31,13 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
 
-// graphBuilderInterface defines the interface for building flow graphs.
-type graphBuilderInterface interface {
+// GraphBuilder builds and caches runtime flow graphs from definitions.
+type GraphBuilder interface {
 	GetGraph(ctx context.Context, flow *CompleteFlowDefinition) (core.GraphInterface, *serviceerror.ServiceError)
 	InvalidateCache(ctx context.Context, flowID string)
 }
 
-// graphBuilder is the implementation of graphBuilderInterface.
+// graphBuilder is the implementation of GraphBuilder.
 type graphBuilder struct {
 	flowFactory      core.FlowFactoryInterface
 	executorRegistry executor.ExecutorRegistryInterface
@@ -45,12 +45,12 @@ type graphBuilder struct {
 	logger           *log.Logger
 }
 
-// newGraphBuilder creates a new instance of graphBuilder.
-func newGraphBuilder(
+// NewGraphBuilder creates a new GraphBuilder.
+func NewGraphBuilder(
 	flowFactory core.FlowFactoryInterface,
 	executorRegistry executor.ExecutorRegistryInterface,
 	graphCache core.GraphCacheInterface,
-) graphBuilderInterface {
+) GraphBuilder {
 	return &graphBuilder{
 		flowFactory:      flowFactory,
 		executorRegistry: executorRegistry,

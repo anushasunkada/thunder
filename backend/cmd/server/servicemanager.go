@@ -83,6 +83,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/sysauthz"
 	"github.com/thunder-id/thunderid/internal/system/template"
 	"github.com/thunder-id/thunderid/internal/user"
+	"github.com/thunder-id/thunderid/pkg/flowgraphbridge"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
@@ -273,8 +274,9 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		attributeCacheService, emailClient, templateService, oauthAuthnService, oidcAuthnService,
 		githubAuthnService, googleAuthnService)
 
+	graphBuilder := flowmgt.NewGraphBuilder(flowFactory, execRegistry, graphCache)
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
-		mux, mcpServer, cacheManager, flowFactory, execRegistry, graphCache)
+		mux, mcpServer, cacheManager, flowFactory, execRegistry, graphCache, graphBuilder)
 	if err != nil {
 		logger.Fatal("Failed to initialize FlowMgtService", log.Error(err))
 	}
@@ -354,7 +356,8 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		logger.Fatal("Failed to initialize runtime store", log.Error(err))
 	}
 
-	flowExecService, err := flowexec.Initialize(mux, flowMgtService, clientProvider,
+	flowGraphProvider := flowgraphbridge.NewFlowGraphProviderFromMgt(flowMgtService)
+	flowExecService, err := flowexec.Initialize(mux, flowGraphProvider, clientProvider,
 		execRegistry, observabilitySvc, runtimeCryptoSvc, runtimeStore)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
