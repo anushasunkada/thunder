@@ -40,7 +40,7 @@ type AuthorizationRequestStoreTestSuite struct {
 	mockdbProvider         *providermock.DBProviderInterfaceMock
 	mockDBClient           *providermock.DBClientInterfaceMock
 	store                  *authorizationRequestStore
-	testAuthRequestContext authRequestContext
+	testAuthRequestContext AuthRequestContext
 }
 
 func TestAuthorizationRequestStoreTestSuite(t *testing.T) {
@@ -71,7 +71,7 @@ func (suite *AuthorizationRequestStoreTestSuite) SetupTest() {
 		deploymentID:   testDeploymentID,
 	}
 
-	suite.testAuthRequestContext = authRequestContext{
+	suite.testAuthRequestContext = AuthRequestContext{
 		OAuthParameters: model.OAuthParameters{
 			State:               "test-state",
 			ClientID:            "test-client-id",
@@ -93,7 +93,7 @@ func (suite *AuthorizationRequestStoreTestSuite) TearDownTest() {
 func (suite *AuthorizationRequestStoreTestSuite) TestNewAuthorizationRequestStore() {
 	store := newAuthorizationRequestStore("test-deployment")
 	assert.NotNil(suite.T(), store)
-	assert.Implements(suite.T(), (*authorizationRequestStoreInterface)(nil), store)
+	assert.Implements(suite.T(), (*AuthorizationRequestStoreInterface)(nil), store)
 }
 
 func (suite *AuthorizationRequestStoreTestSuite) TestAddRequest_Success() {
@@ -738,7 +738,7 @@ func (suite *AuthorizationRequestStoreTestSuite) TestGetRequest_StandardScopesOt
 		"state":           "test-state",
 		"standard_scopes": map[string]string{"key": "value"}, // Wrong type - map instead of array
 	}
-	suite.testGetRequestWithInvalidScopesType(requestData, func(result authRequestContext) {
+	suite.testGetRequestWithInvalidScopesType(requestData, func(result AuthRequestContext) {
 		assert.Equal(suite.T(), []string{}, result.OAuthParameters.StandardScopes) // Should default to empty
 	})
 }
@@ -749,7 +749,7 @@ func (suite *AuthorizationRequestStoreTestSuite) TestGetRequest_PermissionScopes
 		"state":             "test-state",
 		"permission_scopes": map[string]string{"key": "value"}, // Wrong type - map instead of array
 	}
-	suite.testGetRequestWithInvalidScopesType(requestData, func(result authRequestContext) {
+	suite.testGetRequestWithInvalidScopesType(requestData, func(result AuthRequestContext) {
 		assert.Equal(suite.T(), []string{}, result.OAuthParameters.PermissionScopes) // Should default to empty
 	})
 }
@@ -757,7 +757,7 @@ func (suite *AuthorizationRequestStoreTestSuite) TestGetRequest_PermissionScopes
 // testGetRequestWithInvalidScopesType is a helper function to test GetRequest with invalid scope types
 func (suite *AuthorizationRequestStoreTestSuite) testGetRequestWithInvalidScopesType(
 	requestData map[string]interface{},
-	assertFn func(authRequestContext),
+	assertFn func(AuthRequestContext),
 ) {
 	requestDataJSON, _ := json.Marshal(requestData)
 

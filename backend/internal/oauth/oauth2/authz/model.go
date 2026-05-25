@@ -19,9 +19,7 @@
 package authz
 
 import (
-	"time"
-
-	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // OAuthMessage represents the OAuth message.
@@ -33,26 +31,11 @@ type OAuthMessage struct {
 	RequestBodyParams  map[string]string
 }
 
-// AuthorizationCode represents the authorization code.
-type AuthorizationCode struct {
-	CodeID              string
-	Code                string
-	ClientID            string
-	RedirectURI         string
-	AuthorizedUserID    string
-	AttributeCacheID    string
-	TimeCreated         time.Time
-	ExpiryTime          time.Time
-	Scopes              string
-	State               string
-	CodeChallenge       string
-	CodeChallengeMethod string
-	Resources           []string
-	ClaimsRequest       *oauth2model.ClaimsRequest
-	ClaimsLocales       string
-	Nonce               string
-	CompletedACR        string
-}
+// AuthorizationCode is the persisted OAuth authorization code.
+type AuthorizationCode = thunderidengine.AuthorizationCode
+
+// AuthRequestContext holds in-progress authorize request state.
+type AuthRequestContext = thunderidengine.AuthRequestContext
 
 // AuthZPostRequest represents the request body for the authorization POST request.
 type AuthZPostRequest struct {

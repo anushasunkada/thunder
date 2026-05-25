@@ -81,7 +81,7 @@ func testAuthCodeValidity() int64 {
 }
 
 func createTestAuthorizationCode(
-	authRequestCtx *authRequestContext, clms *assertionClaims, authTime time.Time,
+	authRequestCtx *AuthRequestContext, clms *assertionClaims, authTime time.Time,
 ) (AuthorizationCode, error) {
 	return createAuthorizationCode(authRequestCtx, clms, authTime, testAuthCodeValidity())
 }

@@ -60,7 +60,7 @@ type authorizeService struct {
 	resourceService resource.ResourceServiceInterface
 	authZValidator  AuthorizationValidatorInterface
 	authCodeStore   AuthorizationCodeStoreInterface
-	authReqStore    authorizationRequestStoreInterface
+	authReqStore    AuthorizationRequestStoreInterface
 	parService      par.PARServiceInterface
 	jwtService      thunderidengine.JWTService
 	flowExecService flowexec.FlowExecServiceInterface
@@ -79,7 +79,7 @@ func newAuthorizeService(
 	jwtService thunderidengine.JWTService,
 	flowExecService flowexec.FlowExecServiceInterface,
 	authCodeStore AuthorizationCodeStoreInterface,
-	authReqStore authorizationRequestStoreInterface,
+	authReqStore AuthorizationRequestStoreInterface,
 	parService par.PARServiceInterface,
 	transactioner transaction.Transactioner,
 	opts Options,
@@ -356,7 +356,7 @@ func (as *authorizeService) initiateFlowAndStoreRequest(
 		}
 	}
 
-	authRequestCtx := authRequestContext{
+	authRequestCtx := AuthRequestContext{
 		OAuthParameters: *oauthParams,
 	}
 
@@ -568,7 +568,7 @@ func (as *authorizeService) HandleAuthorizationCallback(ctx context.Context, aut
 }
 
 // loadAuthRequestContext loads the authorization request context from the store using the auth ID.
-func (as *authorizeService) loadAuthRequestContext(ctx context.Context, authID string) (*authRequestContext, error) {
+func (as *authorizeService) loadAuthRequestContext(ctx context.Context, authID string) (*AuthRequestContext, error) {
 	ok, authRequestCtx, err := as.authReqStore.GetRequest(ctx, authID)
 	if err != nil {
 		as.logger.Error("Failed to retrieve authorization request context", log.Error(err))
@@ -663,7 +663,7 @@ func decodeAttributesFromAssertion(assertion string) (assertionClaims, time.Time
 // createAuthorizationCode generates an authorization code based on the provided
 // authorization request context and authenticated user.
 func createAuthorizationCode(
-	authRequestCtx *authRequestContext,
+	authRequestCtx *AuthRequestContext,
 	claims *assertionClaims,
 	authTime time.Time,
 	authCodeTTL int64,

@@ -56,7 +56,7 @@ type redisFlowStore struct {
 }
 
 // newRedisFlowStore creates a new Redis-backed flow store.
-func newRedisFlowStore(p provider.RedisProviderInterface) flowStoreInterface {
+func newRedisFlowStore(p provider.RedisProviderInterface) FlowStoreInterface {
 	return &redisFlowStore{
 		client:       p.GetRedisClient(),
 		keyPrefix:    p.GetKeyPrefix(),

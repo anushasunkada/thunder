@@ -189,8 +189,8 @@ func (_c *PARServiceInterfaceMock_ResolvePushedAuthorizationRequest_Call) Run(ru
 	return _c
 }
 
-func (_c *PARServiceInterfaceMock_ResolvePushedAuthorizationRequest_Call) Return(oAuthParameters *model.OAuthParameters, err error) *PARServiceInterfaceMock_ResolvePushedAuthorizationRequest_Call {
-	_c.Call.Return(oAuthParameters, err)
+func (_c *PARServiceInterfaceMock_ResolvePushedAuthorizationRequest_Call) Return(v *model.OAuthParameters, err error) *PARServiceInterfaceMock_ResolvePushedAuthorizationRequest_Call {
+	_c.Call.Return(v, err)
 	return _c
 }
 

@@ -26,7 +26,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/par"
 	"github.com/thunder-id/thunderid/internal/resource"
 	"github.com/thunder-id/thunderid/internal/system/constants"
-	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
@@ -58,21 +57,8 @@ func Initialize(
 
 // initializeAuthorizationStores creates the authorization code store, request store, and transactioner.
 func initializeAuthorizationStores(opts Options) (
-	AuthorizationCodeStoreInterface, authorizationRequestStoreInterface, transaction.Transactioner, error) {
-	if opts.RuntimeStoreType == provider.DataSourceTypeRedis {
-		redisProvider := provider.GetRedisProvider()
-		return newRedisAuthorizationCodeStore(redisProvider, opts.DeploymentID),
-			newRedisAuthorizationRequestStore(redisProvider, opts.DeploymentID),
-			transaction.NewNoOpTransactioner(),
-			nil
-	}
-	dbProvider := provider.GetDBProvider()
-	transactioner, err := dbProvider.GetRuntimeDBTransactioner()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return newAuthorizationCodeStore(opts.DeploymentID),
-		newAuthorizationRequestStore(opts.DeploymentID), transactioner, nil
+	AuthorizationCodeStoreInterface, AuthorizationRequestStoreInterface, transaction.Transactioner, error) {
+	return NewAuthorizationStores(opts.RuntimeStoreType, opts.DeploymentID)
 }
 
 // registerRoutes registers the routes for OAuth2 authorization operations.

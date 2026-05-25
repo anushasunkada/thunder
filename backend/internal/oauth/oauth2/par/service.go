@@ -49,7 +49,7 @@ type PARServiceInterface interface {
 
 // parService implements PARServiceInterface.
 type parService struct {
-	store           parStoreInterface
+	store           PARStoreInterface
 	resourceService resource.ResourceServiceInterface
 	parExpiresIn    int64
 	oauthPolicy     thunderidengine.OAuthPolicy
@@ -58,7 +58,7 @@ type parService struct {
 
 // newPARService creates a new PAR service instance.
 func newPARService(
-	store parStoreInterface,
+	store PARStoreInterface,
 	resourceService resource.ResourceServiceInterface,
 	opts Options,
 ) PARServiceInterface {
@@ -143,7 +143,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		AcrValues:           params[oauth2const.RequestParamAcrValues],
 	}
 
-	parRequest := pushedAuthorizationRequest{
+	parRequest := thunderidengine.PARRequest{
 		ClientID:        oauthApp.ClientID,
 		OAuthParameters: oauthParams,
 	}
@@ -190,5 +190,6 @@ func (s *parService) ResolvePushedAuthorizationRequest(
 		return nil, errClientIDMismatch
 	}
 
-	return &parRequest.OAuthParameters, nil
+	params := parRequest.OAuthParameters
+	return &params, nil
 }

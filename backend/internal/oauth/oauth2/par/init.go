@@ -28,7 +28,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientauth"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 )
 
@@ -51,11 +50,8 @@ func Initialize(
 }
 
 // initializePARStore selects the PAR store implementation based on the configured runtime DB type.
-func initializePARStore(opts Options) parStoreInterface {
-	if opts.RuntimeStoreType == provider.DataSourceTypeRedis {
-		return newRedisPARRequestStore(provider.GetRedisProvider(), opts.DeploymentID)
-	}
-	return newPARRequestStore(opts.DeploymentID)
+func initializePARStore(opts Options) PARStoreInterface {
+	return NewPARRequestStore(opts.RuntimeStoreType, opts.DeploymentID)
 }
 
 // registerRoutes registers the PAR endpoint route with client authentication middleware.

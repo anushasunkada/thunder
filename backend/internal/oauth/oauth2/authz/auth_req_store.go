@@ -29,17 +29,13 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
-// authRequestContext holds OAuth authorization request information.
-type authRequestContext struct {
-	OAuthParameters model.OAuthParameters
-}
-
-// authorizationRequestStoreInterface defines the interface for authorization request storage.
-type authorizationRequestStoreInterface interface {
-	AddRequest(ctx context.Context, value authRequestContext) (string, error)
-	GetRequest(ctx context.Context, key string) (bool, authRequestContext, error)
+// AuthorizationRequestStoreInterface defines the interface for authorization request storage.
+type AuthorizationRequestStoreInterface interface {
+	AddRequest(ctx context.Context, value thunderidengine.AuthRequestContext) (string, error)
+	GetRequest(ctx context.Context, key string) (bool, thunderidengine.AuthRequestContext, error)
 	ClearRequest(ctx context.Context, key string) error
 }
 
@@ -51,7 +47,7 @@ type authorizationRequestStore struct {
 }
 
 // newAuthorizationRequestStore creates a new instance of authorizationRequestStore with injected dependencies.
-func newAuthorizationRequestStore(deploymentID string) authorizationRequestStoreInterface {
+func newAuthorizationRequestStore(deploymentID string) AuthorizationRequestStoreInterface {
 	return &authorizationRequestStore{
 		dbProvider:     provider.GetDBProvider(),
 		validityPeriod: 10 * time.Minute,
@@ -60,7 +56,7 @@ func newAuthorizationRequestStore(deploymentID string) authorizationRequestStore
 }
 
 // AddRequest adds an authorization request context entry to the store.
-func (authzRS *authorizationRequestStore) AddRequest(ctx context.Context, value authRequestContext) (string, error) {
+func (authzRS *authorizationRequestStore) AddRequest(ctx context.Context, value thunderidengine.AuthRequestContext) (string, error) {
 	dbClient, err := authzRS.dbProvider.GetRuntimeDBClient()
 	if err != nil {
 		return "", fmt.Errorf("failed to get database client: %w", err)
@@ -74,7 +70,7 @@ func (authzRS *authorizationRequestStore) AddRequest(ctx context.Context, value 
 	requestInitiatedTime := time.Now()
 	expiryTime := requestInitiatedTime.Add(authzRS.validityPeriod)
 
-	// Serialize authRequestContext to JSON
+	// Serialize thunderidengine.AuthRequestContext to JSON
 	jsonDataBytes, err := authzRS.getJSONDataBytes(value)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request context to JSON: %w", err)
@@ -90,31 +86,31 @@ func (authzRS *authorizationRequestStore) AddRequest(ctx context.Context, value 
 
 // GetRequest retrieves an authorization request context entry from the store.
 func (authzRS *authorizationRequestStore) GetRequest(
-	ctx context.Context, key string) (bool, authRequestContext, error) {
+	ctx context.Context, key string) (bool, thunderidengine.AuthRequestContext, error) {
 	if key == "" {
-		return false, authRequestContext{}, nil
+		return false, thunderidengine.AuthRequestContext{}, nil
 	}
 
 	dbClient, err := authzRS.dbProvider.GetRuntimeDBClient()
 	if err != nil {
-		return false, authRequestContext{}, fmt.Errorf("failed to get database client: %w", err)
+		return false, thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to get database client: %w", err)
 	}
 
 	// Check expiry by comparing with current time
 	now := time.Now()
 	results, err := dbClient.QueryContext(ctx, queryGetAuthRequest, key, now, authzRS.deploymentID)
 	if err != nil {
-		return false, authRequestContext{}, fmt.Errorf("failed to query authorization request: %w", err)
+		return false, thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to query authorization request: %w", err)
 	}
 
 	if len(results) == 0 {
-		return false, authRequestContext{}, nil
+		return false, thunderidengine.AuthRequestContext{}, nil
 	}
 
 	row := results[0]
 	authRequestCtx, err := authzRS.buildAuthRequestContextFromResultRow(row)
 	if err != nil {
-		return false, authRequestContext{}, fmt.Errorf("failed to build authorization request context: %w", err)
+		return false, thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to build authorization request context: %w", err)
 	}
 
 	return true, authRequestCtx, nil
@@ -140,7 +136,7 @@ func (authzRS *authorizationRequestStore) ClearRequest(ctx context.Context, key 
 }
 
 // getJSONDataBytes prepares the JSON data bytes for the authorization request context.
-func (authzRS *authorizationRequestStore) getJSONDataBytes(authRequestCtx authRequestContext) ([]byte, error) {
+func (authzRS *authorizationRequestStore) getJSONDataBytes(authRequestCtx thunderidengine.AuthRequestContext) ([]byte, error) {
 	jsonData := map[string]interface{}{
 		jsonKeyState:               authRequestCtx.OAuthParameters.State,
 		jsonKeyClientID:            authRequestCtx.OAuthParameters.ClientID,
@@ -167,22 +163,22 @@ func (authzRS *authorizationRequestStore) getJSONDataBytes(authRequestCtx authRe
 	return jsonDataBytes, nil
 }
 
-// buildAuthRequestContextFromResultRow builds an authRequestContext from a database result row.
+// buildAuthRequestContextFromResultRow builds an thunderidengine.AuthRequestContext from a database result row.
 func (authzRS *authorizationRequestStore) buildAuthRequestContextFromResultRow(
 	row map[string]interface{},
-) (authRequestContext, error) {
+) (thunderidengine.AuthRequestContext, error) {
 	var dataJSON string
 	if val, ok := row[dbColumnRequestData].(string); ok && val != "" {
 		dataJSON = val
 	} else if val, ok := row[dbColumnRequestData].([]byte); ok && len(val) > 0 {
 		dataJSON = string(val)
 	} else {
-		return authRequestContext{}, fmt.Errorf("%s is missing or of unexpected type", dbColumnRequestData)
+		return thunderidengine.AuthRequestContext{}, fmt.Errorf("%s is missing or of unexpected type", dbColumnRequestData)
 	}
 
 	var requestDataMap map[string]interface{}
 	if err := json.Unmarshal([]byte(dataJSON), &requestDataMap); err != nil {
-		return authRequestContext{}, fmt.Errorf("failed to unmarshal %s JSON: %w", dbColumnRequestData, err)
+		return thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to unmarshal %s JSON: %w", dbColumnRequestData, err)
 	}
 
 	// Build OAuthParameters from JSON
@@ -243,13 +239,13 @@ func (authzRS *authorizationRequestStore) buildAuthRequestContextFromResultRow(
 	if claimsData, ok := requestDataMap[jsonKeyClaimsRequest]; ok && claimsData != nil {
 		claimsRequest, err := parseClaimsRequestFromJSON(claimsData)
 		if err != nil {
-			return authRequestContext{}, fmt.Errorf(
+			return thunderidengine.AuthRequestContext{}, fmt.Errorf(
 				"failed to parse claims_request from authorization request: %w", err)
 		}
 		oauthParams.ClaimsRequest = claimsRequest
 	}
 
-	return authRequestContext{
+	return thunderidengine.AuthRequestContext{
 		OAuthParameters: oauthParams,
 	}, nil
 }

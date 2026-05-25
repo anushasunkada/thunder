@@ -29,6 +29,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/utils"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // authReqRedisClient abstracts the Redis commands used by the authorization request store.
@@ -38,7 +39,7 @@ type authReqRedisClient interface {
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
 }
 
-// redisAuthorizationRequestStore is the Redis-backed implementation of authorizationRequestStoreInterface.
+// redisAuthorizationRequestStore is the Redis-backed implementation of AuthorizationRequestStoreInterface.
 type redisAuthorizationRequestStore struct {
 	client         authReqRedisClient
 	keyPrefix      string
@@ -49,7 +50,7 @@ type redisAuthorizationRequestStore struct {
 // newRedisAuthorizationRequestStore creates a new Redis-backed authorization request store.
 func newRedisAuthorizationRequestStore(
 	p provider.RedisProviderInterface, deploymentID string,
-) authorizationRequestStoreInterface {
+) AuthorizationRequestStoreInterface {
 	return &redisAuthorizationRequestStore{
 		client:         p.GetRedisClient(),
 		keyPrefix:      p.GetKeyPrefix(),
@@ -64,7 +65,7 @@ func (s *redisAuthorizationRequestStore) authReqKey(key string) string {
 }
 
 // AddRequest adds an authorization request context entry to Redis with a TTL.
-func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value authRequestContext) (string, error) {
+func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value thunderidengine.AuthRequestContext) (string, error) {
 	key, err := utils.GenerateUUIDv7()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate UUID: %w", err)
@@ -85,22 +86,22 @@ func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value a
 // GetRequest retrieves an authorization request context entry from Redis.
 func (s *redisAuthorizationRequestStore) GetRequest(
 	ctx context.Context, key string,
-) (bool, authRequestContext, error) {
+) (bool, thunderidengine.AuthRequestContext, error) {
 	if key == "" {
-		return false, authRequestContext{}, nil
+		return false, thunderidengine.AuthRequestContext{}, nil
 	}
 
 	data, err := s.client.Get(ctx, s.authReqKey(key)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return false, authRequestContext{}, nil
+			return false, thunderidengine.AuthRequestContext{}, nil
 		}
-		return false, authRequestContext{}, fmt.Errorf("failed to get authorization request from Redis: %w", err)
+		return false, thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to get authorization request from Redis: %w", err)
 	}
 
-	var result authRequestContext
+	var result thunderidengine.AuthRequestContext
 	if err := json.Unmarshal(data, &result); err != nil {
-		return false, authRequestContext{}, fmt.Errorf("failed to unmarshal authorization request: %w", err)
+		return false, thunderidengine.AuthRequestContext{}, fmt.Errorf("failed to unmarshal authorization request: %w", err)
 	}
 
 	return true, result, nil

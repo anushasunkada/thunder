@@ -102,8 +102,8 @@ func (_c *AuthorizeServiceInterfaceMock_GetAuthorizationCodeDetails_Call) Run(ru
 	return _c
 }
 
-func (_c *AuthorizeServiceInterfaceMock_GetAuthorizationCodeDetails_Call) Return(authorizationCode *authz.AuthorizationCode, err error) *AuthorizeServiceInterfaceMock_GetAuthorizationCodeDetails_Call {
-	_c.Call.Return(authorizationCode, err)
+func (_c *AuthorizeServiceInterfaceMock_GetAuthorizationCodeDetails_Call) Return(v *authz.AuthorizationCode, err error) *AuthorizeServiceInterfaceMock_GetAuthorizationCodeDetails_Call {
+	_c.Call.Return(v, err)
 	return _c
 }
 

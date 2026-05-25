@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 	"github.com/thunder-id/thunderid/tests/mocks/database/providermock"
 )
 
@@ -44,7 +45,7 @@ type StoreTestSuite struct {
 	mockDBClient   *providermock.DBClientInterfaceMock
 	store          *parRequestStore
 	ctx            context.Context
-	testRequest    pushedAuthorizationRequest
+	testRequest    thunderidengine.PARRequest
 }
 
 func TestStoreTestSuite(t *testing.T) {
@@ -59,7 +60,7 @@ func (s *StoreTestSuite) SetupTest() {
 		deploymentID: testDeploymentID,
 	}
 	s.ctx = context.Background()
-	s.testRequest = pushedAuthorizationRequest{
+	s.testRequest = thunderidengine.PARRequest{
 		ClientID: "test-client",
 		OAuthParameters: model.OAuthParameters{
 			ClientID:            "test-client",
@@ -178,7 +179,7 @@ func (s *StoreTestSuite) TestConsume_NotFound() {
 
 	assert.NoError(s.T(), err)
 	assert.False(s.T(), found)
-	assert.Equal(s.T(), pushedAuthorizationRequest{}, result)
+	assert.Equal(s.T(), thunderidengine.PARRequest{}, result)
 }
 
 func (s *StoreTestSuite) TestConsume_DBClientError() {

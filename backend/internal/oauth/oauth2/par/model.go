@@ -18,16 +18,6 @@
 
 package par
 
-import (
-	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
-)
-
-// pushedAuthorizationRequest holds the stored PAR data.
-type pushedAuthorizationRequest struct {
-	ClientID        string
-	OAuthParameters model.OAuthParameters
-}
-
 // parResponse represents the PAR endpoint success response.
 type parResponse struct {
 	RequestURI string `json:"request_uri"`

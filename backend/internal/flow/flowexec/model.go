@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	appmodel "github.com/thunder-id/thunderid/internal/application/model"
 	authncm "github.com/thunder-id/thunderid/internal/authn/common"
@@ -31,6 +30,7 @@ import (
 	managerpkg "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/core"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // EngineContext holds the overall context used by the flow engine during execution.
@@ -116,13 +116,7 @@ type FlowInitContext struct {
 }
 
 // FlowContextDB represents the database row for a flow context.
-type FlowContextDB struct {
-	ExecutionID string
-	Context     string
-	ExpiryTime  time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
+type FlowContextDB thunderidengine.FlowContextDB
 
 // flowContextContent holds all flow state serialized into the CONTEXT JSON column.
 type flowContextContent struct {

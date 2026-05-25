@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 const (
@@ -44,7 +45,7 @@ type RedisStoreTestSuite struct {
 	mockClient *parRedisClientMock
 	store      *redisPARRequestStore
 	ctx        context.Context
-	testReq    pushedAuthorizationRequest
+	testReq    thunderidengine.PARRequest
 }
 
 func TestRedisStoreTestSuite(t *testing.T) {
@@ -59,7 +60,7 @@ func (s *RedisStoreTestSuite) SetupTest() {
 		deploymentID: redisTestDeploymentID,
 	}
 	s.ctx = context.Background()
-	s.testReq = pushedAuthorizationRequest{
+	s.testReq = thunderidengine.PARRequest{
 		ClientID: "test-client",
 		OAuthParameters: model.OAuthParameters{
 			ClientID:    "test-client",

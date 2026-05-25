@@ -170,13 +170,13 @@ type ObservabilityEvent struct {
 
 // PARRequest is a pushed authorization request payload.
 type PARRequest struct {
-	ClientID   string
-	Parameters map[string]string
+	ClientID          string
+	OAuthParameters   OAuthParameters
 }
 
 // AuthRequestContext holds in-progress authorize request state.
 type AuthRequestContext struct {
-	Parameters map[string]string
+	OAuthParameters OAuthParameters
 }
 
 // AuthorizationCode is an OAuth authorization code.
@@ -194,7 +194,7 @@ type AuthorizationCode struct {
 	CodeChallenge       string
 	CodeChallengeMethod string
 	Resources           []string
-	ClaimsRequestJSON   string
+	ClaimsRequest       *ClaimsRequest
 	ClaimsLocales       string
 	Nonce               string
 	CompletedACR        string

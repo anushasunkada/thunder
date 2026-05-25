@@ -28,6 +28,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
 
 // parRedisClient abstracts the Redis commands used by the PAR store.
@@ -46,7 +47,7 @@ type redisPARRequestStore struct {
 // newRedisPARRequestStore creates a new Redis-backed PAR request store.
 func newRedisPARRequestStore(
 	p provider.RedisProviderInterface, deploymentID string,
-) parStoreInterface {
+) PARStoreInterface {
 	return &redisPARRequestStore{
 		client:       p.GetRedisClient(),
 		keyPrefix:    p.GetKeyPrefix(),
@@ -61,7 +62,7 @@ func (s *redisPARRequestStore) parKey(randomKey string) string {
 
 // Store persists a pushed authorization request in Redis with a TTL.
 func (s *redisPARRequestStore) Store(
-	ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64,
+	ctx context.Context, request thunderidengine.PARRequest, expirySeconds int64,
 ) (string, error) {
 	randomKey, err := generateRandomKey()
 	if err != nil {
@@ -84,18 +85,18 @@ func (s *redisPARRequestStore) Store(
 // Consume atomically retrieves and deletes a pushed authorization request via Redis GETDEL.
 func (s *redisPARRequestStore) Consume(
 	ctx context.Context, randomKey string,
-) (pushedAuthorizationRequest, bool, error) {
+) (thunderidengine.PARRequest, bool, error) {
 	data, err := s.client.GetDel(ctx, s.parKey(randomKey)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return pushedAuthorizationRequest{}, false, nil
+			return thunderidengine.PARRequest{}, false, nil
 		}
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to get PAR request from Redis: %w", err)
+		return thunderidengine.PARRequest{}, false, fmt.Errorf("failed to get PAR request from Redis: %w", err)
 	}
 
-	var request pushedAuthorizationRequest
+	var request thunderidengine.PARRequest
 	if err := json.Unmarshal(data, &request); err != nil {
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to unmarshal PAR request: %w", err)
+		return thunderidengine.PARRequest{}, false, fmt.Errorf("failed to unmarshal PAR request: %w", err)
 	}
 	return request, true, nil
 }

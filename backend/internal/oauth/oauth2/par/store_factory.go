@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (https://www.wso2.com).
+ * Copyright (c) 2026, WSO2 LLC. (https://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -16,15 +16,16 @@
  * under the License.
  */
 
-package model
+package par
 
-import "github.com/thunder-id/thunderid/pkg/thunderidengine"
+import (
+	"github.com/thunder-id/thunderid/internal/system/database/provider"
+)
 
-// OAuthParameters represents the parameters required for OAuth2 authorization.
-type OAuthParameters = thunderidengine.OAuthParameters
-
-// ClaimsRequest represents the OIDC claims request parameter structure.
-type ClaimsRequest = thunderidengine.ClaimsRequest
-
-// IndividualClaimRequest represents a request for an individual claim.
-type IndividualClaimRequest = thunderidengine.IndividualClaimRequest
+// NewPARRequestStore selects the PAR store implementation for the configured runtime store type.
+func NewPARRequestStore(runtimeStoreType, deploymentID string) PARStoreInterface {
+	if runtimeStoreType == provider.DataSourceTypeRedis {
+		return newRedisPARRequestStore(provider.GetRedisProvider(), deploymentID)
+	}
+	return newPARRequestStore(deploymentID)
+}

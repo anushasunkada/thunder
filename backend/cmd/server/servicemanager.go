@@ -349,8 +349,13 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		agentService,
 	)
 
+	runtimeStore, err := adapter.NewRuntimeStore(oauthOpts.RuntimeStoreType, oauthOpts.DeploymentID)
+	if err != nil {
+		logger.Fatal("Failed to initialize runtime store", log.Error(err))
+	}
+
 	flowExecService, err := flowexec.Initialize(mux, flowMgtService, clientProvider,
-		execRegistry, observabilitySvc, runtimeCryptoSvc)
+		execRegistry, observabilitySvc, runtimeCryptoSvc, runtimeStore)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
 	}

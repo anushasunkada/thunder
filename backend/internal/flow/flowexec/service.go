@@ -35,7 +35,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/observability"
 	"github.com/thunder-id/thunderid/internal/system/observability/event"
-	"github.com/thunder-id/thunderid/internal/system/transaction"
 	sysutils "github.com/thunder-id/thunderid/internal/system/utils"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine"
 )
@@ -59,18 +58,16 @@ const (
 type flowExecService struct {
 	flowEngine       flowEngineInterface
 	flowMgtService   flowmgt.FlowMgtServiceInterface
-	flowStore        flowStoreInterface
+	flowStore        thunderidengine.RuntimeStore
 	clientProvider   thunderidengine.ClientProvider
 	observabilitySvc observability.ObservabilityServiceInterface
-	transactioner    transaction.Transactioner
 	cryptoSvc        thunderidengine.RuntimeCryptoProvider
 }
 
 func newFlowExecService(flowMgtService flowmgt.FlowMgtServiceInterface,
-	flowStore flowStoreInterface, flowEngine flowEngineInterface,
+	flowStore thunderidengine.RuntimeStore, flowEngine flowEngineInterface,
 	clientProvider thunderidengine.ClientProvider,
 	observabilitySvc observability.ObservabilityServiceInterface,
-	transactioner transaction.Transactioner,
 	cryptoSvc thunderidengine.RuntimeCryptoProvider) FlowExecServiceInterface {
 	return &flowExecService{
 		flowMgtService:   flowMgtService,
@@ -78,7 +75,6 @@ func newFlowExecService(flowMgtService flowmgt.FlowMgtServiceInterface,
 		flowEngine:       flowEngine,
 		clientProvider:   clientProvider,
 		observabilitySvc: observabilitySvc,
-		transactioner:    transactioner,
 		cryptoSvc:        cryptoSvc,
 	}
 }
@@ -387,16 +383,7 @@ func (s *flowExecService) removeContext(ctx context.Context, executionID string,
 		return fmt.Errorf("flow ID cannot be empty")
 	}
 
-	txErr := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
-		return s.flowStore.DeleteFlowContext(txCtx, executionID)
-	})
-	if txErr != nil {
-		return fmt.Errorf("failed to remove flow context from database: %w", txErr)
-	}
-
-	logger.Debug("Flow context removed successfully from database",
-		log.String(log.LoggerKeyExecutionID, executionID))
-	return nil
+	return s.flowStore.DeleteFlowContext(ctx, executionID)
 }
 
 // updateContext updates the flow context in the store based on the flow step status.
@@ -417,16 +404,7 @@ func (s *flowExecService) updateContext(ctx context.Context, engineCtx *EngineCo
 			return fmt.Errorf("failed to encrypt flow context: %w", err)
 		}
 
-		txErr := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
-			return s.flowStore.UpdateFlowContext(txCtx, *encryptedEngineCtx)
-		})
-		if txErr != nil {
-			return fmt.Errorf("failed to update flow context in database: %w", txErr)
-		}
-
-		logger.Debug("Flow context updated successfully in database",
-			log.String(log.LoggerKeyExecutionID, engineCtx.ExecutionID))
-		return nil
+		return s.flowStore.UpdateFlowContext(ctx, thunderidengine.FlowContextDB(*encryptedEngineCtx))
 	}
 }
 
@@ -444,16 +422,7 @@ func (s *flowExecService) storeContext(ctx context.Context, engineCtx *EngineCon
 		return fmt.Errorf("failed to encrypt flow context: %w", err)
 	}
 
-	txErr := s.transactioner.Transact(ctx, func(txCtx context.Context) error {
-		return s.flowStore.StoreFlowContext(txCtx, *encryptedEngineCtx, expirySeconds)
-	})
-	if txErr != nil {
-		return fmt.Errorf("failed to store flow context in database: %w", txErr)
-	}
-
-	logger.Debug("Flow context stored successfully in database",
-		log.String(log.LoggerKeyExecutionID, engineCtx.ExecutionID))
-	return nil
+	return s.flowStore.StoreFlowContext(ctx, thunderidengine.FlowContextDB(*encryptedEngineCtx), expirySeconds)
 }
 
 // encryptEngineContext serializes an EngineContext and encrypts the context field, returning
@@ -666,7 +635,8 @@ func (s *flowExecService) getFlowContext(ctx context.Context, executionID string
 		dbModel.Context = string(decrypted)
 	}
 
-	return dbModel, nil
+	local := FlowContextDB(*dbModel)
+	return &local, nil
 }
 
 // isContextEncrypted reports whether a context string is in encrypted form by checking for an alg field.

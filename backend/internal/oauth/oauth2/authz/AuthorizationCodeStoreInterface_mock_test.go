@@ -161,8 +161,8 @@ func (_c *AuthorizationCodeStoreInterfaceMock_GetAuthorizationCode_Call) Run(run
 	return _c
 }
 
-func (_c *AuthorizationCodeStoreInterfaceMock_GetAuthorizationCode_Call) Return(authorizationCode *AuthorizationCode, err error) *AuthorizationCodeStoreInterfaceMock_GetAuthorizationCode_Call {
-	_c.Call.Return(authorizationCode, err)
+func (_c *AuthorizationCodeStoreInterfaceMock_GetAuthorizationCode_Call) Return(v *AuthorizationCode, err error) *AuthorizationCodeStoreInterfaceMock_GetAuthorizationCode_Call {
+	_c.Call.Return(v, err)
 	return _c
 }
 
