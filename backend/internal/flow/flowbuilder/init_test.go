@@ -45,10 +45,13 @@ func TestInitTestSuite(t *testing.T) {
 func (s *InitTestSuite) SetupTest() {
 	_ = config.InitializeServerRuntime("test", &config.Config{
 		Server: config.ServerConfig{Identifier: "test-deployment"},
+		Cache: config.CacheConfig{
+			Disabled: false,
+		},
 	})
 	s.flowFactory = core.Initialize()
 	s.executorRegistry = executormock.NewExecutorRegistryInterfaceMock(s.T())
-	s.cacheManager = cache.Initialize()
+	s.cacheManager = cache.Initialize(config.GetServerRuntime().Config.Cache, "test-deployment")
 }
 
 func (s *InitTestSuite) TearDownTest() {
