@@ -50,6 +50,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/entitytype"
 	flowcore "github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
+	"github.com/thunder-id/thunderid/internal/flow/flowbuilder"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	"github.com/thunder-id/thunderid/internal/flow/flowmeta"
 	flowmgt "github.com/thunder-id/thunderid/internal/flow/mgt"
@@ -257,7 +258,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	attributeCacheService := attributecache.Initialize()
 
 	// Initialize flow and executor services.
-	flowFactory, graphCache := flowcore.Initialize(cacheManager)
+	flowFactory := flowcore.Initialize()
 	var emailClient email.EmailClientInterface
 	emailClient, err = email.Initialize()
 	if err != nil {
@@ -295,8 +296,10 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		logger.Fatal("Failed to register flow executors", log.Error(err))
 	}
 
+	flowBuilder := flowbuilder.Initialize(cacheManager, flowFactory, execRegistry)
+
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
-		mux, mcpServer, cacheManager, flowFactory, execRegistry, graphCache)
+		mux, mcpServer, cacheManager, flowBuilder)
 	if err != nil {
 		logger.Fatal("Failed to initialize FlowMgtService", log.Error(err))
 	}
@@ -368,7 +371,7 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		agentService,
 	)
 
-	flowExecService, err := flowexec.Initialize(mux, flowMgtService, inboundClientService, entityProvider,
+	flowExecService, err := flowexec.Initialize(mux, flowMgtService, flowBuilder, inboundClientService, entityProvider,
 		execRegistry, observabilitySvc, runtimeCryptoSvc)
 	if err != nil {
 		logger.Fatal("Failed to initialize flow execution service", log.Error(err))
