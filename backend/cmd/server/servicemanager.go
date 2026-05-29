@@ -265,11 +265,35 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 			"EmailExecutor will be registered but will not send emails.", log.Error(err))
 		emailClient = nil
 	}
-	execRegistry := executor.Initialize(flowFactory, ouService, idpService, notifSenderSvc, jwtService, authAssertGen,
-		consentEnforcer, authnProvider, otpCoreService, passkeyService, magicLinkService, authZService,
-		entityTypeService, groupService, roleService, roleAssignmentService, entityProvider,
-		attributeCacheService, emailClient, templateService, oauthAuthnService, oidcAuthnService,
-		githubAuthnService, googleAuthnService)
+	execRegistry, err := executor.Initialize(executor.RegisterDeps{
+		FlowFactory:           flowFactory,
+		OUService:             ouService,
+		IDPService:            idpService,
+		NotifSenderSvc:        notifSenderSvc,
+		JWTService:            jwtService,
+		AuthAssertGen:         authAssertGen,
+		ConsentEnforcer:       consentEnforcer,
+		AuthnProvider:         authnProvider,
+		OTPService:            otpCoreService,
+		PasskeyService:        passkeyService,
+		MagicLinkService:      magicLinkService,
+		AuthZService:          authZService,
+		EntityTypeService:     entityTypeService,
+		GroupService:          groupService,
+		RoleService:           roleService,
+		RoleAssignmentService: roleAssignmentService,
+		EntityProvider:        entityProvider,
+		AttributeCacheSvc:     attributeCacheService,
+		EmailClient:           emailClient,
+		TemplateService:       templateService,
+		OAuthSvc:              oauthAuthnService,
+		OIDCSvc:               oidcAuthnService,
+		GithubSvc:             githubAuthnService,
+		GoogleSvc:             googleAuthnService,
+	}, config.GetServerRuntime().Config.Flow)
+	if err != nil {
+		logger.Fatal("Failed to register flow executors", log.Error(err))
+	}
 
 	flowMgtService, flowMgtExporter, err := flowmgt.Initialize(
 		mux, mcpServer, cacheManager, flowFactory, execRegistry, graphCache)

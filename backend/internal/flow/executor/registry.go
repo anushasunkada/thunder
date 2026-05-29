@@ -49,16 +49,16 @@ func newExecutorRegistry() ExecutorRegistryInterface {
 // RegisterExecutor registers an executor instance.
 func (r *executorRegistry) RegisterExecutor(name string, exec core.ExecutorInterface) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ExecutorRegistry"))
-	logger.Debug("Registering executor", log.String("executorName", exec.GetName()))
 
 	if exec == nil {
-		logger.Warn("Skipping registration of nil executor")
+		logger.Warn("Skipping registration of nil executor", log.String("executorName", name))
 		return
 	}
 	if name == "" {
 		logger.Warn("Skipping registration of executor with empty name")
 		return
 	}
+	logger.Debug("Registering executor", log.String("executorName", exec.GetName()))
 
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -200,6 +200,8 @@ flow:
   default_auth_flow_handle: {{ .Values.configuration.flow.defaultAuthFlowHandle | quote }}
   max_version_history: {{ .Values.configuration.flow.maxVersionHistory }}
   auto_infer_registration: {{ .Values.configuration.flow.autoInferRegistration }}
+  # executors: []  # optional; omit or empty registers all built-in executors.
+  # When set, only the listed executor names are registered (e.g. BasicAuthExecutor).
 
 cors:
   allowed_origins:

@@ -343,6 +343,65 @@ Authentication and registration flow settings.
 | `flow.user_onboarding_flow_handle` | `default-user-onboarding` | Handle of the default user onboarding flow |
 | `flow.max_version_history` | `10` | Maximum number of flow versions to retain |
 | `flow.auto_infer_registration` | `true` | If `true`, automatically infers registration from authentication flows |
+| `flow.executors` | *(all built-in executors)* | Whitelist of built-in executor names to register at startup. Omit the key or leave the list empty to register every built-in executor. When set, only the listed executors are available; flows that reference other executors fail validation at startup. Unknown names cause startup to fail. Duplicate names are ignored. |
+
+### Built-in Executors
+
+Use `flow.executors` to limit which built-in flow executors the server registers. This setting applies only to built-in executors. When you embed <ProductName /> and register custom executors programmatically, call `RegisterExecutor` on the registry returned by `Initialize` after startup; `flow.executors` does not affect custom executors.
+
+**Register all built-in executors (default):**
+
+Omit `flow.executors` or leave it empty:
+
+```yaml
+flow:
+  max_version_history: 10
+  auto_infer_registration: true
+  # executors: []  # optional; omit or empty registers all built-in executors
+```
+
+**Register a subset:**
+
+List only the executor names you need. Built-in executors not in the list are excluded:
+
+```yaml
+flow:
+  executors:
+    - BasicAuthExecutor
+    - InviteExecutor
+```
+
+**Available built-in executor names:**
+
+- `BasicAuthExecutor`
+- `SMSOTPAuthExecutor`
+- `PasskeyAuthExecutor`
+- `MagicLinkAuthExecutor`
+- `OAuthExecutor`
+- `OIDCAuthExecutor`
+- `GithubOAuthExecutor`
+- `GoogleOIDCAuthExecutor`
+- `ProvisioningExecutor`
+- `OUExecutor`
+- `AttributeCollector`
+- `AuthAssertExecutor`
+- `AuthorizationExecutor`
+- `HTTPRequestExecutor`
+- `UserTypeResolver`
+- `InviteExecutor`
+- `EmailExecutor`
+- `CredentialSetter`
+- `PermissionValidator`
+- `IdentifyingExecutor`
+- `ConsentExecutor`
+- `OUResolverExecutor`
+- `AttributeUniquenessValidator`
+- `SMSExecutor`
+- `FederatedAuthResolverExecutor`
+
+:::warning
+Every flow you deploy must reference only executors that are registered on the server. If a flow uses an executor that is not in your `flow.executors` list (and you have not registered a custom executor with the same name), flow validation fails at startup.
+:::
 
 ## User Configuration
 
