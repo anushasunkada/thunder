@@ -61,7 +61,7 @@ func (s *redisPARRequestStore) parKey(randomKey string) string {
 
 // Store persists a pushed authorization request in Redis with a TTL.
 func (s *redisPARRequestStore) Store(
-	ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64,
+	ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64,
 ) (string, error) {
 	randomKey, err := generateRandomKey()
 	if err != nil {
@@ -84,18 +84,18 @@ func (s *redisPARRequestStore) Store(
 // Consume atomically retrieves and deletes a pushed authorization request via Redis GETDEL.
 func (s *redisPARRequestStore) Consume(
 	ctx context.Context, randomKey string,
-) (pushedAuthorizationRequest, bool, error) {
+) (PushedAuthorizationRequest, bool, error) {
 	data, err := s.client.GetDel(ctx, s.parKey(randomKey)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return pushedAuthorizationRequest{}, false, nil
+			return PushedAuthorizationRequest{}, false, nil
 		}
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to get PAR request from Redis: %w", err)
+		return PushedAuthorizationRequest{}, false, fmt.Errorf("failed to get PAR request from Redis: %w", err)
 	}
 
-	var request pushedAuthorizationRequest
+	var request PushedAuthorizationRequest
 	if err := json.Unmarshal(data, &request); err != nil {
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to unmarshal PAR request: %w", err)
+		return PushedAuthorizationRequest{}, false, fmt.Errorf("failed to unmarshal PAR request: %w", err)
 	}
 	return request, true, nil
 }

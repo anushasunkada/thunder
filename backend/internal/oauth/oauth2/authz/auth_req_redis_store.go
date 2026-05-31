@@ -63,7 +63,7 @@ func (s *redisAuthorizationRequestStore) authReqKey(key string) string {
 }
 
 // AddRequest adds an authorization request context entry to Redis with a TTL.
-func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value authRequestContext) (string, error) {
+func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value AuthRequestContext) (string, error) {
 	key, err := utils.GenerateUUIDv7()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate UUID: %w", err)
@@ -84,22 +84,22 @@ func (s *redisAuthorizationRequestStore) AddRequest(ctx context.Context, value a
 // GetRequest retrieves an authorization request context entry from Redis.
 func (s *redisAuthorizationRequestStore) GetRequest(
 	ctx context.Context, key string,
-) (bool, authRequestContext, error) {
+) (bool, AuthRequestContext, error) {
 	if key == "" {
-		return false, authRequestContext{}, nil
+		return false, AuthRequestContext{}, nil
 	}
 
 	data, err := s.client.Get(ctx, s.authReqKey(key)).Bytes()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			return false, authRequestContext{}, nil
+			return false, AuthRequestContext{}, nil
 		}
-		return false, authRequestContext{}, fmt.Errorf("failed to get authorization request from Redis: %w", err)
+		return false, AuthRequestContext{}, fmt.Errorf("failed to get authorization request from Redis: %w", err)
 	}
 
-	var result authRequestContext
+	var result AuthRequestContext
 	if err := json.Unmarshal(data, &result); err != nil {
-		return false, authRequestContext{}, fmt.Errorf("failed to unmarshal authorization request: %w", err)
+		return false, AuthRequestContext{}, fmt.Errorf("failed to unmarshal authorization request: %w", err)
 	}
 
 	return true, result, nil

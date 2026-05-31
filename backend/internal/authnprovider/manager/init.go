@@ -34,5 +34,10 @@ func InitializeAuthnProviderManager(entitySvc entity.EntityServiceInterface,
 	magicLinkSvc magiclink.MagicLinkAuthnServiceInterface,
 	federatedAuths map[idp.IDPType]authncommon.FederatedAuthenticator) AuthnProviderManagerInterface {
 	p := provider.InitializeAuthnProvider(entitySvc, passkeySvc, otpSvc, magicLinkSvc, federatedAuths)
+	return InitializeFromProvider(p)
+}
+
+// InitializeFromProvider wraps an AuthnProviderInterface with the manager layer.
+func InitializeFromProvider(p provider.AuthnProviderInterface) AuthnProviderManagerInterface {
 	return newAuthnProviderManager(p)
 }

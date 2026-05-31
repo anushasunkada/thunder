@@ -37,8 +37,8 @@ const requestURIRandomBytes = 32
 // Implementations operate on opaque random keys; the request_uri URN prefix is
 // added and stripped by the service layer.
 type parStoreInterface interface {
-	Store(ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64) (string, error)
-	Consume(ctx context.Context, randomKey string) (pushedAuthorizationRequest, bool, error)
+	Store(ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64) (string, error)
+	Consume(ctx context.Context, randomKey string) (PushedAuthorizationRequest, bool, error)
 }
 
 // parRequestStore is the relational-DB-backed implementation of parStoreInterface.
@@ -57,7 +57,7 @@ func newPARRequestStore(deploymentID string) parStoreInterface {
 
 // Store persists a pushed authorization request and returns the generated random key.
 func (s *parRequestStore) Store(
-	ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64,
+	ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64,
 ) (string, error) {
 	dbClient, err := s.dbProvider.GetRuntimeDBClient()
 	if err != nil {
@@ -88,50 +88,50 @@ func (s *parRequestStore) Store(
 // Returns the request, a boolean indicating if found, and any error.
 func (s *parRequestStore) Consume(
 	ctx context.Context, randomKey string,
-) (pushedAuthorizationRequest, bool, error) {
+) (PushedAuthorizationRequest, bool, error) {
 	dbClient, err := s.dbProvider.GetRuntimeDBClient()
 	if err != nil {
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to get database client: %w", err)
+		return PushedAuthorizationRequest{}, false, fmt.Errorf("failed to get database client: %w", err)
 	}
 
 	results, err := dbClient.QueryContext(ctx, queryGetPARRequest, randomKey, time.Now().UTC(), s.deploymentID)
 	if err != nil {
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to query PAR request: %w", err)
+		return PushedAuthorizationRequest{}, false, fmt.Errorf("failed to query PAR request: %w", err)
 	}
 	if len(results) == 0 {
-		return pushedAuthorizationRequest{}, false, nil
+		return PushedAuthorizationRequest{}, false, nil
 	}
 
 	rowsAffected, err := dbClient.ExecuteContext(ctx, queryDeletePARRequest, randomKey, s.deploymentID)
 	if err != nil {
-		return pushedAuthorizationRequest{}, false, fmt.Errorf("failed to delete PAR request: %w", err)
+		return PushedAuthorizationRequest{}, false, fmt.Errorf("failed to delete PAR request: %w", err)
 	}
 	// Another consumer raced us to the delete; treat as already consumed.
 	if rowsAffected == 0 {
-		return pushedAuthorizationRequest{}, false, nil
+		return PushedAuthorizationRequest{}, false, nil
 	}
 
 	request, err := buildPARRequestFromRow(results[0])
 	if err != nil {
-		return pushedAuthorizationRequest{}, false, err
+		return PushedAuthorizationRequest{}, false, err
 	}
 	return request, true, nil
 }
 
-// buildPARRequestFromRow reconstructs a pushedAuthorizationRequest from a database row.
-func buildPARRequestFromRow(row map[string]any) (pushedAuthorizationRequest, error) {
+// buildPARRequestFromRow reconstructs a PushedAuthorizationRequest from a database row.
+func buildPARRequestFromRow(row map[string]any) (PushedAuthorizationRequest, error) {
 	var dataJSON []byte
 	if val, ok := row[dbColumnRequestParams].(string); ok && val != "" {
 		dataJSON = []byte(val)
 	} else if val, ok := row[dbColumnRequestParams].([]byte); ok && len(val) > 0 {
 		dataJSON = val
 	} else {
-		return pushedAuthorizationRequest{}, errors.New("request_params is missing or of unexpected type")
+		return PushedAuthorizationRequest{}, errors.New("request_params is missing or of unexpected type")
 	}
 
-	var request pushedAuthorizationRequest
+	var request PushedAuthorizationRequest
 	if err := json.Unmarshal(dataJSON, &request); err != nil {
-		return pushedAuthorizationRequest{}, fmt.Errorf("failed to unmarshal PAR request: %w", err)
+		return PushedAuthorizationRequest{}, fmt.Errorf("failed to unmarshal PAR request: %w", err)
 	}
 	return request, nil
 }

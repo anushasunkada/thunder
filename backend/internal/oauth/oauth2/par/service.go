@@ -138,7 +138,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		DPoPJkt:             resolveDPoPJkt(params[oauth2const.RequestParamDPoPJkt], dpopHeaderJkt),
 	}
 
-	parRequest := pushedAuthorizationRequest{
+	parRequest := PushedAuthorizationRequest{
 		ClientID:        oauthApp.ClientID,
 		OAuthParameters: oauthParams,
 	}

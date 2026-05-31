@@ -44,7 +44,7 @@ type RedisStoreTestSuite struct {
 	mockClient *parRedisClientMock
 	store      *redisPARRequestStore
 	ctx        context.Context
-	testReq    pushedAuthorizationRequest
+	testReq    PushedAuthorizationRequest
 }
 
 func TestRedisStoreTestSuite(t *testing.T) {
@@ -59,7 +59,7 @@ func (s *RedisStoreTestSuite) SetupTest() {
 		deploymentID: redisTestDeploymentID,
 	}
 	s.ctx = context.Background()
-	s.testReq = pushedAuthorizationRequest{
+	s.testReq = PushedAuthorizationRequest{
 		ClientID: "test-client",
 		OAuthParameters: model.OAuthParameters{
 			ClientID:    "test-client",

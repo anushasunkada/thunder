@@ -42,6 +42,9 @@ type DiscoveryServiceInterface interface {
 type discoveryService struct {
 	baseURL        string
 	cryptoProvider kmprovider.RuntimeCryptoProvider
+	issuerOverride string
+	parRequired    bool
+	dpopAlgs       []string
 }
 
 // newDiscoveryService creates a new discovery service instance
@@ -102,6 +105,9 @@ func (ds *discoveryService) GetOIDCMetadata(ctx context.Context) (*OIDCProviderM
 }
 
 func (ds *discoveryService) getIssuer() string {
+	if ds.issuerOverride != "" {
+		return ds.issuerOverride
+	}
 	return config.GetServerRuntime().Config.JWT.Issuer
 }
 
@@ -158,10 +164,21 @@ func (ds *discoveryService) getPAREndpoint() string {
 }
 
 func (ds *discoveryService) isGlobalPARRequired() bool {
+	if ds.issuerOverride != "" {
+		return ds.parRequired
+	}
 	return config.GetServerRuntime().Config.OAuth.PAR.RequirePAR
 }
 
 func (ds *discoveryService) getSupportedDPoPSigningAlgs() []string {
+	if ds.issuerOverride != "" {
+		if len(ds.dpopAlgs) == 0 {
+			return nil
+		}
+		out := make([]string, len(ds.dpopAlgs))
+		copy(out, ds.dpopAlgs)
+		return out
+	}
 	algs := config.GetServerRuntime().Config.OAuth.DPoP.AllowedAlgs
 	if len(algs) == 0 {
 		return nil

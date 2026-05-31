@@ -38,23 +38,23 @@ func (_m *parStoreInterfaceMock) EXPECT() *parStoreInterfaceMock_Expecter {
 }
 
 // Consume provides a mock function for the type parStoreInterfaceMock
-func (_mock *parStoreInterfaceMock) Consume(ctx context.Context, randomKey string) (pushedAuthorizationRequest, bool, error) {
+func (_mock *parStoreInterfaceMock) Consume(ctx context.Context, randomKey string) (PushedAuthorizationRequest, bool, error) {
 	ret := _mock.Called(ctx, randomKey)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Consume")
 	}
 
-	var r0 pushedAuthorizationRequest
+	var r0 PushedAuthorizationRequest
 	var r1 bool
 	var r2 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (pushedAuthorizationRequest, bool, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (PushedAuthorizationRequest, bool, error)); ok {
 		return returnFunc(ctx, randomKey)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) pushedAuthorizationRequest); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) PushedAuthorizationRequest); ok {
 		r0 = returnFunc(ctx, randomKey)
 	} else {
-		r0 = ret.Get(0).(pushedAuthorizationRequest)
+		r0 = ret.Get(0).(PushedAuthorizationRequest)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) bool); ok {
 		r1 = returnFunc(ctx, randomKey)
@@ -99,18 +99,18 @@ func (_c *parStoreInterfaceMock_Consume_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *parStoreInterfaceMock_Consume_Call) Return(pushedAuthorizationRequestMoqParam pushedAuthorizationRequest, b bool, err error) *parStoreInterfaceMock_Consume_Call {
-	_c.Call.Return(pushedAuthorizationRequestMoqParam, b, err)
+func (_c *parStoreInterfaceMock_Consume_Call) Return(PushedAuthorizationRequestMoqParam PushedAuthorizationRequest, b bool, err error) *parStoreInterfaceMock_Consume_Call {
+	_c.Call.Return(PushedAuthorizationRequestMoqParam, b, err)
 	return _c
 }
 
-func (_c *parStoreInterfaceMock_Consume_Call) RunAndReturn(run func(ctx context.Context, randomKey string) (pushedAuthorizationRequest, bool, error)) *parStoreInterfaceMock_Consume_Call {
+func (_c *parStoreInterfaceMock_Consume_Call) RunAndReturn(run func(ctx context.Context, randomKey string) (PushedAuthorizationRequest, bool, error)) *parStoreInterfaceMock_Consume_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Store provides a mock function for the type parStoreInterfaceMock
-func (_mock *parStoreInterfaceMock) Store(ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64) (string, error) {
+func (_mock *parStoreInterfaceMock) Store(ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64) (string, error) {
 	ret := _mock.Called(ctx, request, expirySeconds)
 
 	if len(ret) == 0 {
@@ -119,15 +119,15 @@ func (_mock *parStoreInterfaceMock) Store(ctx context.Context, request pushedAut
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, pushedAuthorizationRequest, int64) (string, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, PushedAuthorizationRequest, int64) (string, error)); ok {
 		return returnFunc(ctx, request, expirySeconds)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, pushedAuthorizationRequest, int64) string); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, PushedAuthorizationRequest, int64) string); ok {
 		r0 = returnFunc(ctx, request, expirySeconds)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, pushedAuthorizationRequest, int64) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, PushedAuthorizationRequest, int64) error); ok {
 		r1 = returnFunc(ctx, request, expirySeconds)
 	} else {
 		r1 = ret.Error(1)
@@ -142,21 +142,21 @@ type parStoreInterfaceMock_Store_Call struct {
 
 // Store is a helper method to define mock.On call
 //   - ctx context.Context
-//   - request pushedAuthorizationRequest
+//   - request PushedAuthorizationRequest
 //   - expirySeconds int64
 func (_e *parStoreInterfaceMock_Expecter) Store(ctx interface{}, request interface{}, expirySeconds interface{}) *parStoreInterfaceMock_Store_Call {
 	return &parStoreInterfaceMock_Store_Call{Call: _e.mock.On("Store", ctx, request, expirySeconds)}
 }
 
-func (_c *parStoreInterfaceMock_Store_Call) Run(run func(ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64)) *parStoreInterfaceMock_Store_Call {
+func (_c *parStoreInterfaceMock_Store_Call) Run(run func(ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64)) *parStoreInterfaceMock_Store_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 pushedAuthorizationRequest
+		var arg1 PushedAuthorizationRequest
 		if args[1] != nil {
-			arg1 = args[1].(pushedAuthorizationRequest)
+			arg1 = args[1].(PushedAuthorizationRequest)
 		}
 		var arg2 int64
 		if args[2] != nil {
@@ -176,7 +176,7 @@ func (_c *parStoreInterfaceMock_Store_Call) Return(s string, err error) *parStor
 	return _c
 }
 
-func (_c *parStoreInterfaceMock_Store_Call) RunAndReturn(run func(ctx context.Context, request pushedAuthorizationRequest, expirySeconds int64) (string, error)) *parStoreInterfaceMock_Store_Call {
+func (_c *parStoreInterfaceMock_Store_Call) RunAndReturn(run func(ctx context.Context, request PushedAuthorizationRequest, expirySeconds int64) (string, error)) *parStoreInterfaceMock_Store_Call {
 	_c.Call.Return(run)
 	return _c
 }

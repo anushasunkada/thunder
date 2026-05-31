@@ -47,12 +47,20 @@ type redisAttributeCacheStore struct {
 	deploymentID string
 }
 
+// NewRedisPersistStore creates a Redis-backed attribute cache store for engine/server runtime wiring.
+func NewRedisPersistStore(p provider.RedisProviderInterface, deploymentID string) PersistStore {
+	return newRedisAttributeCacheStore(p, deploymentID)
+}
+
 // newRedisAttributeCacheStore creates a new Redis-backed attribute cache store.
-func newRedisAttributeCacheStore(p provider.RedisProviderInterface) attributeCacheStoreInterface {
+func newRedisAttributeCacheStore(p provider.RedisProviderInterface, deploymentID string) attributeCacheStoreInterface {
+	if deploymentID == "" {
+		deploymentID = config.GetServerRuntime().Config.Server.Identifier
+	}
 	return &redisAttributeCacheStore{
 		client:       p.GetRedisClient(),
 		keyPrefix:    p.GetKeyPrefix(),
-		deploymentID: config.GetServerRuntime().Config.Server.Identifier,
+		deploymentID: deploymentID,
 	}
 }
 

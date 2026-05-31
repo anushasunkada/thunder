@@ -27,7 +27,7 @@ import (
 func Initialize() AttributeCacheServiceInterface {
 	var store attributeCacheStoreInterface
 	if config.GetServerRuntime().Config.Database.Runtime.Type == provider.DataSourceTypeRedis {
-		store = newRedisAttributeCacheStore(provider.GetRedisProvider())
+		store = newRedisAttributeCacheStore(provider.GetRedisProvider(), "")
 	} else {
 		store = newAttributeCacheStore()
 	}

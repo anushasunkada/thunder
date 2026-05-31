@@ -34,6 +34,27 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 )
 
+// InitializeWithStores initializes the authorization handler using injected stores.
+func InitializeWithStores(
+	mux *http.ServeMux,
+	inboundClient inboundclient.InboundClientServiceInterface,
+	resourceService resource.ResourceServiceInterface,
+	jwtService jwt.JWTServiceInterface,
+	flowExecService flowexec.FlowExecServiceInterface,
+	parService par.PARServiceInterface,
+	authzCodeStore AuthorizationCodeStoreInterface,
+	authzReqStore AuthorizationRequestStore,
+	transactioner transaction.Transactioner,
+) (AuthorizeServiceInterface, error) {
+	authzService := newAuthorizeService(
+		inboundClient, resourceService, jwtService, flowExecService,
+		authzCodeStore, authzReqStore, parService, transactioner,
+	)
+	authzHandler := newAuthorizeHandler(authzService)
+	registerRoutes(mux, authzHandler)
+	return authzService, nil
+}
+
 // Initialize initializes the authorization handler and registers its routes.
 func Initialize(
 	mux *http.ServeMux,

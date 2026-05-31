@@ -31,6 +31,19 @@ var (
 	errAttributeCacheNotFound = errors.New("attribute cache not found")
 )
 
+// ErrStoreNotFound returns the persistence-layer not-found error.
+func ErrStoreNotFound() error {
+	return errAttributeCacheNotFound
+}
+
+func isRuntimeStoreNotFound(err error) bool {
+	return errors.Is(err, errRuntimeStoreNotFound) ||
+		(err != nil && err.Error() == "runtime store entry not found")
+}
+
+// errRuntimeStoreNotFound mirrors runtime store not-found for adapters without importing enginebridge.
+var errRuntimeStoreNotFound = errors.New("runtime store entry not found")
+
 // Client-facing service errors.
 var (
 	// ErrorInvalidRequestFormat is returned when the request format is invalid.

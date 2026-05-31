@@ -24,7 +24,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/flowbuilder"
 
 	"github.com/thunder-id/thunderid/internal/system/cache"
@@ -82,40 +81,8 @@ func Initialize(
 //   - Declarative flows cannot be updated or deleted
 func initializeStore(cacheManager cache.CacheManagerInterface) (
 	flowStoreInterface, *compositeFlowStore, transaction.Transactioner, error) {
-	var compositeStore *compositeFlowStore
-
-	storeMode := getFlowStoreMode()
-
-	flowByIDCache := cache.GetCache[*common.CompleteFlowDefinition](cacheManager, "FlowByIDCache")
-	flowByHandleCache := cache.GetCache[*common.CompleteFlowDefinition](cacheManager, "FlowByHandleCache")
-
-	switch storeMode {
-	case serverconst.StoreModeComposite:
-		fileStore, _ := newFileBasedStore()
-		dbStore, transactioner, err := newCacheBackedFlowStore(flowByIDCache, flowByHandleCache)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		compositeStore = newCompositeFlowStore(fileStore, dbStore)
-		if err := loadDeclarativeResources(fileStore); err != nil {
-			return nil, nil, nil, err
-		}
-		return compositeStore, compositeStore, transactioner, nil
-
-	case serverconst.StoreModeDeclarative:
-		fileStore, transactioner := newFileBasedStore()
-		if err := loadDeclarativeResources(fileStore); err != nil {
-			return nil, nil, nil, err
-		}
-		return fileStore, nil, transactioner, nil
-
-	default:
-		store, transactioner, err := newCacheBackedFlowStore(flowByIDCache, flowByHandleCache)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		return store, nil, transactioner, nil
-	}
+	cfg := FlowProviderConfig{StoreMode: getFlowStoreMode()}
+	return initializeStoreFromConfig(cacheManager, cfg)
 }
 
 // getFlowStoreMode determines the store mode for flows.

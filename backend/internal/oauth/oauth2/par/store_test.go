@@ -44,7 +44,7 @@ type StoreTestSuite struct {
 	mockDBClient   *providermock.DBClientInterfaceMock
 	store          *parRequestStore
 	ctx            context.Context
-	testRequest    pushedAuthorizationRequest
+	testRequest    PushedAuthorizationRequest
 }
 
 func TestStoreTestSuite(t *testing.T) {
@@ -59,7 +59,7 @@ func (s *StoreTestSuite) SetupTest() {
 		deploymentID: testDeploymentID,
 	}
 	s.ctx = context.Background()
-	s.testRequest = pushedAuthorizationRequest{
+	s.testRequest = PushedAuthorizationRequest{
 		ClientID: "test-client",
 		OAuthParameters: model.OAuthParameters{
 			ClientID:            "test-client",
@@ -178,7 +178,7 @@ func (s *StoreTestSuite) TestConsume_NotFound() {
 
 	assert.NoError(s.T(), err)
 	assert.False(s.T(), found)
-	assert.Equal(s.T(), pushedAuthorizationRequest{}, result)
+	assert.Equal(s.T(), PushedAuthorizationRequest{}, result)
 }
 
 func (s *StoreTestSuite) TestConsume_DBClientError() {

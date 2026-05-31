@@ -34,6 +34,25 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/middleware"
 )
 
+// InitializeWithStore initializes PAR using an injected store.
+func InitializeWithStore(
+	mux *http.ServeMux,
+	inboundClient inboundclient.InboundClientServiceInterface,
+	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
+	jwtService jwt.JWTServiceInterface,
+	discoveryService discovery.DiscoveryServiceInterface,
+	resourceService resource.ResourceServiceInterface,
+	dpopVerifier dpop.VerifierInterface,
+	store PARStore,
+) PARServiceInterface {
+	parSvc := newPARService(store, resourceService)
+	parEndpoint := discoveryService.GetOAuth2AuthorizationServerMetadata(
+		context.Background()).PushedAuthorizationRequestEndpoint
+	handler := newPARHandler(parSvc, dpopVerifier, parEndpoint)
+	registerRoutes(mux, handler, inboundClient, authnProvider, jwtService, discoveryService)
+	return parSvc
+}
+
 // Initialize initializes the PAR handler and registers its routes.
 // Returns the PARServiceInterface so the authorization endpoint can resolve request_uri parameters.
 func Initialize(

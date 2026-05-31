@@ -51,12 +51,20 @@ type attributeCacheStore struct {
 	deploymentID string
 }
 
+// NewSQLPersistStore creates a SQL runtime DB-backed attribute cache store.
+func NewSQLPersistStore(dbProvider dbprovider.DBProviderInterface, deploymentID string) PersistStore {
+	if deploymentID == "" {
+		deploymentID = config.GetServerRuntime().Config.Server.Identifier
+	}
+	return &attributeCacheStore{
+		dbProvider:   dbProvider,
+		deploymentID: deploymentID,
+	}
+}
+
 // newAttributeCacheStore creates a new instance of attributeCacheStore.
 func newAttributeCacheStore() attributeCacheStoreInterface {
-	return &attributeCacheStore{
-		dbProvider:   dbprovider.GetDBProvider(),
-		deploymentID: config.GetServerRuntime().Config.Server.Identifier,
-	}
+	return NewSQLPersistStore(dbprovider.GetDBProvider(), "")
 }
 
 // CreateAttributeCache creates a new attribute cache entry in the database.
