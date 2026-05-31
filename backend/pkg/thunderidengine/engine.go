@@ -24,6 +24,8 @@ package thunderidengine
 import (
 	"net/http"
 
+	"github.com/thunder-id/thunderid/internal/flow/core"
+	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/thunderidengineinit"
@@ -47,6 +49,12 @@ func Initialize(mux *http.ServeMux, cfg EngineConfig) (*Engine, error) {
 		Flow: thunderidengineinit.FlowConfig{
 			Executors: cfg.Flow.Executors,
 		},
+	}
+	if cfg.Flow.RegisterCustom != nil {
+		initCfg.Flow.RegisterCustomExecutors = func(reg executor.ExecutorRegistryInterface,
+			factory core.FlowFactoryInterface) error {
+			return cfg.Flow.RegisterCustom(wrapExecutorRegistry(reg), wrapFlowFactory(factory))
+		}
 	}
 	if cfg.FlowProvider != nil {
 		initCfg.FlowSource = WrapFlowProvider(cfg.FlowProvider)

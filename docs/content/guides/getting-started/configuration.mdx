@@ -347,7 +347,7 @@ Authentication and registration flow settings.
 
 ### Built-in Executors
 
-Use `flow.executors` to limit which built-in flow executors the server registers. This setting applies only to built-in executors. When you embed <ProductName /> and register custom executors programmatically, call `RegisterExecutor` on the registry returned by `Initialize` after startup; `flow.executors` does not affect custom executors.
+Use `flow.executors` to limit which built-in flow executors the server registers. This setting applies only to built-in executors. When you embed <ProductName /> and register custom executors, use **Flow.RegisterCustom** in `EngineConfig` (see `pkg/thunderidengine/README.md`); `flow.executors` does not affect custom executors.
 
 **Register all built-in executors (default):**
 

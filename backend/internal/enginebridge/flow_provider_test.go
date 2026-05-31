@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	flowcommon "github.com/thunder-id/thunderid/internal/flow/common"
 )
 

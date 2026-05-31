@@ -22,7 +22,6 @@ import (
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	i18ncore "github.com/thunder-id/thunderid/internal/system/i18n/core"
 
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -167,9 +166,6 @@ func (suite *BasicAuthExecutorTestSuite) TestExecute_Success_AuthenticationFlow(
 		userAttributePassword: "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticateResult, nil)
 
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
-
 	resp, err := suite.executor.Execute(ctx)
 
 	assert.NoError(suite.T(), err)
@@ -210,9 +206,6 @@ func (suite *BasicAuthExecutorTestSuite) TestExecute_Success_WithEmailAttribute(
 	}, map[string]interface{}{
 		"password": "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticatedUser, nil)
-
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
 
 	resp, err := suite.executor.Execute(ctx)
 
@@ -282,9 +275,6 @@ func (suite *BasicAuthExecutorTestSuite) TestExecute_Success_WithMultipleAttribu
 	}, map[string]interface{}{
 		"password": "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticatedUser, nil)
-
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
 
 	resp, err := suite.executor.Execute(ctx)
 
@@ -486,9 +476,6 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_SuccessfulAuth
 		userAttributePassword: "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticatedUser, nil)
 
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
-
 	result, err := suite.executor.getAuthenticatedUser(ctx, execResp)
 
 	assert.NoError(suite.T(), err)
@@ -500,7 +487,7 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_SuccessfulAuth
 	suite.mockAuthnProvider.AssertExpectations(suite.T())
 }
 
-func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_Success_WithFetchedAttributes() {
+func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_Success_WithEmptyAttributes() {
 	ctx := &core.NodeContext{
 		ExecutionID: "flow-123",
 		FlowType:    common.FlowTypeAuthentication,
@@ -526,26 +513,15 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_Success_WithFe
 		userAttributePassword: "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticateResult, nil)
 
-	// Mock UserProvider response
-	attrs := map[string]interface{}{"username": "testuser", "email": "fetched@example.com", "role": "admin"}
-	attrsJSON, _ := json.Marshal(attrs)
-	user := &entityprovider.Entity{
-		ID:         testUserID,
-		Attributes: attrsJSON,
-	}
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(user, nil)
-
 	result, err := suite.executor.getAuthenticatedUser(ctx, execResp)
 
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
 	assert.True(suite.T(), result.IsAuthenticated)
 	assert.Equal(suite.T(), testUserID, result.UserID)
-	assert.Equal(suite.T(), "testuser", result.Attributes["username"])
-	assert.Equal(suite.T(), "fetched@example.com", result.Attributes["email"])
-	assert.Equal(suite.T(), "admin", result.Attributes["role"])
+	assert.Empty(suite.T(), result.Attributes)
 	suite.mockAuthnProvider.AssertExpectations(suite.T())
-	suite.mockEntityProvider.AssertExpectations(suite.T())
+	suite.mockEntityProvider.AssertNotCalled(suite.T(), "GetEntity", mock.Anything)
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_AuthenticationFlow_NoRedundantIdentifyUser() {
@@ -574,9 +550,6 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_Authentication
 		userAttributePassword: "password123",
 	}, mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticatedUser, nil)
 
-	suite.mockEntityProvider.On("GetEntity", testUserID).Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
-
 	result, err := suite.executor.getAuthenticatedUser(ctx, execResp)
 
 	assert.NoError(suite.T(), err)
@@ -586,6 +559,7 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_Authentication
 	// Verify Authenticate was called (which handles IdentifyUser + VerifyUser internally)
 	// This test verifies the optimization: no explicit IdentifyUser call for auth flows
 	suite.mockAuthnProvider.AssertExpectations(suite.T())
+	suite.mockEntityProvider.AssertNotCalled(suite.T(), "GetEntity", mock.Anything)
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_RegistrationFlow_CallsIdentifyUser() {
@@ -932,9 +906,6 @@ func (suite *BasicAuthExecutorTestSuite) TestExecute_PreResolvedUser_WithPasswor
 		map[string]interface{}{userAttributeUserID: "pre-resolved-user-123"},
 		map[string]interface{}{userAttributePassword: "password123"},
 		mock.Anything, mock.Anything, mock.Anything).Return(authnprovidermgr.AuthUser{}, authenticateResult, nil)
-
-	suite.mockEntityProvider.On("GetEntity", "pre-resolved-user-123").Return(nil,
-		entityprovider.NewEntityProviderError(entityprovider.ErrorCodeNotImplemented, "", ""))
 
 	resp, err := suite.executor.Execute(ctx)
 

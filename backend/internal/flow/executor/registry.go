@@ -46,6 +46,11 @@ func newExecutorRegistry() ExecutorRegistryInterface {
 	}
 }
 
+// NewRegistry creates an empty executor registry.
+func NewRegistry() ExecutorRegistryInterface {
+	return newExecutorRegistry()
+}
+
 // RegisterExecutor registers an executor instance.
 func (r *executorRegistry) RegisterExecutor(name string, exec core.ExecutorInterface) {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "ExecutorRegistry"))

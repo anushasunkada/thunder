@@ -6,7 +6,8 @@ Embeddable OIDC authorization server: flow execution, OAuth2/OIDC endpoints (exc
 
 | Package | Use for |
 |---------|---------|
-| `github.com/thunder-id/thunderid/pkg/thunderidengine` | `Initialize`, `EngineConfig`, `Engine`, `FlowExec` |
+| `github.com/thunder-id/thunderid/pkg/thunderidengine` | `Initialize`, `EngineConfig`, `Engine`, `FlowExec`, `ExecutorRegistry`, `FlowFactory` |
+| `github.com/thunder-id/thunderid/pkg/thunderidengine/flow` | Custom executor types: `Executor`, `NodeContext`, `Input`, `ExecutorResponse` |
 | `github.com/thunder-id/thunderid/pkg/thunderidengine/runtime` | `Store`, `NewMemoryRuntimeStore`, `ErrNotFound` |
 | `github.com/thunder-id/thunderid/pkg/thunderidengine/host` | `ActorProvider`, `AuthnProvider`, `AuthorizationProvider`, `ConsentEnforcer`, `FlowProvider` |
 
@@ -49,6 +50,31 @@ Optional:
 
 - **FlowProvider** — custom flow source; if nil, **FlowStore** loads flows from declarative files under DataDir
 - **Flow.Executors** — built-in executor names to register; when empty, defaults to `BasicAuthExecutor`, `AuthAssertExecutor`, `ConsentExecutor`
+- **Flow.RegisterCustom** — callback to register host-provided executors after built-ins; use `pkg/thunderidengine/flow` types when implementing executors
+
+### Built-in subset and custom executors
+
+List only the built-in executors you need in **Flow.Executors**. Register host executors in **Flow.RegisterCustom**; do not add custom names to **Flow.Executors** (unknown built-in names cause startup to fail).
+
+```go
+import (
+    "github.com/thunder-id/thunderid/pkg/thunderidengine"
+    "github.com/thunder-id/thunderid/pkg/thunderidengine/flow"
+)
+
+_, err := thunderidengine.Initialize(mux, thunderidengine.EngineConfig{
+    // ... required fields ...
+    Flow: thunderidengine.FlowConfig{
+        Executors: []string{"BasicAuthExecutor", "AuthAssertExecutor", "ConsentExecutor"},
+        RegisterCustom: func(reg thunderidengine.ExecutorRegistry, factory thunderidengine.FlowFactory) error {
+            reg.Register("MyCustomExecutor", newMyCustomExecutor(factory))
+            return nil
+        },
+    },
+})
+```
+
+Implement custom executors by embedding the base from `factory.CreateExecutor(...)` and overriding `Execute`. Reference the executor name in declarative flow YAML under `executor.name`.
 
 ## Data directory layout
 

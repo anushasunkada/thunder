@@ -21,7 +21,6 @@
 package executor
 
 import (
-	"encoding/json"
 	"errors"
 
 	authncm "github.com/thunder-id/thunderid/internal/authn/common"
@@ -238,31 +237,12 @@ func (b *basicAuthExecutor) getAuthenticatedUser(ctx *core.NodeContext,
 	}
 	execResp.AuthUser = newAuthUser
 
-	// Try to retrieve the user and get the attributes
-	userAttributes := map[string]interface{}{}
-	user, err := b.entityProvider.GetEntity(authnResult.UserID)
-
-	if err != nil {
-		if err.Code != entityprovider.ErrorCodeNotImplemented {
-			logger.Error("Failed to get user attributes", log.Error(err))
-			return nil, errors.New("failed to get user attributes")
-		}
-		logger.Debug("User provider is not implemented. User attributes will be empty.")
-	}
-
-	if err == nil && user != nil && len(user.Attributes) > 0 {
-		if err := json.Unmarshal(user.Attributes, &userAttributes); err != nil {
-			logger.Error("Failed to unmarshal user attributes", log.Error(err))
-			return nil, errors.New("failed to unmarshal user attributes")
-		}
-	}
-
 	return &authncm.AuthenticatedUser{
 		IsAuthenticated: true,
 		UserID:          authnResult.UserID,
 		OUID:            authnResult.OUID,
 		UserType:        authnResult.UserType,
-		Attributes:      userAttributes,
+		Attributes:      map[string]interface{}{},
 	}, nil
 }
 

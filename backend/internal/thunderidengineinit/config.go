@@ -22,6 +22,8 @@ package thunderidengineinit
 import (
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/enginebridge"
+	"github.com/thunder-id/thunderid/internal/flow/core"
+	"github.com/thunder-id/thunderid/internal/flow/executor"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
 )
 
@@ -33,7 +35,8 @@ type FlowProviderConfig struct {
 
 // FlowConfig holds flow executor registration settings.
 type FlowConfig struct {
-	Executors []string
+	Executors               []string
+	RegisterCustomExecutors func(reg executor.ExecutorRegistryInterface, factory core.FlowFactoryInterface) error
 }
 
 // Config holds engine initialization inputs.

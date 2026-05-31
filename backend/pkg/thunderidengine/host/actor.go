@@ -49,17 +49,17 @@ type Application struct {
 
 // InboundClient represents an OAuth inbound client profile.
 type InboundClient struct {
-	ClientID      string
-	EntityID      string
-	ApplicationID string
-	OUID          string
-	Secret        string
-	GrantTypes    []string
-	RedirectURIs  []string
-	ResponseTypes []string
-	TokenEndpointAuthMethod string
-	PKCERequired  bool
-	PublicClient  bool
+	ClientID                           string
+	EntityID                           string
+	ApplicationID                      string
+	OUID                               string
+	Secret                             string
+	GrantTypes                         []string
+	RedirectURIs                       []string
+	ResponseTypes                      []string
+	TokenEndpointAuthMethod            string
+	PKCERequired                       bool
+	PublicClient                       bool
 	RequirePushedAuthorizationRequests bool
 
 	AuthFlowID                string

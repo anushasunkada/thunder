@@ -112,6 +112,11 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.Flow.RegisterCustomExecutors != nil {
+		if err := cfg.Flow.RegisterCustomExecutors(execRegistry, flowFactory); err != nil {
+			return nil, fmt.Errorf("register custom executors: %w", err)
+		}
+	}
 
 	graphBuilder := flowbuilder.Initialize(cacheManager, flowFactory, execRegistry)
 
@@ -235,8 +240,8 @@ func declarativeRole(svc *hostdeclarative.Services) role.RoleServiceInterface {
 }
 
 const (
-	defaultEngineJWTValiditySeconds            int64 = 3600
-	defaultEngineAuthCodeValiditySeconds         int64 = 600
+	defaultEngineJWTValiditySeconds      int64 = 3600
+	defaultEngineAuthCodeValiditySeconds int64 = 600
 )
 
 func applyEngineJWTConfig(issuer, signingKeyPath string) {

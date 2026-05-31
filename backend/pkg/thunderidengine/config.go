@@ -64,7 +64,12 @@ type CryptoConfig struct {
 
 // FlowConfig holds flow executor registration settings for the engine.
 type FlowConfig struct {
+	// Executors lists built-in executor names to register. When empty, defaults to
+	// BasicAuthExecutor, AuthAssertExecutor, and ConsentExecutor.
 	Executors []string
+	// RegisterCustom registers host-provided executors after built-ins are registered.
+	// Custom executor names must not appear in Executors; register them here instead.
+	RegisterCustom func(reg ExecutorRegistry, factory FlowFactory) error
 }
 
 // EngineConfig configures the embeddable ThunderID engine.
