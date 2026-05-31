@@ -21,8 +21,10 @@ package enginebridge
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/thunder-id/thunderid/internal/entityprovider"
+	"github.com/thunder-id/thunderid/pkg/thunderidengine/runtime"
 )
 
 type actorEntityProvider struct {
@@ -75,6 +77,10 @@ func (p *actorEntityProvider) SearchEntities(
 func (p *actorEntityProvider) GetEntity(entityID string) (*entityprovider.Entity, *entityprovider.EntityProviderError) {
 	actor, err := p.actors.GetEntity(entityID)
 	if err != nil {
+		if errors.Is(err, runtime.ErrNotFound) {
+			return nil, entityprovider.NewEntityProviderError(
+				entityprovider.ErrorCodeEntityNotFound, "engine", err.Error())
+		}
 		return nil, entityprovider.NewEntityProviderError(
 			entityprovider.ErrorCodeSystemError, "engine", err.Error())
 	}

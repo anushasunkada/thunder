@@ -60,7 +60,7 @@ func InitializeServices(
 		return nil, fmt.Errorf("bootstrap declarative data dir: %w", err)
 	}
 
-	ouService, err := ou.InitializeProvider(cacheManager)
+	ouService, err := ou.InitializeProviderWithAuthz(cacheManager, &engineSysAuthz{})
 	if err != nil {
 		return nil, fmt.Errorf("initialize OU service: %w", err)
 	}

@@ -106,6 +106,9 @@ func (as *authorizeService) GetAuthorizationCodeDetails(
 		if err != nil {
 			return err
 		}
+		if record == nil {
+			return errAuthorizationCodeNotFound
+		}
 
 		if record.ClientID != clientID {
 			return errors.New("client ID mismatch for authorization code")

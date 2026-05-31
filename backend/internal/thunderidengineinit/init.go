@@ -39,6 +39,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
+	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pki"
 )
 
 // Engine wraps initialized engine services.
@@ -57,6 +58,13 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 		return nil, err
 	}
 
+	if cfg.DataDir != "" {
+		if err := hostdeclarative.BootstrapDataDir(cfg.DataDir); err != nil {
+			return nil, fmt.Errorf("bootstrap data dir: %w", err)
+		}
+	}
+	applyEngineJWTConfig(cfg.Issuer, cfg.SigningKeyPath)
+
 	flowSource, err := resolveFlowSource(cfg)
 	if err != nil {
 		return nil, err
@@ -72,7 +80,6 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	jwtService, err := enginebridge.NewJWTService(cryptoProvider)
 	if err != nil {
 		return nil, err
@@ -225,4 +232,25 @@ func declarativeRole(svc *hostdeclarative.Services) role.RoleServiceInterface {
 		return nil
 	}
 	return svc.Role
+}
+
+const (
+	defaultEngineJWTValiditySeconds            int64 = 3600
+	defaultEngineAuthCodeValiditySeconds         int64 = 600
+)
+
+func applyEngineJWTConfig(issuer, signingKeyPath string) {
+	rt := config.GetServerRuntime()
+	if issuer != "" {
+		rt.Config.JWT.Issuer = issuer
+	}
+	if rt.Config.JWT.ValidityPeriod == 0 {
+		rt.Config.JWT.ValidityPeriod = defaultEngineJWTValiditySeconds
+	}
+	if rt.Config.OAuth.AuthorizationCode.ValidityPeriod == 0 {
+		rt.Config.OAuth.AuthorizationCode.ValidityPeriod = defaultEngineAuthCodeValiditySeconds
+	}
+	if signingKeyPath != "" {
+		rt.Config.JWT.PreferredKeyID = pki.DefaultEngineKeyID
+	}
 }

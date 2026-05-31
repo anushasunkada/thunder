@@ -129,7 +129,7 @@ func (a *inboundClientAdapter) GetInboundClientByEntityID(
 	if err != nil {
 		return nil, err
 	}
-	return &inboundmodel.InboundClient{ID: client.ClientID}, nil
+	return toInboundModelClient(client), nil
 }
 
 func (a *inboundClientAdapter) CreateInboundClient(ctx context.Context, client *inboundmodel.InboundClient,
@@ -175,7 +175,11 @@ func (a *inboundClientAdapter) ResolveInboundAuthProfileHandles(ctx context.Cont
 func (a *inboundClientAdapter) GetOAuthProfileByEntityID(
 	ctx context.Context, entityID string,
 ) (*inboundmodel.OAuthProfile, error) {
-	return nil, fmt.Errorf("not supported in engine mode")
+	client, err := a.actors.GetInboundClientByEntityID(ctx, entityID)
+	if err != nil {
+		return nil, err
+	}
+	return toOAuthProfile(client), nil
 }
 
 func (a *inboundClientAdapter) GetOAuthClientByClientID(
@@ -185,7 +189,7 @@ func (a *inboundClientAdapter) GetOAuthClientByClientID(
 	if err != nil {
 		return nil, err
 	}
-	return &inboundmodel.OAuthClient{ID: client.ClientID, ClientID: client.ClientID}, nil
+	return toOAuthClient(client), nil
 }
 
 func (a *inboundClientAdapter) IsDeclarative(ctx context.Context, entityID string) bool {
@@ -212,11 +216,7 @@ func (a *flowMgtAdapter) GetFlow(ctx context.Context, flowID string) (*FlowDefin
 	if svcErr != nil {
 		return nil, fmt.Errorf("%s", svcErr.ErrorDescription.DefaultValue)
 	}
-	return &FlowDefinition{
-		ID:       flow.ID,
-		Handle:   flow.Handle,
-		FlowType: string(flow.FlowType),
-	}, nil
+	return flowDefinitionFromComplete(flow), nil
 }
 
 func (a *flowMgtAdapter) GetFlowByHandle(ctx context.Context, handle, flowType string) (*FlowDefinition, error) {
@@ -224,11 +224,20 @@ func (a *flowMgtAdapter) GetFlowByHandle(ctx context.Context, handle, flowType s
 	if svcErr != nil {
 		return nil, fmt.Errorf("%s", svcErr.ErrorDescription.DefaultValue)
 	}
+	return flowDefinitionFromComplete(flow), nil
+}
+
+func flowDefinitionFromComplete(flow *flowcommon.CompleteFlowDefinition) *FlowDefinition {
+	if flow == nil {
+		return nil
+	}
 	return &FlowDefinition{
 		ID:       flow.ID,
 		Handle:   flow.Handle,
+		Name:     flow.Name,
 		FlowType: string(flow.FlowType),
-	}, nil
+		Nodes:    flow.Nodes,
+	}
 }
 
 // NewJWTService creates a JWT service from a runtime crypto provider.

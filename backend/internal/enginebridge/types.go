@@ -23,6 +23,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/thunder-id/thunderid/internal/flow/common"
 )
 
 // ErrNotFound indicates a runtime store entry was not found or expired.
@@ -83,6 +85,21 @@ type InboundClient struct {
 	ClientID      string
 	EntityID      string
 	ApplicationID string
+	OUID          string
+	Secret        string
+	GrantTypes    []string
+	RedirectURIs  []string
+	ResponseTypes []string
+	TokenEndpointAuthMethod string
+	PKCERequired  bool
+	PublicClient  bool
+	RequirePushedAuthorizationRequests bool
+
+	AuthFlowID                string
+	RegistrationFlowID        string
+	IsRegistrationFlowEnabled bool
+	RecoveryFlowID            string
+	IsRecoveryFlowEnabled     bool
 }
 
 // EntityType describes the schema for an actor type.
@@ -105,11 +122,13 @@ type ConsentSource interface {
 	RecordConsent(ctx context.Context, ouID, appID, userID string, decisions []ConsentDecision) error
 }
 
-// FlowDefinition is a minimal flow definition for engine wiring.
+// FlowDefinition carries a flow graph for engine execution.
 type FlowDefinition struct {
 	ID       string
 	Handle   string
+	Name     string
 	FlowType string
+	Nodes    []common.NodeDefinition
 }
 
 // FlowSource supplies flow definitions.

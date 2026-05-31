@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 )
@@ -43,7 +44,10 @@ func (a *flowContextStoreAdapter) StoreFlowContext(
 		return err
 	}
 	expiry := dbModel.ExpiryTime
-	if expiry.IsZero() {
+	if expiry.IsZero() && expirySeconds > 0 {
+		expiry = time.Now().UTC().Add(time.Duration(expirySeconds) * time.Second)
+	}
+	if expiry.IsZero() && !dbModel.CreatedAt.IsZero() {
 		expiry = dbModel.CreatedAt
 	}
 	return a.store.StoreFlowContext(ctx, dbModel.ExecutionID, data, expiry)

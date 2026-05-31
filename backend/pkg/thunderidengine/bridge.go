@@ -20,10 +20,12 @@ package thunderidengine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/thunder-id/thunderid/internal/enginebridge"
+	flowcommon "github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/host"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/runtime"
 )
@@ -87,11 +89,7 @@ func (a *actorBridge) GetInboundClientByEntityID(
 	if err != nil {
 		return nil, err
 	}
-	return &enginebridge.InboundClient{
-		ClientID:      client.ClientID,
-		EntityID:      client.EntityID,
-		ApplicationID: client.ApplicationID,
-	}, nil
+	return mapInboundClient(client), nil
 }
 
 func (a *actorBridge) GetInboundClientByClientID(
@@ -101,11 +99,32 @@ func (a *actorBridge) GetInboundClientByClientID(
 	if err != nil {
 		return nil, err
 	}
+	return mapInboundClient(client), nil
+}
+
+func mapInboundClient(client *host.InboundClient) *enginebridge.InboundClient {
+	if client == nil {
+		return nil
+	}
 	return &enginebridge.InboundClient{
-		ClientID:      client.ClientID,
-		EntityID:      client.EntityID,
-		ApplicationID: client.ApplicationID,
-	}, nil
+		ClientID:                           client.ClientID,
+		EntityID:                           client.EntityID,
+		ApplicationID:                      client.ApplicationID,
+		OUID:                               client.OUID,
+		Secret:                             client.Secret,
+		GrantTypes:                         client.GrantTypes,
+		RedirectURIs:                       client.RedirectURIs,
+		ResponseTypes:                      client.ResponseTypes,
+		TokenEndpointAuthMethod:            client.TokenEndpointAuthMethod,
+		PKCERequired:                       client.PKCERequired,
+		PublicClient:                       client.PublicClient,
+		RequirePushedAuthorizationRequests: client.RequirePushedAuthorizationRequests,
+		AuthFlowID:                         client.AuthFlowID,
+		RegistrationFlowID:                 client.RegistrationFlowID,
+		IsRegistrationFlowEnabled:          client.IsRegistrationFlowEnabled,
+		RecoveryFlowID:                     client.RecoveryFlowID,
+		IsRecoveryFlowEnabled:              client.IsRecoveryFlowEnabled,
+	}
 }
 
 func (a *actorBridge) GetEntityType(ctx context.Context, typeID string) (*enginebridge.EntityType, error) {
@@ -301,11 +320,7 @@ func (f *flowBridge) GetFlow(ctx context.Context, flowID string) (*enginebridge.
 	if err != nil {
 		return nil, err
 	}
-	return &enginebridge.FlowDefinition{
-		ID:       flow.ID,
-		Handle:   flow.Handle,
-		FlowType: string(flow.FlowType),
-	}, nil
+	return hostFlowDefinitionToEngine(flow)
 }
 
 func (f *flowBridge) GetFlowByHandle(
@@ -315,11 +330,30 @@ func (f *flowBridge) GetFlowByHandle(
 	if err != nil {
 		return nil, err
 	}
-	return &enginebridge.FlowDefinition{
+	return hostFlowDefinitionToEngine(flow)
+}
+
+func hostFlowDefinitionToEngine(flow *host.FlowDefinition) (*enginebridge.FlowDefinition, error) {
+	if flow == nil {
+		return nil, nil
+	}
+	def := &enginebridge.FlowDefinition{
 		ID:       flow.ID,
 		Handle:   flow.Handle,
 		FlowType: string(flow.FlowType),
-	}, nil
+	}
+	if len(flow.Graph) == 0 {
+		return def, nil
+	}
+	var complete flowcommon.CompleteFlowDefinition
+	if err := json.Unmarshal(flow.Graph, &complete); err != nil {
+		return nil, err
+	}
+	def.Name = complete.Name
+	if len(complete.Nodes) > 0 {
+		def.Nodes = complete.Nodes
+	}
+	return def, nil
 }
 
 // WrapRuntimeStore adapts runtime.Store for internal engine wiring (import-cycle boundary).

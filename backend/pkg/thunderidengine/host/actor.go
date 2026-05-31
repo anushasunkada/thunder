@@ -52,9 +52,21 @@ type InboundClient struct {
 	ClientID      string
 	EntityID      string
 	ApplicationID string
+	OUID          string
 	Secret        string
 	GrantTypes    []string
 	RedirectURIs  []string
+	ResponseTypes []string
+	TokenEndpointAuthMethod string
+	PKCERequired  bool
+	PublicClient  bool
+	RequirePushedAuthorizationRequests bool
+
+	AuthFlowID                string
+	RegistrationFlowID        string
+	IsRegistrationFlowEnabled bool
+	RecoveryFlowID            string
+	IsRecoveryFlowEnabled     bool
 }
 
 // ActorProvider supplies identity, application, and inbound client data to the engine.

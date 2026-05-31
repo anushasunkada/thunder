@@ -28,7 +28,8 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
 
-const defaultEngineKeyID = "engine-signing-key"
+// DefaultEngineKeyID is the PKI certificate ID used when loading a signing key from files.
+const DefaultEngineKeyID = "engine-signing-key"
 
 // InitializeFromFiles loads a single PEM key/certificate pair for engine embed mode.
 // keyPath may be a private key file; a certificate is resolved from the same basename with .crt or .pem.
@@ -51,8 +52,8 @@ func InitializeFromFiles(keyPath string) (PKIServiceInterface, error) {
 	}
 	return &pkiService{
 		certificates: map[string]PKI{
-			defaultEngineKeyID: {
-				ID:          defaultEngineKeyID,
+			DefaultEngineKeyID: {
+				ID:          DefaultEngineKeyID,
 				Algorithm:   algorithm,
 				PrivateKey:  cert.PrivateKey,
 				Certificate: cert,

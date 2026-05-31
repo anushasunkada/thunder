@@ -61,7 +61,9 @@ func toCompleteFlowDefinition(flow *FlowDefinition) *common.CompleteFlowDefiniti
 	return &common.CompleteFlowDefinition{
 		ID:       flow.ID,
 		Handle:   flow.Handle,
+		Name:     flow.Name,
 		FlowType: common.FlowType(flow.FlowType),
+		Nodes:    flow.Nodes,
 	}
 }
 

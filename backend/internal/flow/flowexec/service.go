@@ -113,7 +113,7 @@ func (s *flowExecService) Execute(ctx context.Context,
 				log.String("flowType", flowType),
 				log.String("error", loadErr.Error.DefaultValue))
 
-			if s.observabilitySvc.IsEnabled() {
+			if s.observabilitySvc != nil && s.observabilitySvc.IsEnabled() {
 				evt := event.NewEvent(
 					traceID,
 					string(event.EventTypeFlowFailed),

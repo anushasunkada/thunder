@@ -52,6 +52,26 @@ func BootstrapDataDir(dataDir string) error {
 		DeclarativeResources: config.DeclarativeResources{
 			Enabled: true,
 		},
+		GateClient: config.GateClientConfig{
+			Scheme:    "http",
+			Hostname:  "localhost",
+			Port:      8080,
+			LoginPath: "/signin",
+			ErrorPath: "/error",
+		},
+		OAuth: config.OAuthConfig{
+			PAR: config.PARConfig{
+				RequirePAR: false,
+			},
+		},
+		Crypto: config.CryptoConfig{
+			Encryption: config.EncryptionConfig{
+				Key: "0579f866ac7c9273580d0ff163fa01a7b2401a7ff3ddc3e3b14ae3136fa6025e",
+			},
+			PasswordHashing: config.PasswordHashingConfig{
+				Algorithm: "PBKDF2",
+			},
+		},
 	}
 	return config.InitializeServerRuntime(dataDir, cfg)
 }
