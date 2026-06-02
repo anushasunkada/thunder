@@ -1843,7 +1843,7 @@ func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithOAu
 	metadata := suite.executor.buildGetAttributesMetadata(ctx)
 
 	assert.NotNil(suite.T(), metadata)
-	assert.Equal(suite.T(), "flow-oauth-client", metadata.AppMetadata["oauth_client_id"])
+	assert.Equal(suite.T(), "flow-oauth-client", metadata.RuntimeMetadata[common.RuntimeKeyClientID])
 	clientIDs, ok := metadata.AppMetadata["client_ids"].([]string)
 	assert.True(suite.T(), ok)
 	assert.Equal(suite.T(), []string{"registered-client"}, clientIDs)
@@ -1857,8 +1857,8 @@ func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_Without
 	metadata := suite.executor.buildGetAttributesMetadata(ctx)
 
 	assert.NotNil(suite.T(), metadata)
-	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
-	assert.False(suite.T(), hasOAuthClientID)
+	_, hasRuntimeClientID := metadata.RuntimeMetadata[common.RuntimeKeyClientID]
+	assert.False(suite.T(), hasRuntimeClientID)
 }
 
 func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithEmptyRuntimeClientID() {
@@ -1872,6 +1872,5 @@ func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithEmp
 	metadata := suite.executor.buildGetAttributesMetadata(ctx)
 
 	assert.NotNil(suite.T(), metadata)
-	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
-	assert.False(suite.T(), hasOAuthClientID)
+	assert.Equal(suite.T(), "", metadata.RuntimeMetadata[common.RuntimeKeyClientID])
 }

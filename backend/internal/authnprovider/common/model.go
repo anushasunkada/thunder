@@ -21,7 +21,8 @@ package common
 
 // AuthnMetadata contains metadata for authentication.
 type AuthnMetadata struct {
-	AppMetadata map[string]interface{} `json:"appMetadata,omitempty"`
+	AppMetadata     map[string]interface{} `json:"appMetadata,omitempty"`
+	RuntimeMetadata map[string]interface{} `json:"runtimeMetadata,omitempty"`
 }
 
 // AuthnResult represents the result of an authentication attempt.
@@ -50,8 +51,9 @@ type AuthnResult struct {
 
 // GetAttributesMetadata contains metadata for fetching attributes.
 type GetAttributesMetadata struct {
-	AppMetadata map[string]interface{} `json:"appMetadata,omitempty"`
-	Locale      string                 `json:"locale"`
+	AppMetadata     map[string]interface{} `json:"appMetadata,omitempty"`
+	Locale          string                 `json:"locale"`
+	RuntimeMetadata map[string]interface{} `json:"runtimeMetadata,omitempty"`
 }
 
 // GetAttributesResult represents the result of fetching attributes.

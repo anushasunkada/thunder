@@ -731,7 +731,7 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithAllFields() 
 	assert.Len(suite.T(), clientIDs, 2)
 	assert.Contains(suite.T(), clientIDs, "oauth-client-1")
 	assert.Contains(suite.T(), clientIDs, "oauth-client-2")
-	assert.Equal(suite.T(), "flow-oauth-client", metadata.AppMetadata["oauth_client_id"])
+	assert.Equal(suite.T(), "flow-oauth-client", metadata.RuntimeMetadata[common.RuntimeKeyClientID])
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithNoMetadata() {
@@ -743,7 +743,7 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithNoMetadata()
 
 	assert.NotNil(suite.T(), metadata)
 	assert.NotNil(suite.T(), metadata.AppMetadata)
-	assert.Empty(suite.T(), metadata.AppMetadata)
+	assert.Equal(suite.T(), "", metadata.AppMetadata["application_id"])
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithOnlyAppMetadata() {
@@ -786,8 +786,8 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithOnlyClientID
 	assert.True(suite.T(), ok)
 	assert.Len(suite.T(), clientIDs, 1)
 	assert.Equal(suite.T(), "single-oauth-client", clientIDs[0])
-	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
-	assert.False(suite.T(), hasOAuthClientID)
+	_, hasRuntimeClientID := metadata.RuntimeMetadata[common.RuntimeKeyClientID]
+	assert.False(suite.T(), hasRuntimeClientID)
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithEmptyRuntimeClientID() {
@@ -801,8 +801,7 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithEmptyRuntime
 	metadata := suite.executor.buildAuthnMetadata(ctx)
 
 	assert.NotNil(suite.T(), metadata)
-	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
-	assert.False(suite.T(), hasOAuthClientID)
+	assert.Equal(suite.T(), "", metadata.RuntimeMetadata[common.RuntimeKeyClientID])
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithNilOAuthConfig() {

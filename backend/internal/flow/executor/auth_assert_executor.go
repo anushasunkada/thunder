@@ -583,13 +583,21 @@ func (a *authAssertExecutor) appendRolesToClaims(
 // buildGetAttributesMetadata constructs the metadata for fetching user attributes.
 func (a *authAssertExecutor) buildGetAttributesMetadata(ctx *core.NodeContext) *authnprovidercm.GetAttributesMetadata {
 	metadata := &authnprovidercm.GetAttributesMetadata{
-		AppMetadata: make(map[string]interface{}),
+		AppMetadata:     make(map[string]interface{}),
+		RuntimeMetadata: make(map[string]interface{}),
 	}
 
 	// Copy application metadata if present
 	if ctx.Application.Metadata != nil {
 		for key, value := range ctx.Application.Metadata {
 			metadata.AppMetadata[key] = value
+		}
+	}
+
+	// Copy runtime metadata if present
+	if ctx.RuntimeData != nil {
+		for key, value := range ctx.RuntimeData {
+			metadata.RuntimeMetadata[key] = value
 		}
 	}
 
@@ -604,10 +612,6 @@ func (a *authAssertExecutor) buildGetAttributesMetadata(ctx *core.NodeContext) *
 	// Add client IDs to metadata if present
 	if len(clientIDs) > 0 {
 		metadata.AppMetadata["client_ids"] = clientIDs
-	}
-
-	if clientID, exists := ctx.RuntimeData[common.RuntimeKeyClientID]; exists && clientID != "" {
-		metadata.AppMetadata["oauth_client_id"] = clientID
 	}
 
 	// Set locale from runtime data if present

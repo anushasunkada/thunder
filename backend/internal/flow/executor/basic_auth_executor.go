@@ -249,13 +249,23 @@ func (b *basicAuthExecutor) getAuthenticatedUser(ctx *core.NodeContext,
 // buildAuthnMetadata constructs the metadata for authentication.
 func (b *basicAuthExecutor) buildAuthnMetadata(ctx *core.NodeContext) *authnprovidercm.AuthnMetadata {
 	metadata := &authnprovidercm.AuthnMetadata{
-		AppMetadata: make(map[string]interface{}),
+		AppMetadata:     make(map[string]interface{}),
+		RuntimeMetadata: make(map[string]interface{}),
 	}
+
+	metadata.AppMetadata["application_id"] = ctx.Application.ID
 
 	// Copy application metadata if present
 	if ctx.Application.Metadata != nil {
 		for key, value := range ctx.Application.Metadata {
 			metadata.AppMetadata[key] = value
+		}
+	}
+
+	// Copy runtime metadata if present
+	if ctx.RuntimeData != nil {
+		for key, value := range ctx.RuntimeData {
+			metadata.RuntimeMetadata[key] = value
 		}
 	}
 
@@ -270,10 +280,6 @@ func (b *basicAuthExecutor) buildAuthnMetadata(ctx *core.NodeContext) *authnprov
 	// Add client IDs to metadata if present
 	if len(clientIDs) > 0 {
 		metadata.AppMetadata["client_ids"] = clientIDs
-	}
-
-	if clientID, exists := ctx.RuntimeData[common.RuntimeKeyClientID]; exists && clientID != "" {
-		metadata.AppMetadata["oauth_client_id"] = clientID
 	}
 
 	return metadata
