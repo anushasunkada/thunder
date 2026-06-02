@@ -28,7 +28,8 @@ type AuthnMetadata struct {
 	ApplicationID string
 	OUID          string
 	FlowID        string
-	Extra         map[string]interface{}
+	// AppMetadata is the full application metadata map from the flow (tenant_id, client_ids, oauth_client_id, etc.).
+	AppMetadata map[string]interface{}
 }
 
 // AuthnResult is returned after successful authentication.
@@ -50,6 +51,9 @@ type RequestedAttributes struct {
 type GetAttributesMetadata struct {
 	ApplicationID string
 	OUID          string
+	Locale        string
+	// AppMetadata is the full application metadata map from the flow (tenant_id, client_ids, oauth_client_id, etc.).
+	AppMetadata map[string]interface{}
 }
 
 // GetAttributesResult is returned from attribute retrieval.

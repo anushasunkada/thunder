@@ -272,5 +272,9 @@ func (b *basicAuthExecutor) buildAuthnMetadata(ctx *core.NodeContext) *authnprov
 		metadata.AppMetadata["client_ids"] = clientIDs
 	}
 
+	if clientID, exists := ctx.RuntimeData[common.RuntimeKeyClientID]; exists && clientID != "" {
+		metadata.AppMetadata["oauth_client_id"] = clientID
+	}
+
 	return metadata
 }

@@ -1822,3 +1822,56 @@ func (suite *AuthAssertExecutorTestSuite) TestIntersectPermissionSpaceList_Drops
 func (suite *AuthAssertExecutorTestSuite) TestIntersectPermissionSpaceList_NoOverlap() {
 	assert.Equal(suite.T(), "", intersectPermissionSpaceList("a b", "c d"))
 }
+
+func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithOAuthClientID() {
+	ctx := &core.NodeContext{
+		RuntimeData: map[string]string{
+			common.RuntimeKeyClientID: "flow-oauth-client",
+		},
+		Application: appmodel.Application{
+			InboundAuthConfig: []inboundmodel.InboundAuthConfigWithSecret{
+				{
+					Type: inboundmodel.OAuthInboundAuthType,
+					OAuthConfig: &inboundmodel.OAuthConfigWithSecret{
+						ClientID: "registered-client",
+					},
+				},
+			},
+		},
+	}
+
+	metadata := suite.executor.buildGetAttributesMetadata(ctx)
+
+	assert.NotNil(suite.T(), metadata)
+	assert.Equal(suite.T(), "flow-oauth-client", metadata.AppMetadata["oauth_client_id"])
+	clientIDs, ok := metadata.AppMetadata["client_ids"].([]string)
+	assert.True(suite.T(), ok)
+	assert.Equal(suite.T(), []string{"registered-client"}, clientIDs)
+}
+
+func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithoutOAuthClientID() {
+	ctx := &core.NodeContext{
+		Application: appmodel.Application{},
+	}
+
+	metadata := suite.executor.buildGetAttributesMetadata(ctx)
+
+	assert.NotNil(suite.T(), metadata)
+	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
+	assert.False(suite.T(), hasOAuthClientID)
+}
+
+func (suite *AuthAssertExecutorTestSuite) TestBuildGetAttributesMetadata_WithEmptyRuntimeClientID() {
+	ctx := &core.NodeContext{
+		RuntimeData: map[string]string{
+			common.RuntimeKeyClientID: "",
+		},
+		Application: appmodel.Application{},
+	}
+
+	metadata := suite.executor.buildGetAttributesMetadata(ctx)
+
+	assert.NotNil(suite.T(), metadata)
+	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
+	assert.False(suite.T(), hasOAuthClientID)
+}

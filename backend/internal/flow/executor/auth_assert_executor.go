@@ -606,6 +606,10 @@ func (a *authAssertExecutor) buildGetAttributesMetadata(ctx *core.NodeContext) *
 		metadata.AppMetadata["client_ids"] = clientIDs
 	}
 
+	if clientID, exists := ctx.RuntimeData[common.RuntimeKeyClientID]; exists && clientID != "" {
+		metadata.AppMetadata["oauth_client_id"] = clientID
+	}
+
 	// Set locale from runtime data if present
 	if locale, exists := ctx.RuntimeData["required_locales"]; exists && locale != "" {
 		metadata.Locale = locale

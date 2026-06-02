@@ -694,6 +694,9 @@ func (suite *BasicAuthExecutorTestSuite) TestGetAuthenticatedUser_ClientError_Re
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithAllFields() {
 	ctx := &core.NodeContext{
+		RuntimeData: map[string]string{
+			common.RuntimeKeyClientID: "flow-oauth-client",
+		},
 		Application: appmodel.Application{
 			Metadata: map[string]interface{}{
 				"tenant_id": "tenant-123",
@@ -728,6 +731,7 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithAllFields() 
 	assert.Len(suite.T(), clientIDs, 2)
 	assert.Contains(suite.T(), clientIDs, "oauth-client-1")
 	assert.Contains(suite.T(), clientIDs, "oauth-client-2")
+	assert.Equal(suite.T(), "flow-oauth-client", metadata.AppMetadata["oauth_client_id"])
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithNoMetadata() {
@@ -782,6 +786,23 @@ func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithOnlyClientID
 	assert.True(suite.T(), ok)
 	assert.Len(suite.T(), clientIDs, 1)
 	assert.Equal(suite.T(), "single-oauth-client", clientIDs[0])
+	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
+	assert.False(suite.T(), hasOAuthClientID)
+}
+
+func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithEmptyRuntimeClientID() {
+	ctx := &core.NodeContext{
+		RuntimeData: map[string]string{
+			common.RuntimeKeyClientID: "",
+		},
+		Application: appmodel.Application{},
+	}
+
+	metadata := suite.executor.buildAuthnMetadata(ctx)
+
+	assert.NotNil(suite.T(), metadata)
+	_, hasOAuthClientID := metadata.AppMetadata["oauth_client_id"]
+	assert.False(suite.T(), hasOAuthClientID)
 }
 
 func (suite *BasicAuthExecutorTestSuite) TestBuildAuthnMetadata_WithNilOAuthConfig() {
