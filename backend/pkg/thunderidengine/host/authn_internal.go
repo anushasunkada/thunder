@@ -64,7 +64,7 @@ func toPublicAuthnMetadata(m *authnprovidercm.AuthnMetadata) *AuthnMetadata {
 	if m == nil {
 		return nil
 	}
-	meta := &AuthnMetadata{AppMetadata: m.AppMetadata}
+	meta := &AuthnMetadata{AppMetadata: m.AppMetadata, RuntimeMetadata: m.RuntimeMetadata}
 	if m.AppMetadata != nil {
 		if appID, ok := m.AppMetadata["applicationId"].(string); ok {
 			meta.ApplicationID = appID
@@ -73,6 +73,7 @@ func toPublicAuthnMetadata(m *authnprovidercm.AuthnMetadata) *AuthnMetadata {
 			meta.OUID = ouID
 		}
 	}
+	meta.RuntimeMetadata = m.RuntimeMetadata
 	return meta
 }
 
@@ -92,6 +93,7 @@ func toPublicGetAttributesMetadata(m *authnprovidercm.GetAttributesMetadata) *Ge
 			meta.OUID = ouID
 		}
 	}
+	meta.RuntimeMetadata = m.RuntimeMetadata
 	return meta
 }
 

@@ -30,6 +30,8 @@ type AuthnMetadata struct {
 	FlowID        string
 	// AppMetadata is the full application metadata map from the flow (tenant_id, client_ids, oauth_client_id, etc.).
 	AppMetadata map[string]interface{}
+	// RuntimeMetadata is the full runtime metadata map from the flow (custom_metadata, etc.).
+	RuntimeMetadata map[string]interface{}
 }
 
 // AuthnResult is returned after successful authentication.
@@ -54,6 +56,8 @@ type GetAttributesMetadata struct {
 	Locale        string
 	// AppMetadata is the full application metadata map from the flow (tenant_id, client_ids, oauth_client_id, etc.).
 	AppMetadata map[string]interface{}
+	// RuntimeMetadata is the full runtime metadata map from the flow (custom_metadata, etc.).
+	RuntimeMetadata map[string]interface{}
 }
 
 // GetAttributesResult is returned from attribute retrieval.
