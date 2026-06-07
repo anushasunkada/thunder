@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
@@ -50,7 +51,7 @@ func TestDCRHandlerTestSuite(t *testing.T) {
 
 func (s *DCRHandlerTestSuite) SetupTest() {
 	s.mockService = NewDCRServiceInterfaceMock(s.T())
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		OAuth: config.OAuthConfig{DCR: config.DCRConfig{Insecure: true}},
 	})
 	s.handler = newDCRHandler(s.mockService)
@@ -298,7 +299,7 @@ func TestWriteServiceErrorResponse_DirectCall(t *testing.T) {
 // TestHandleDCRRegistration_ClosedDCR_NoToken tests that a missing token is rejected when insecure=false.
 // Uses the default config where Insecure defaults to false (secure by default).
 func TestHandleDCRRegistration_ClosedDCR_NoToken(t *testing.T) {
-	_ = config.InitializeServerRuntime("test", &config.Config{})
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{})
 	defer config.ResetServerRuntime()
 
 	mockService := NewDCRServiceInterfaceMock(t)
@@ -321,7 +322,7 @@ func TestHandleDCRRegistration_ClosedDCR_NoToken(t *testing.T) {
 // permission is rejected when insecure=false.
 // Uses the default config where Insecure defaults to false (secure by default).
 func TestHandleDCRRegistration_ClosedDCR_InsufficientPermissions(t *testing.T) {
-	_ = config.InitializeServerRuntime("test", &config.Config{})
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{})
 	defer config.ResetServerRuntime()
 
 	mockService := NewDCRServiceInterfaceMock(t)
@@ -348,7 +349,7 @@ func TestHandleDCRRegistration_ClosedDCR_InsufficientPermissions(t *testing.T) {
 // permission is accepted when insecure=false.
 // Uses the default config where Insecure defaults to false (secure by default).
 func TestHandleDCRRegistration_ClosedDCR_WithSystemPermission(t *testing.T) {
-	_ = config.InitializeServerRuntime("test", &config.Config{})
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{})
 	defer config.ResetServerRuntime()
 	security.InitSystemPermissions("")
 	defer security.InitSystemPermissions("")

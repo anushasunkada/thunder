@@ -34,6 +34,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/idp"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/system/cmodels"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
@@ -69,7 +70,7 @@ func (suite *TokenValidatorTestSuite) SetupTest() {
 			Leeway:         30,            // 30 seconds leeway for clock skew
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.validator = &tokenValidator{
@@ -100,12 +101,7 @@ func (suite *TokenValidatorTestSuite) createTestJWT(claims map[string]interface{
 // getDefaultAudience is a helper function to get the configured default audience from runtime.
 // It skips the test if the runtime is not initialized or the audience is not configured.
 func (suite *TokenValidatorTestSuite) getDefaultAudience() string {
-	runtime := config.GetServerRuntime()
-	if runtime == nil {
-		suite.T().Skip("Server runtime not initialized")
-		return ""
-	}
-	defaultAudience := runtime.Config.JWT.Audience
+	defaultAudience := oauth2config.Get().JWT.Audience
 	if defaultAudience == "" {
 		suite.T().Skip("Default audience not configured in runtime")
 		return ""
@@ -576,12 +572,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Security_RejectsT
 
 func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_EdgeCase_VeryLongToken() {
 	// Get the configured default audience from runtime
-	runtime := config.GetServerRuntime()
-	if runtime == nil {
-		suite.T().Skip("Server runtime not initialized")
-		return
-	}
-	defaultAudience := runtime.Config.JWT.Audience
+	defaultAudience := oauth2config.Get().JWT.Audience
 	if defaultAudience == "" {
 		suite.T().Skip("Default audience not configured in runtime")
 		return
@@ -1687,7 +1678,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_Expiration
 					Leeway:         tc.leeway,
 				},
 			}
-			_ = config.InitializeServerRuntime("test", testConfig)
+			_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 			now := time.Now().Unix()
 			claims := map[string]interface{}{
@@ -1720,7 +1711,7 @@ func (suite *TokenValidatorTestSuite) TestValidateSubjectToken_Leeway_ExpJustIns
 			Leeway:         30, // 30 seconds leeway
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	defaultAudience := suite.getDefaultAudience()
 
@@ -2021,7 +2012,7 @@ func (suite *ExternalIDPValidatorTestSuite) SetupTest() {
 			Leeway:         30,
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.mockIDPService = idpmock.NewIDPServiceInterfaceMock(suite.T())

@@ -39,7 +39,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/cache"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
-	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pki"
+	"github.com/thunder-id/thunderid/internal/system/jose"
 )
 
 // Engine wraps initialized engine services.
@@ -63,7 +63,7 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 			return nil, fmt.Errorf("bootstrap data dir: %w", err)
 		}
 	}
-	applyEngineJWTConfig(cfg.Issuer, cfg.SigningKeyPath)
+	signingKeyPath := cfg.SigningKeyPath
 
 	flowSource, err := resolveFlowSource(cfg)
 	if err != nil {
@@ -76,11 +76,11 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 	inboundClientService := enginebridge.NewInboundClientService(cfg.Actors)
 	authzService := enginebridge.NewAuthzService(cfg.Authorization)
 
-	cryptoProvider, err := initCryptoProvider(cfg.SigningKeyPath)
+	cryptoProvider, err := initCryptoProvider(signingKeyPath)
 	if err != nil {
 		return nil, err
 	}
-	jwtService, err := enginebridge.NewJWTService(cryptoProvider)
+	jwtService, jweService, err := jose.Initialize(cryptoProvider, cfg.JOSE)
 	if err != nil {
 		return nil, err
 	}
@@ -150,9 +150,9 @@ func Initialize(mux *http.ServeMux, cfg Config) (*Engine, error) {
 		FlowExecService:      flowExec,
 		AttributeCache:       attrCacheSvc,
 		CryptoProvider:       cryptoProvider,
-		Config: oauth.EngineConfig{
-			Issuer: cfg.Issuer,
-		},
+		JWTService:           jwtService,
+		JWEService:           jweService,
+		Config:               cfg.OAuth2,
 	}
 	if declarativeSvc != nil {
 		oauthDeps.ResourceService = declarativeSvc.Resource
@@ -182,7 +182,7 @@ func validateConfig(cfg Config) error {
 	if cfg.Consent == nil {
 		return errors.New("Consent enforcer is required")
 	}
-	if cfg.Issuer == "" {
+	if cfg.OAuth2.Issuer == "" {
 		return errors.New("Issuer is required")
 	}
 	if cfg.FlowSource == nil && cfg.FlowStore.StoreMode == "" {
@@ -237,25 +237,4 @@ func declarativeRole(svc *hostdeclarative.Services) role.RoleServiceInterface {
 		return nil
 	}
 	return svc.Role
-}
-
-const (
-	defaultEngineJWTValiditySeconds      int64 = 3600
-	defaultEngineAuthCodeValiditySeconds int64 = 600
-)
-
-func applyEngineJWTConfig(issuer, signingKeyPath string) {
-	rt := config.GetServerRuntime()
-	if issuer != "" {
-		rt.Config.JWT.Issuer = issuer
-	}
-	if rt.Config.JWT.ValidityPeriod == 0 {
-		rt.Config.JWT.ValidityPeriod = defaultEngineJWTValiditySeconds
-	}
-	if rt.Config.OAuth.AuthorizationCode.ValidityPeriod == 0 {
-		rt.Config.OAuth.AuthorizationCode.ValidityPeriod = defaultEngineAuthCodeValiditySeconds
-	}
-	if signingKeyPath != "" {
-		rt.Config.JWT.PreferredKeyID = pki.DefaultEngineKeyID
-	}
 }

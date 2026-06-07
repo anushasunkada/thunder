@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/resource"
@@ -59,7 +60,7 @@ func (s *ServiceTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = oauth2config.InitTestServerRuntime("", testConfig)
 	s.ctx = context.Background()
 }
 

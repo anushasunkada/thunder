@@ -40,6 +40,7 @@ import (
 
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -78,7 +79,7 @@ func (suite *TokenBuilderTestSuite) SetupTest() {
 			ValidityPeriod: 3600,
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.builder = &tokenBuilder{

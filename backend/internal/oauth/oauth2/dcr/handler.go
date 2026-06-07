@@ -21,7 +21,7 @@ package dcr
 import (
 	"net/http"
 
-	"github.com/thunder-id/thunderid/internal/system/config"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/security"
@@ -44,7 +44,7 @@ func newDCRHandler(dcrService DCRServiceInterface) *dcrHandler {
 func (dh *dcrHandler) HandleDCRRegistration(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	// When DCR is not insecure, require a valid token with required permissions.
-	if !config.GetServerRuntime().Config.OAuth.DCR.Insecure && !dh.checkDCRAuthorization(r, w) {
+	if !oauth2config.Get().DCR.Insecure && !dh.checkDCRAuthorization(r, w) {
 		return
 	}
 

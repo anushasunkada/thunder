@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/tests/mocks/attributecachemock"
@@ -64,7 +65,7 @@ func (suite *InitTestSuite) SetupTest() {
 		})
 
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime(
+	_ = oauth2config.InitTestServerRuntime(
 		"test-home",
 		&config.Config{
 			OAuth: config.OAuthConfig{

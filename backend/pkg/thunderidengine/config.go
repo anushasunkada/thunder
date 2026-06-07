@@ -41,23 +41,37 @@ type FlowProviderConfig struct {
 	DefinitionsPath string
 }
 
+// SystemConfig holds cryptographic bootstrap settings for the engine.
+type SystemConfig struct {
+	SigningKeyPath string
+	PreferredKeyID string
+	JWKSCacheTTL   int64
+}
+
 // OAuthConfig holds OAuth2/OIDC authorization server settings.
 type OAuthConfig struct {
 	AuthorizationCodeLifetimeSeconds int
 	AccessTokenLifetimeSeconds       int
 	RefreshTokenLifetimeSeconds      int
 	PARExpirySeconds                 int
+	PARRequired                      bool
 	DPoPRequired                     bool
+	DPoPAllowedAlgs                  []string
+	DPoPIatWindow                    int
+	DPoPLeeway                       int
+	DPoPMaxJTILength                 int
+	RefreshTokenRenewOnGrant         bool
 }
 
 // JWTConfig holds JWT signing and validation settings.
 type JWTConfig struct {
 	Issuer   string
 	Audience string
-	Leeway   int
+	Leeway   int64
 }
 
 // CryptoConfig holds cryptographic settings for the engine.
+// Deprecated: use SystemConfig instead.
 type CryptoConfig struct {
 	SigningKeyPath string
 }
@@ -77,6 +91,7 @@ type EngineConfig struct {
 	Issuer   string
 	Audience string
 	JWKSPath string
+	System   SystemConfig
 	OAuth    OAuthConfig
 	JWT      JWTConfig
 	Crypto   CryptoConfig

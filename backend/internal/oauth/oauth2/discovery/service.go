@@ -25,9 +25,9 @@ import (
 	"sort"
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/pkce"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
@@ -42,17 +42,15 @@ type DiscoveryServiceInterface interface {
 type discoveryService struct {
 	baseURL        string
 	cryptoProvider kmprovider.RuntimeCryptoProvider
-	issuerOverride string
-	parRequired    bool
-	dpopAlgs       []string
 }
 
 // newDiscoveryService creates a new discovery service instance
 func newDiscoveryService(cryptoProvider kmprovider.RuntimeCryptoProvider) DiscoveryServiceInterface {
-	runtime := config.GetServerRuntime()
-	ds := &discoveryService{cryptoProvider: cryptoProvider}
-	ds.baseURL = config.GetServerURL(&runtime.Config.Server)
-	return ds
+	cfg := oauth2config.Get()
+	return &discoveryService{
+		baseURL:        cfg.BaseURL,
+		cryptoProvider: cryptoProvider,
+	}
 }
 
 // GetOAuth2AuthorizationServerMetadata returns OAuth 2.0 Authorization Server Metadata
@@ -105,10 +103,7 @@ func (ds *discoveryService) GetOIDCMetadata(ctx context.Context) (*OIDCProviderM
 }
 
 func (ds *discoveryService) getIssuer() string {
-	if ds.issuerOverride != "" {
-		return ds.issuerOverride
-	}
-	return config.GetServerRuntime().Config.JWT.Issuer
+	return oauth2config.Get().Issuer
 }
 
 func (ds *discoveryService) getAuthorizationEndpoint() string {
@@ -164,22 +159,11 @@ func (ds *discoveryService) getPAREndpoint() string {
 }
 
 func (ds *discoveryService) isGlobalPARRequired() bool {
-	if ds.issuerOverride != "" {
-		return ds.parRequired
-	}
-	return config.GetServerRuntime().Config.OAuth.PAR.RequirePAR
+	return oauth2config.Get().PAR.RequirePAR
 }
 
 func (ds *discoveryService) getSupportedDPoPSigningAlgs() []string {
-	if ds.issuerOverride != "" {
-		if len(ds.dpopAlgs) == 0 {
-			return nil
-		}
-		out := make([]string, len(ds.dpopAlgs))
-		copy(out, ds.dpopAlgs)
-		return out
-	}
-	algs := config.GetServerRuntime().Config.OAuth.DPoP.AllowedAlgs
+	algs := oauth2config.Get().DPoP.AllowedAlgs
 	if len(algs) == 0 {
 		return nil
 	}
@@ -215,7 +199,7 @@ func (ds *discoveryService) getSupportedSigningAlgorithms(ctx context.Context) (
 }
 
 func (ds *discoveryService) getSupportedAcrValues() []string {
-	acrAMR := config.GetServerRuntime().Config.OAuth.AuthClass.AcrAMR
+	acrAMR := oauth2config.Get().AuthClass.AcrAMR
 	acrs := make([]string, 0, len(acrAMR))
 	for acr := range acrAMR {
 		acrs = append(acrs, acr)

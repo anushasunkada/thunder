@@ -25,9 +25,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
@@ -48,7 +48,7 @@ type jweService struct {
 
 // newJWEService creates a new JWE service instance.
 func newJWEService(cryptoProvider kmprovider.RuntimeCryptoProvider) (JWEServiceInterface, error) {
-	preferredKid := config.GetServerRuntime().Config.JWT.PreferredKeyID
+	preferredKid := joseconfig.Get().PreferredKeyID
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "JWEService"))
 
 	return &jweService{

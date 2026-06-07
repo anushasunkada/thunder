@@ -33,6 +33,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
 )
@@ -102,7 +103,7 @@ func (suite *InitTestSuite) TestInitialize_Success() {
 			PreferredKeyID: "test-kid",
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
@@ -129,7 +130,7 @@ func (suite *InitTestSuite) TestInitialize_PublicKeyRetrievalError() {
 			PreferredKeyID: "test-kid",
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())
@@ -151,7 +152,7 @@ func (suite *InitTestSuite) TestInitialize_WithoutPreferredKeyID() {
 			// PreferredKeyID is empty
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	cryptoMock := cryptomock.NewRuntimeCryptoProviderMock(suite.T())

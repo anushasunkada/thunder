@@ -24,12 +24,12 @@ import (
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz/requestvalidator"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/resourceindicators"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/log"
 )
 
@@ -143,7 +143,7 @@ func (s *parService) HandlePushedAuthorizationRequest(
 		OAuthParameters: oauthParams,
 	}
 
-	expiresIn := config.GetServerRuntime().Config.OAuth.PAR.ExpiresIn
+	expiresIn := oauth2config.Get().PAR.ExpiresIn
 
 	randomKey, err := s.store.Store(ctx, parRequest, expiresIn)
 	if err != nil {

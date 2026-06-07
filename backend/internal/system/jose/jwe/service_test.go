@@ -31,6 +31,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/tests/mocks/crypto/cryptomock"
@@ -65,7 +66,7 @@ func (suite *JWEServiceTestSuite) SetupTest() {
 			PreferredKeyID: "test-kid",
 		},
 	}
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = joseconfig.InitTestServerRuntime("", testConfig)
 }
 
 func (suite *JWEServiceTestSuite) TestEncryptDecrypt_RSA() {

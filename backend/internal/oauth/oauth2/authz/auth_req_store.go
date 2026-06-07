@@ -25,9 +25,9 @@ import (
 	"slices"
 	"time"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/utils"
 )
@@ -56,7 +56,7 @@ func newAuthorizationRequestStore() authorizationRequestStoreInterface {
 	return &authorizationRequestStore{
 		dbProvider:     provider.GetDBProvider(),
 		validityPeriod: 10 * time.Minute,
-		deploymentID:   config.GetServerRuntime().Config.Server.Identifier,
+		deploymentID:   oauth2config.Get().DeploymentID,
 	}
 }
 

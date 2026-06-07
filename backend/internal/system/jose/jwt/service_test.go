@@ -50,6 +50,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -182,7 +183,7 @@ func (suite *JWTServiceTestSuite) SetupTest() {
 			},
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 	suite.jwtService.httpClient = httpservice.NewHTTPClientWithTimeout(10 * time.Second)
 }
@@ -1531,7 +1532,7 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTSignatureWithJWKSUsesCache() {
 			},
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	jwksData := suite.createMockJWKSData()
@@ -2452,7 +2453,7 @@ func (suite *JWTServiceTestSuite) TestVerifyJWTWithZeroLeeway() {
 			},
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := joseconfig.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	// Token expired 1 second ago should fail with zero leeway

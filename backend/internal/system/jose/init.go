@@ -21,15 +21,18 @@
 package jose
 
 import (
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 )
 
-// Initialize initializes the JOSE services (JWT and JWE).
+// Initialize initializes the JOSE services (JWT and JWE) using injected configuration.
 func Initialize(
 	runtimeProvider kmprovider.RuntimeCryptoProvider,
+	cfg joseconfig.SystemConfig,
 ) (jwt.JWTServiceInterface, jwe.JWEServiceInterface, error) {
+	joseconfig.Set(cfg)
 	jwtService, err := jwt.Initialize(runtimeProvider)
 	if err != nil {
 		return nil, nil, err

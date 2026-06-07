@@ -24,9 +24,9 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/par"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/constants"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
@@ -81,7 +81,7 @@ func Initialize(
 // initializeAuthorizationStores creates the authorization code store, request store, and transactioner.
 func initializeAuthorizationStores() (
 	AuthorizationCodeStoreInterface, authorizationRequestStoreInterface, transaction.Transactioner, error) {
-	if config.GetServerRuntime().Config.Database.Runtime.Type == provider.DataSourceTypeRedis {
+	if oauth2config.Get().RuntimeStoreType == provider.DataSourceTypeRedis {
 		redisProvider := provider.GetRedisProvider()
 		return newRedisAuthorizationCodeStore(redisProvider),
 			newRedisAuthorizationRequestStore(redisProvider),

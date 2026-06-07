@@ -32,6 +32,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/jwks"
 	oauth2authz "github.com/thunder-id/thunderid/internal/oauth/oauth2/authz"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/granthandlers"
@@ -52,13 +53,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/system/transaction"
 )
 
-// EngineConfig holds OAuth settings for engine mode.
-type EngineConfig struct {
-	Issuer      string
-	PARRequired bool
-	DPoPAlgs    []string
-}
-
 // EngineDeps holds dependencies for engine-mode OAuth initialization.
 type EngineDeps struct {
 	RuntimeStore         enginebridge.RuntimeStore
@@ -72,17 +66,30 @@ type EngineDeps struct {
 	OUService            ou.OrganizationUnitServiceInterface
 	IDPService           idp.IDPServiceInterface
 	CryptoProvider       kmprovider.RuntimeCryptoProvider
+	JWTService           jwt.JWTServiceInterface
+	JWEService           jwe.JWEServiceInterface
 	Observability        observability.ObservabilityServiceInterface
-	Config               EngineConfig
+	Config               oauth2config.Config
 	Transactioner        transaction.Transactioner
 }
 
 // InitializeForEngine registers OAuth2/OIDC routes (excluding DCR) using injected runtime storage.
 func InitializeForEngine(mux *http.ServeMux, deps EngineDeps) error {
+	oauth2config.Set(deps.Config)
+
 	oauthStores := enginebridge.NewOAuthStores(deps.RuntimeStore)
 	transactioner := deps.Transactioner
 	if transactioner == nil {
 		transactioner = transaction.NewNoOpTransactioner()
+	}
+
+	jwtService := deps.JWTService
+	if jwtService == nil {
+		return fmt.Errorf("JWT service is required")
+	}
+	jweService := deps.JWEService
+	if jweService == nil {
+		return fmt.Errorf("JWE service is required")
 	}
 
 	jwks.Initialize(mux, deps.CryptoProvider)
@@ -91,15 +98,6 @@ func InitializeForEngine(mux *http.ServeMux, deps EngineDeps) error {
 	})
 	resolver := jwksresolver.Initialize(httpClient)
 
-	jwtService, err := jwt.Initialize(deps.CryptoProvider)
-	if err != nil {
-		return err
-	}
-	jweService, err := jwe.Initialize(deps.CryptoProvider)
-	if err != nil {
-		return err
-	}
-
 	idpService := deps.IDPService
 	if idpService == nil {
 		return fmt.Errorf("IDP service is required")
@@ -107,11 +105,7 @@ func InitializeForEngine(mux *http.ServeMux, deps EngineDeps) error {
 
 	tokenBuilder, tokenValidator := tokenservice.Initialize(jwtService, jweService, resolver, idpService)
 	scopeValidator := scope.Initialize()
-	discoveryService := discovery.InitializeForEngine(mux, discovery.EngineConfig{
-		Issuer:      deps.Config.Issuer,
-		PARRequired: deps.Config.PARRequired,
-		DPoPAlgs:    deps.Config.DPoPAlgs,
-	}, deps.CryptoProvider)
+	discoveryService := discovery.Initialize(mux, deps.CryptoProvider)
 	dpopVerifier := dpop.Initialize(oauthStores.JTI)
 
 	resourceService := deps.ResourceService

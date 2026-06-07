@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	yaml "gopkg.in/yaml.v3"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cors"
 	"github.com/thunder-id/thunderid/tests/mocks/flow/flowexecmock"
@@ -75,7 +76,7 @@ func (suite *InitTestSuite) SetupTest() {
 		CORS: config.CORSConfig{AllowedOrigins: allowedOrigins},
 	}
 	suite.Require().NoError(cors.InitializeMatcher(testConfig.CORS.AllowedOrigins))
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = oauth2config.InitTestServerRuntime("", testConfig)
 
 	suite.mockInboundClient = inboundclientmock.NewInboundClientServiceInterfaceMock(suite.T())
 	suite.mockResourceService = resourcemock.NewResourceServiceInterfaceMock(suite.T())

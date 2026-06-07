@@ -33,6 +33,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/authz/requestvalidator"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/par"
@@ -40,7 +41,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/transaction"
@@ -521,7 +521,7 @@ func (as *authorizeService) HandleAuthorizationCallback(ctx context.Context, aut
 		// Construct the redirect URI with the authorization code.
 		queryParams := map[string]string{
 			"code":                      authzCode.Code,
-			oauth2const.RequestParamIss: config.GetServerRuntime().Config.JWT.Issuer,
+			oauth2const.RequestParamIss: oauth2config.Get().Issuer,
 		}
 		if authRequestCtx.OAuthParameters.State != "" {
 			queryParams[oauth2const.RequestParamState] = authRequestCtx.OAuthParameters.State
@@ -679,8 +679,7 @@ func createAuthorizationCode(
 	allScopes := append(append([]string{}, standardScopes...), permissionScopes...)
 	resources := authRequestCtx.OAuthParameters.Resources
 
-	oauthConfig := config.GetServerRuntime().Config.OAuth
-	validityPeriod := oauthConfig.AuthorizationCode.ValidityPeriod
+	validityPeriod := oauth2config.Get().AuthorizationCode.ValidityPeriod
 	expiryTime := authTime.Add(time.Duration(validityPeriod) * time.Second)
 
 	codeID, err := utils.GenerateUUIDv7()
@@ -925,6 +924,6 @@ func resolveUserAttributesCacheTTL(app *inboundmodel.OAuthClient) int64 {
 			maxTTL = refreshTTL
 		}
 	}
-	authCodeTTL := config.GetServerRuntime().Config.OAuth.AuthorizationCode.ValidityPeriod
+	authCodeTTL := oauth2config.Get().AuthorizationCode.ValidityPeriod
 	return maxTTL + authCodeTTL + oauth2const.AttributeCacheTTLBufferSeconds
 }

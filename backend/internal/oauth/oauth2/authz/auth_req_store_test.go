@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/system/config"
 
@@ -60,7 +61,7 @@ func (suite *AuthorizationRequestStoreTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.mockdbProvider = &providermock.DBProviderInterfaceMock{}
 	suite.mockDBClient = &providermock.DBClientInterfaceMock{}

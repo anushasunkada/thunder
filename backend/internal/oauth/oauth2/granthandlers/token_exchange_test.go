@@ -32,6 +32,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -76,7 +77,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 			Audience:       "application", // Default audience for tests
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := oauth2config.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
@@ -116,12 +117,7 @@ func (suite *TokenExchangeGrantHandlerTestSuite) SetupTest() {
 
 // getDefaultAudience is a helper function to get the configured default audience from runtime.
 func (suite *TokenExchangeGrantHandlerTestSuite) getDefaultAudience() string {
-	runtime := config.GetServerRuntime()
-	if runtime == nil {
-		suite.T().Skip("Server runtime not initialized")
-		return ""
-	}
-	defaultAudience := runtime.Config.JWT.Audience
+	defaultAudience := oauth2config.Get().JWT.Audience
 	if defaultAudience == "" {
 		suite.T().Skip("Default audience not configured in runtime")
 		return ""

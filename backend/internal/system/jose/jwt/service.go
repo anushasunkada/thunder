@@ -31,10 +31,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	httpservice "github.com/thunder-id/thunderid/internal/system/http"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
 	kmprovider "github.com/thunder-id/thunderid/internal/system/kmprovider/common"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -76,7 +76,8 @@ type jwtService struct {
 func newJWTService(
 	httpClient httpservice.HTTPClientInterface, cryptoProvider kmprovider.RuntimeCryptoProvider,
 ) (JWTServiceInterface, error) {
-	preferredKid := config.GetServerRuntime().Config.JWT.PreferredKeyID
+	joseCfg := joseconfig.Get()
+	preferredKid := joseCfg.PreferredKeyID
 	keyRef := kmprovider.KeyRef{KeyID: preferredKid}
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "JWTService"))
 
@@ -142,7 +143,7 @@ func (js *jwtService) GenerateJWT(
 		return "", 0, &serviceerror.InternalServerError
 	}
 
-	serverRuntime := config.GetServerRuntime()
+	joseCfg := joseconfig.Get()
 
 	// Create the JWT header.
 	if typ == "" {
@@ -162,12 +163,12 @@ func (js *jwtService) GenerateJWT(
 
 	tokenIssuer := iss
 	if tokenIssuer == "" {
-		tokenIssuer = serverRuntime.Config.JWT.Issuer
+		tokenIssuer = joseCfg.Issuer
 	}
 
 	// Calculate the expiration time based on the validity period.
 	if validityPeriod == 0 {
-		validityPeriod = serverRuntime.Config.JWT.ValidityPeriod
+		validityPeriod = joseCfg.ValidityPeriod
 	}
 	iat := time.Now()
 	expirationTime := iat.Add(time.Duration(validityPeriod) * time.Second).Unix()
@@ -444,7 +445,8 @@ func (js *jwtService) getJWKSKeys(jwksURL string) ([]map[string]interface{}, *se
 		return nil, &ErrorFailedToParseJWKS
 	}
 
-	ttl := time.Duration(config.GetServerRuntime().Config.Server.SecurityConfig.JWKSCacheTTL) * time.Second
+	joseCfg := joseconfig.Get()
+	ttl := time.Duration(joseCfg.JWKSCacheTTL) * time.Second
 	js.jwksCache.Store(jwksURL, &jwksCacheEntry{
 		keys:      jwks.Keys,
 		expiresAt: time.Now().Add(ttl),
@@ -463,7 +465,7 @@ func (js *jwtService) verifyJWTClaims(jwtToken string, expectedAud, expectedIss 
 	}
 
 	// Get leeway from config to account for clock skew
-	leeway := config.GetServerRuntime().Config.JWT.Leeway
+	leeway := joseconfig.Get().Leeway
 
 	// Validate standard claims (exp, nbf, aud, iss)
 	now := time.Now().Unix()

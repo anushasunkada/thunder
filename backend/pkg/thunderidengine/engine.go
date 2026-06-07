@@ -27,7 +27,9 @@ import (
 	"github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/thunderidengineinit"
 	"github.com/thunder-id/thunderid/pkg/thunderidengine/host"
 )
@@ -37,15 +39,26 @@ type Engine = thunderidengineinit.Engine
 
 // Initialize wires the embeddable ThunderID engine and registers public routes.
 func Initialize(mux *http.ServeMux, cfg EngineConfig) (*Engine, error) {
+	signingKeyPath := cfg.System.SigningKeyPath
+	if signingKeyPath == "" {
+		signingKeyPath = cfg.Crypto.SigningKeyPath
+	}
+
+	sysCfg := BuildSystemConfig(cfg)
 	initCfg := thunderidengineinit.Config{
-		Issuer:         cfg.Issuer,
-		SigningKeyPath: cfg.Crypto.SigningKeyPath,
-		DataDir:        cfg.DataDir,
-		Actors:         WrapActorProvider(cfg.Actors),
-		Runtime:        WrapRuntimeStore(cfg.Runtime),
-		Authn:          host.InternalAuthnManager(host.InitializeAuthnProviderManager(cfg.Authn)),
-		Authorization:  WrapAuthorization(cfg.Authorization),
-		Consent:        WrapConsent(cfg.Consent),
+		SigningKeyPath: signingKeyPath,
+		OAuth2:         oauth2config.FromSystemConfig(sysCfg, oauth2config.EngineBuildOptions(cfg.Issuer)),
+		JOSE: joseconfig.FromSystemConfig(sysCfg, joseconfig.BuildOptions{
+			SigningKeyPath: signingKeyPath,
+			PreferredKeyID: cfg.System.PreferredKeyID,
+			JWKSCacheTTL:   cfg.System.JWKSCacheTTL,
+		}),
+		DataDir:       cfg.DataDir,
+		Actors:        WrapActorProvider(cfg.Actors),
+		Runtime:       WrapRuntimeStore(cfg.Runtime),
+		Authn:         host.InternalAuthnManager(host.InitializeAuthnProviderManager(cfg.Authn)),
+		Authorization: WrapAuthorization(cfg.Authorization),
+		Consent:       WrapConsent(cfg.Consent),
 		Flow: thunderidengineinit.FlowConfig{
 			Executors: cfg.Flow.Executors,
 		},

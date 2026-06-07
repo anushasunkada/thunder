@@ -31,6 +31,7 @@ import (
 	flowcm "github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/flowexec"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -92,7 +93,7 @@ func (suite *AuthorizeServiceTestSuite) BeforeTest(suiteName, testName string) {
 			AuthorizationCode: config.AuthorizationCodeConfig{ValidityPeriod: 600},
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 }
 
 func (suite *AuthorizeServiceTestSuite) SetupTest() {
@@ -1507,7 +1508,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveScopeAttributes_UnknownScope(
 
 func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_RefreshAllowed_UsesMaxOfRefreshAndAccessValidity() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			RefreshToken:      config.RefreshTokenConfig{ValidityPeriod: 7200},
@@ -1531,7 +1532,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_RefreshAllowed_U
 
 func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_RefreshTokenAllowed_UsesAccessTokenWhenLonger() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			RefreshToken:      config.RefreshTokenConfig{ValidityPeriod: 1800},
@@ -1555,7 +1556,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_RefreshTokenAllo
 
 func (suite *AuthorizeServiceTestSuite) TestResolveUserAttributesCacheTTL_RefreshTokenAllowed_FallsBackToGlobalJWT() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			// RefreshToken.ValidityPeriod is 0 → ResolveTokenConfig falls back to global JWT validity.
@@ -1589,7 +1590,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_RefreshTokenNotA
 
 func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_NoRefreshToken_ZeroAccessTTL_FallsBackToGlobalJWT() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			AuthorizationCode: config.AuthorizationCodeConfig{ValidityPeriod: 600},
@@ -1610,7 +1611,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_NoRefreshToken_Z
 
 func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_NoRefreshToken_NilToken_FallsBackToGlobalJWT() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			AuthorizationCode: config.AuthorizationCodeConfig{ValidityPeriod: 600},
@@ -1628,7 +1629,7 @@ func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_NoRefreshToken_N
 
 func (suite *AuthorizeServiceTestSuite) TestResolveAttrCacheTTL_NoRefreshToken_NilAccessToken_FallsBackToGlobalJWT() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test", &config.Config{
 		JWT: config.JWTConfig{ValidityPeriod: 900},
 		OAuth: config.OAuthConfig{
 			AuthorizationCode: config.AuthorizationCodeConfig{ValidityPeriod: 600},

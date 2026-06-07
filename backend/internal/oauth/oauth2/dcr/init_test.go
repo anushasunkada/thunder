@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/tests/mocks/applicationmock"
 	"github.com/thunder-id/thunderid/tests/mocks/oumock"
@@ -52,7 +53,7 @@ func (suite *InitTestSuite) SetupTest() {
 			User:    config.DataSource{Type: "sqlite", SQLite: config.SQLiteDataSource{Path: "test.db"}},
 		},
 	}
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = oauth2config.InitTestServerRuntime("", testConfig)
 }
 
 func (suite *InitTestSuite) TearDownTest() {
@@ -91,7 +92,7 @@ func (suite *InitTestSuite) TestInitialize_ReturnsError_WhenRuntimeTransactioner
 			User:    config.DataSource{Type: "sqlite", SQLite: config.SQLiteDataSource{Path: "test.db"}},
 		},
 	}
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = oauth2config.InitTestServerRuntime("", testConfig)
 
 	mux := http.NewServeMux()
 	err := Initialize(mux, suite.mockAppService, suite.mockOUService, nil)

@@ -27,7 +27,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/thunder-id/thunderid/internal/system/config"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 )
 
@@ -62,7 +62,7 @@ func newRedisAuthorizationCodeStore(p provider.RedisProviderInterface) Authoriza
 	return &redisAuthorizationCodeStore{
 		client:       p.GetRedisClient(),
 		keyPrefix:    p.GetKeyPrefix(),
-		deploymentID: config.GetServerRuntime().Config.Server.Identifier,
+		deploymentID: oauth2config.Get().DeploymentID,
 	}
 }
 

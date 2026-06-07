@@ -31,6 +31,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/idp"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/jwks"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/granthandlers"
@@ -44,7 +45,6 @@ import (
 	"github.com/thunder-id/thunderid/internal/oauth/scope"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	syshttp "github.com/thunder-id/thunderid/internal/system/http"
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
@@ -71,7 +71,9 @@ func Initialize(
 	resourceService resource.ResourceServiceInterface,
 	i18nService i18nmgt.I18nServiceInterface,
 	idpService idp.IDPServiceInterface,
+	oauthCfg oauth2config.Config,
 ) error {
+	oauth2config.Set(oauthCfg)
 	jwks.Initialize(mux, runtimeCrypto)
 	httpClient := syshttp.NewHTTPClientWithCheckRedirect(func(req *http.Request, _ []*http.Request) error {
 		return syshttp.IsSSRFSafeURL(req.URL.String())
@@ -80,7 +82,7 @@ func Initialize(
 	tokenBuilder, tokenValidator := tokenservice.Initialize(jwtService, jweService, resolver, idpService)
 	scopeValidator := scope.Initialize()
 	discoveryService := discovery.Initialize(mux, runtimeCrypto)
-	jtiStore := jti.Initialize(config.GetServerRuntime().Config.Server.Identifier)
+	jtiStore := jti.Initialize(oauthCfg.DeploymentID)
 	dpopVerifier := dpop.Initialize(jtiStore)
 	parService := par.Initialize(mux, inboundClient, authnProvider, jwtService, discoveryService,
 		resourceService, dpopVerifier)

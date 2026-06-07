@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
@@ -76,7 +77,7 @@ func (suite *DiscoveryTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.cryptoMock = cryptomock.NewRuntimeCryptoProviderMock(suite.T())
 	suite.discoveryService = newDiscoveryService(suite.cryptoMock)
@@ -180,7 +181,7 @@ func (suite *DiscoveryTestSuite) TestDPoPSigningAlgValuesOmittedWhenUnconfigured
 		Server: config.ServerConfig{Hostname: "localhost", Port: 8080},
 		JWT:    config.JWTConfig{Issuer: "https://auth.example.com"},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 	defer config.ResetServerRuntime()
 
 	svc := newDiscoveryService(suite.cryptoMock)
@@ -346,7 +347,7 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithPublicHostname() {
 			Issuer: "https://auth.example.com",
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	service := newDiscoveryService(suite.cryptoMock)
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())
@@ -366,7 +367,7 @@ func (suite *DiscoveryTestSuite) TestGetBaseURL_WithHTTPOnly() {
 			Issuer: "https://auth.example.com",
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	service := newDiscoveryService(suite.cryptoMock)
 	metadata := service.GetOAuth2AuthorizationServerMetadata(context.Background())

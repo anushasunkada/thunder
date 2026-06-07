@@ -24,9 +24,9 @@ import (
 	"net/http"
 	"net/url"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/log"
 	"github.com/thunder-id/thunderid/internal/system/utils"
 )
@@ -65,7 +65,7 @@ func (ah *authorizeHandler) HandleAuthorizeGetRequest(w http.ResponseWriter, r *
 			queryParams := map[string]string{
 				oauth2const.RequestParamError:            authErr.Code,
 				oauth2const.RequestParamErrorDescription: authErr.Message,
-				oauth2const.RequestParamIss:              config.GetServerRuntime().Config.JWT.Issuer,
+				oauth2const.RequestParamIss:              oauth2config.Get().Issuer,
 			}
 			if authErr.State != "" {
 				queryParams[oauth2const.RequestParamState] = authErr.State
@@ -208,7 +208,10 @@ func (ah *authorizeHandler) getOAuthMessageForPostRequest(r *http.Request) (*OAu
 
 // getLoginPageRedirectURI constructs the login page URL with the provided query parameters.
 func getLoginPageRedirectURI(queryParams map[string]string) (string, error) {
-	gateClientConfig := config.GetServerRuntime().Config.GateClient
+	gateClientConfig := oauth2config.Get().GateClient
+	if gateClientConfig == nil {
+		return "", errors.New("gate client is not configured")
+	}
 	loginPageURL := (&url.URL{
 		Scheme: gateClientConfig.Scheme,
 		Host:   fmt.Sprintf("%s:%d", gateClientConfig.Hostname, gateClientConfig.Port),
@@ -241,7 +244,10 @@ func (ah *authorizeHandler) redirectToLoginPage(w http.ResponseWriter, r *http.R
 
 // getErrorPageRedirectURL constructs the error page URL with the provided error code and message.
 func getErrorPageRedirectURL(code, msg string) (string, error) {
-	gateClientConfig := config.GetServerRuntime().Config.GateClient
+	gateClientConfig := oauth2config.Get().GateClient
+	if gateClientConfig == nil {
+		return "", errors.New("gate client is not configured")
+	}
 	errorPageURL := (&url.URL{
 		Scheme: gateClientConfig.Scheme,
 		Host:   fmt.Sprintf("%s:%d", gateClientConfig.Hostname, gateClientConfig.Port),
@@ -313,7 +319,7 @@ func (ah *authorizeHandler) writeAuthZResponseToClientRedirect(w http.ResponseWr
 	queryParams := map[string]string{
 		oauth2const.RequestParamError:            authErr.Code,
 		oauth2const.RequestParamErrorDescription: authErr.Message,
-		oauth2const.RequestParamIss:              config.GetServerRuntime().Config.JWT.Issuer,
+		oauth2const.RequestParamIss:              oauth2config.Get().Issuer,
 	}
 	if authErr.State != "" {
 		queryParams[oauth2const.RequestParamState] = authErr.State

@@ -59,6 +59,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/notification"
 	"github.com/thunder-id/thunderid/internal/oauth"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dcr"
 	"github.com/thunder-id/thunderid/internal/ou"
 	"github.com/thunder-id/thunderid/internal/resource"
@@ -74,6 +75,7 @@ import (
 	i18nmgt "github.com/thunder-id/thunderid/internal/system/i18n/mgt"
 	"github.com/thunder-id/thunderid/internal/system/importer"
 	"github.com/thunder-id/thunderid/internal/system/jose"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider"
 	"github.com/thunder-id/thunderid/internal/system/kmprovider/defaultkm/pki"
@@ -104,7 +106,11 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 		logger.Fatal("Failed to initialize key manager provider", log.Error(err))
 	}
 
-	jwtService, jweService, err := jose.Initialize(runtimeCryptoSvc)
+	serverCfg := config.GetServerRuntime().Config
+	jwtService, jweService, err := jose.Initialize(
+		runtimeCryptoSvc,
+		joseconfig.FromSystemConfig(serverCfg, joseconfig.BuildOptionsForServer(&serverCfg)),
+	)
 	if err != nil {
 		logger.Fatal("Failed to initialize JOSE services", log.Error(err))
 	}
@@ -378,9 +384,10 @@ func registerServices(mux *http.ServeMux, cacheManager cache.CacheManagerInterfa
 	}
 
 	// Initialize OAuth services.
+	oauthCfg := oauth2config.FromSystemConfig(serverCfg, oauth2config.BuildOptionsForServer(&serverCfg))
 	err = oauth.Initialize(mux, applicationService, inboundClientService, authnProvider, jwtService, jweService,
 		flowExecService, observabilitySvc, runtimeCryptoSvc, ouService, attributeCacheService, authZService,
-		entityProvider, resourceService, i18nService, idpService)
+		entityProvider, resourceService, i18nService, idpService, oauthCfg)
 	if err != nil {
 		logger.Fatal("Failed to initialize OAuth services", log.Error(err))
 	}

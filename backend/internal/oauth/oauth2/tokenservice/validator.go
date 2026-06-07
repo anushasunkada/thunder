@@ -26,10 +26,10 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/idp"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 )
 
@@ -58,7 +58,7 @@ func newTokenValidator(jwtService jwt.JWTServiceInterface, idpService idp.IDPSer
 // ValidateAccessToken validates an access token and extracts the claims.
 func (tv *tokenValidator) ValidateAccessToken(ctx context.Context, token string) (*AccessTokenClaims, error) {
 	// Verify signature and standard claims.
-	expectedIss := config.GetServerRuntime().Config.JWT.Issuer
+	expectedIss := oauth2config.Get().Issuer
 	if err := tv.jwtService.VerifyJWT(ctx, token, "", expectedIss); err != nil {
 		return nil, fmt.Errorf("access token verification failed: %v", err.Error)
 	}
@@ -211,7 +211,7 @@ func (tv *tokenValidator) ValidateSubjectToken(
 	}
 
 	// Validate that the external token's audience contains this server's issuer.
-	serverIssuer := config.GetServerRuntime().Config.JWT.Issuer
+	serverIssuer := oauth2config.Get().Issuer
 	auds, audErr := extractAudiences(claims)
 	if audErr != nil {
 		return nil, fmt.Errorf("failed to extract audience from external token: %w", audErr)
@@ -291,7 +291,7 @@ func (tv *tokenValidator) extractSubjectTokenClaims(
 			return nil, fmt.Errorf("auth assertion must have a single audience")
 		}
 
-		defaultAudience := config.GetServerRuntime().Config.JWT.Audience
+		defaultAudience := oauth2config.Get().JWT.Audience
 		clientAppID := oauthApp.ID
 
 		if !slices.Contains([]string{defaultAudience, clientAppID}, auds[0]) {
@@ -350,7 +350,7 @@ func (tv *tokenValidator) verifyTokenSignatureByIssuer(
 // validateTimeClaims validates time-based claims (exp, nbf).
 func (tv *tokenValidator) validateTimeClaims(claims map[string]interface{}) error {
 	// Get leeway from config to account for clock skew
-	leeway := config.GetServerRuntime().Config.JWT.Leeway
+	leeway := oauth2config.Get().JWT.Leeway
 	now := time.Now().Unix()
 
 	exp, err := extractInt64Claim(claims, "exp")

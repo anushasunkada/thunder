@@ -33,6 +33,7 @@ import (
 
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientauth"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/system/config"
@@ -51,7 +52,7 @@ func TestHandlerTestSuite(t *testing.T) {
 
 func (s *HandlerTestSuite) SetupTest() {
 	testConfig := &config.Config{}
-	_ = config.InitializeServerRuntime("", testConfig)
+	_ = oauth2config.InitTestServerRuntime("", testConfig)
 }
 
 func (s *HandlerTestSuite) TearDownTest() {

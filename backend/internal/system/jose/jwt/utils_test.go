@@ -32,6 +32,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jws"
 )
 
@@ -49,7 +50,7 @@ func TestJWTUtilsSuite(t *testing.T) {
 }
 
 func (suite *JWTUtilsTestSuite) SetupTest() {
-	err := config.InitializeServerRuntime("", &config.Config{
+	err := joseconfig.InitTestServerRuntime("", &config.Config{
 		JWT: config.JWTConfig{},
 	})
 	assert.NoError(suite.T(), err)

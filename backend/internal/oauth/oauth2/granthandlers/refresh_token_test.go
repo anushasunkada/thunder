@@ -30,6 +30,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -86,7 +87,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) SetupTest() {
 			},
 		},
 	}
-	_ = config.InitializeServerRuntime("test", testConfig)
+	_ = oauth2config.InitTestServerRuntime("test", testConfig)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())
 	suite.mockTokenBuilder = tokenservicemock.NewTokenBuilderInterfaceMock(suite.T())
@@ -345,6 +346,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_Success_WithRene
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_Success_WithRenewOnGrantEnabled() {
 	// Enable RenewOnGrant in config
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	// Mock successful refresh token validation
 	suite.mockTokenValidator.
@@ -446,6 +448,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_BuildAccessToken
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_IssueRefreshTokenError() {
 	// Enable RenewOnGrant in config
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	// Mock successful refresh token validation
 	suite.mockTokenValidator.
@@ -797,6 +800,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_NoRenewOnGrant_E
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_ExtendsAttributeCacheTTL() {
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	suite.mockTokenValidator.
 		On("ValidateRefreshToken", mock.Anything, suite.validRefreshToken, testRefreshTokenClientID).
@@ -843,6 +847,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_Ext
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_ExtendAttributeCacheTTLError() {
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	suite.mockTokenValidator.
 		On("ValidateRefreshToken", mock.Anything, suite.validRefreshToken, testRefreshTokenClientID).
@@ -1034,6 +1039,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestExtendCacheTTL_ExtendFails_R
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_IDTokenWithRenewOnGrant() {
 	// Enable RenewOnGrant in config
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	// Mock successful refresh token validation with openid scope
 	suite.mockTokenValidator.
@@ -1258,6 +1264,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_Ori
 	// RFC 8707 §5: when renewRefreshToken=true and narrowing occurs, the new refresh token must
 	// carry the ORIGINAL (un-narrowed) audiences so future refreshes can recover dropped resources.
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	suite.mockTokenValidator.
 		On("ValidateRefreshToken", mock.Anything, suite.validRefreshToken, testRefreshTokenClientID).
@@ -1517,6 +1524,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_UnboundRT_Volunt
 
 func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_DPoPBoundRT_RenewOnGrant_RotatesJkt_PublicClient() {
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	suite.oauthApp.PublicClient = true
 	suite.mockTokenValidator.
@@ -1558,6 +1566,7 @@ func (suite *RefreshTokenGrantHandlerTestSuite) TestHandleGrant_RenewOnGrant_Con
 	// Confidential clients never receive a bound refresh token, even when a DPoP
 	// proof is presented at /token.
 	config.GetServerRuntime().Config.OAuth.RefreshToken.RenewOnGrant = true
+	oauth2config.InitTestFromServerRuntime()
 
 	suite.oauthApp.PublicClient = false
 	suite.mockTokenValidator.

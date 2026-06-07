@@ -24,9 +24,9 @@ import (
 	"errors"
 	"fmt"
 
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	oauth2model "github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 )
 
@@ -69,7 +69,7 @@ type authorizationCodeStore struct {
 func newAuthorizationCodeStore() AuthorizationCodeStoreInterface {
 	return &authorizationCodeStore{
 		dbProvider:   provider.GetDBProvider(),
-		deploymentID: config.GetServerRuntime().Config.Server.Identifier,
+		deploymentID: oauth2config.Get().DeploymentID,
 	}
 }
 

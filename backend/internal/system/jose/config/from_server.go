@@ -16,22 +16,12 @@
  * under the License.
  */
 
-package dpop
+package config
 
-import (
-	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
-	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jti"
-)
+import sysconfig "github.com/thunder-id/thunderid/internal/system/config"
 
-// Initialize wires the DPoP verifier with the given JTI replay-cache backend.
-func Initialize(jtiStore jti.JTIStoreInterface) VerifierInterface {
-	dpopCfg := oauth2config.Get().DPoP
-
-	return newVerifier(
-		jtiStore,
-		dpopCfg.AllowedAlgs,
-		dpopCfg.IatWindow,
-		dpopCfg.Leeway,
-		dpopCfg.MaxJTILength,
-	)
+// FromServerRuntime maps the global server runtime into JOSE configuration.
+func FromServerRuntime() SystemConfig {
+	cfg := sysconfig.GetServerRuntime().Config
+	return FromSystemConfig(cfg, BuildOptionsForServer(&cfg))
 }

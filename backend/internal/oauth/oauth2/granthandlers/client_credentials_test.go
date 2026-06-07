@@ -33,6 +33,7 @@ import (
 	"github.com/thunder-id/thunderid/internal/authz"
 	"github.com/thunder-id/thunderid/internal/entityprovider"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
@@ -77,7 +78,7 @@ func (suite *ClientCredentialsGrantHandlerTestSuite) SetupTest() {
 			ValidityPeriod: 3600,
 		},
 	}
-	err := config.InitializeServerRuntime("", testConfig)
+	err := oauth2config.InitTestServerRuntime("", testConfig)
 	assert.NoError(suite.T(), err)
 
 	suite.mockJWTService = jwtmock.NewJWTServiceInterfaceMock(suite.T())

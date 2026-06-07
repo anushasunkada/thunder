@@ -27,13 +27,13 @@ import (
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
 	oauth2utils "github.com/thunder-id/thunderid/internal/oauth/oauth2/utils"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
@@ -297,10 +297,10 @@ func (s *userInfoService) generateJWSUserInfo(
 		clientID = cid
 	}
 
-	runtime := config.GetServerRuntime()
+	oauthCfg := oauth2config.Get()
 
-	issuer := runtime.Config.JWT.Issuer
-	validity := runtime.Config.JWT.ValidityPeriod
+	issuer := oauthCfg.Issuer
+	validity := oauthCfg.JWT.ValidityPeriod
 
 	response["aud"] = clientID
 	signingAlg := ""

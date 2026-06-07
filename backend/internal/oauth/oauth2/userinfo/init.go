@@ -24,12 +24,12 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwe"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -51,7 +51,7 @@ func Initialize(
 		inboundClient, attributeCacheSvc, dpopVerifier)
 	userInfoEndpoint := discoveryService.GetOAuth2AuthorizationServerMetadata(
 		context.Background()).UserInfoEndpoint
-	dpopAlgs := config.GetServerRuntime().Config.OAuth.DPoP.AllowedAlgs
+	dpopAlgs := oauth2config.Get().DPoP.AllowedAlgs
 	userInfoHandler := newUserInfoHandler(userInfoService, userInfoEndpoint, dpopAlgs)
 	registerRoutes(mux, userInfoHandler)
 	return userInfoService

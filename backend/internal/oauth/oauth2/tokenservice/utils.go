@@ -26,10 +26,10 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/model"
 	"github.com/thunder-id/thunderid/internal/ou"
-	"github.com/thunder-id/thunderid/internal/system/config"
 )
 
 // ParseScopes parses a space-separated scope string into a slice of scope strings.
@@ -57,7 +57,7 @@ func JoinScopes(scopes []string) string {
 
 // ResolveTokenConfig resolves the token configuration from the OAuth app or falls back to global config.
 func ResolveTokenConfig(oauthApp *inboundmodel.OAuthClient, tokenType TokenType) *TokenConfig {
-	conf := config.GetServerRuntime().Config
+	conf := oauth2config.Get()
 
 	tokenConfig := &TokenConfig{
 		Issuer:         conf.JWT.Issuer,
@@ -79,8 +79,8 @@ func ResolveTokenConfig(oauthApp *inboundmodel.OAuthClient, tokenType TokenType)
 			}
 		}
 	case TokenTypeRefresh:
-		if conf.OAuth.RefreshToken.ValidityPeriod > 0 {
-			tokenConfig.ValidityPeriod = conf.OAuth.RefreshToken.ValidityPeriod
+		if conf.RefreshToken.ValidityPeriod > 0 {
+			tokenConfig.ValidityPeriod = conf.RefreshToken.ValidityPeriod
 		}
 		if oauthApp != nil && oauthApp.Token != nil && oauthApp.Token.RefreshToken != nil {
 			if oauthApp.Token.RefreshToken.ValidityPeriod > 0 {
@@ -250,7 +250,7 @@ func ExtractUserAttributes(claims map[string]interface{}) map[string]interface{}
 
 // isSelfIssuer reports whether the given issuer is the server's own configured issuer.
 func isSelfIssuer(issuer string) bool {
-	return issuer == config.GetServerRuntime().Config.JWT.Issuer
+	return issuer == oauth2config.Get().Issuer
 }
 
 // FetchUserAttributes fetches user attributes and merges default claims and groups into the return map.

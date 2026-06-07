@@ -36,6 +36,7 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/attributecache"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/tokenservice"
@@ -74,7 +75,7 @@ func (s *UserInfoServiceTestSuite) SetupTest() {
 
 	// Initialize server runtime for tests
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime(
+	_ = oauth2config.InitTestServerRuntime(
 		"test-home",
 		&config.Config{
 			JWT: config.JWTConfig{
@@ -1083,7 +1084,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_JWS_ResponseType() {
 		mock.Anything,
 		"user123",
 		issuer,
-		config.GetServerRuntime().Config.JWT.ValidityPeriod,
+		oauth2config.Get().JWT.ValidityPeriod,
 		mock.Anything,
 		mock.Anything,
 		"RS256",
@@ -1222,7 +1223,7 @@ func (s *UserInfoServiceTestSuite) TestGetUserInfo_JWS_GenerateJWTFailure() {
 		mock.Anything,
 		"user123",
 		issuer,
-		config.GetServerRuntime().Config.JWT.ValidityPeriod,
+		oauth2config.Get().JWT.ValidityPeriod,
 		mock.Anything,
 		mock.Anything,
 		"RS256",

@@ -24,7 +24,9 @@ import (
 	"github.com/thunder-id/thunderid/internal/enginebridge"
 	"github.com/thunder-id/thunderid/internal/flow/core"
 	"github.com/thunder-id/thunderid/internal/flow/executor"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	serverconst "github.com/thunder-id/thunderid/internal/system/constants"
+	joseconfig "github.com/thunder-id/thunderid/internal/system/jose/config"
 )
 
 // FlowProviderConfig configures flow definition storage.
@@ -41,8 +43,9 @@ type FlowConfig struct {
 
 // Config holds engine initialization inputs.
 type Config struct {
-	Issuer         string
 	SigningKeyPath string
+	OAuth2         oauth2config.Config
+	JOSE           joseconfig.SystemConfig
 	DataDir        string
 	FlowSource     enginebridge.FlowSource
 	FlowStore      FlowProviderConfig

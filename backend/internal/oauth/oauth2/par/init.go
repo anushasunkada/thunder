@@ -25,10 +25,10 @@ import (
 	authnprovidermgr "github.com/thunder-id/thunderid/internal/authnprovider/manager"
 	"github.com/thunder-id/thunderid/internal/inboundclient"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/clientauth"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/discovery"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/dpop"
 	"github.com/thunder-id/thunderid/internal/resource"
-	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/database/provider"
 	"github.com/thunder-id/thunderid/internal/system/jose/jwt"
 	"github.com/thunder-id/thunderid/internal/system/middleware"
@@ -75,9 +75,9 @@ func Initialize(
 
 // initializePARStore selects the PAR store implementation based on the configured runtime DB type.
 func initializePARStore() parStoreInterface {
-	deploymentID := config.GetServerRuntime().Config.Server.Identifier
+	deploymentID := oauth2config.Get().DeploymentID
 
-	if config.GetServerRuntime().Config.Database.Runtime.Type == provider.DataSourceTypeRedis {
+	if oauth2config.Get().RuntimeStoreType == provider.DataSourceTypeRedis {
 		return newRedisPARRequestStore(provider.GetRedisProvider(), deploymentID)
 	}
 	return newPARRequestStore(deploymentID)

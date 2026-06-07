@@ -34,6 +34,7 @@ import (
 	appmodel "github.com/thunder-id/thunderid/internal/application/model"
 	certmodel "github.com/thunder-id/thunderid/internal/cert"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
+	oauth2config "github.com/thunder-id/thunderid/internal/oauth/oauth2/config"
 	"github.com/thunder-id/thunderid/internal/oauth/oauth2/jwksresolver"
 	"github.com/thunder-id/thunderid/internal/system/config"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
@@ -56,7 +57,7 @@ func TestJWEUserInfoSuite(t *testing.T) {
 
 func (s *JWEUserInfoTestSuite) SetupTest() {
 	config.ResetServerRuntime()
-	_ = config.InitializeServerRuntime("test-home", &config.Config{
+	_ = oauth2config.InitTestServerRuntime("test-home", &config.Config{
 		JWT: config.JWTConfig{Issuer: "test-issuer", ValidityPeriod: 600},
 	})
 }
