@@ -76,6 +76,15 @@ type CryptoConfig struct {
 	SigningKeyPath string
 }
 
+// GateClientConfig holds login gate redirect settings for the authorization endpoint.
+type GateClientConfig struct {
+	Scheme    string
+	Hostname  string
+	Port      int
+	LoginPath string
+	ErrorPath string
+}
+
 // FlowConfig holds flow executor registration settings for the engine.
 type FlowConfig struct {
 	// Executors lists built-in executor names to register. When empty, defaults to
@@ -95,6 +104,7 @@ type EngineConfig struct {
 	OAuth    OAuthConfig
 	JWT      JWTConfig
 	Crypto   CryptoConfig
+	GateClient GateClientConfig
 
 	DataDir string
 

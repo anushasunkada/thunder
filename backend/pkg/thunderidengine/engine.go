@@ -45,9 +45,11 @@ func Initialize(mux *http.ServeMux, cfg EngineConfig) (*Engine, error) {
 	}
 
 	sysCfg := BuildSystemConfig(cfg)
+	oauthOpts := oauth2config.EngineBuildOptions(cfg.Issuer)
+	oauthOpts.GateClient = gateClientFromConfig(cfg)
 	initCfg := thunderidengineinit.Config{
 		SigningKeyPath: signingKeyPath,
-		OAuth2:         oauth2config.FromSystemConfig(sysCfg, oauth2config.EngineBuildOptions(cfg.Issuer)),
+		OAuth2:         oauth2config.FromSystemConfig(sysCfg, oauthOpts),
 		JOSE: joseconfig.FromSystemConfig(sysCfg, joseconfig.BuildOptions{
 			SigningKeyPath: signingKeyPath,
 			PreferredKeyID: cfg.System.PreferredKeyID,
