@@ -47,6 +47,12 @@ type Application struct {
 	RedirectURIs []string
 }
 
+// Certificate carries JWKS material for certificate-based client authentication.
+type Certificate struct {
+	Type  string
+	Value string
+}
+
 // InboundClient represents an OAuth inbound client profile.
 type InboundClient struct {
 	ClientID                           string
@@ -61,6 +67,7 @@ type InboundClient struct {
 	PKCERequired                       bool
 	PublicClient                       bool
 	RequirePushedAuthorizationRequests bool
+	Certificate                        *Certificate
 
 	AuthFlowID                string
 	RegistrationFlowID        string

@@ -119,11 +119,22 @@ func mapInboundClient(client *host.InboundClient) *enginebridge.InboundClient {
 		PKCERequired:                       client.PKCERequired,
 		PublicClient:                       client.PublicClient,
 		RequirePushedAuthorizationRequests: client.RequirePushedAuthorizationRequests,
+		Certificate:                        mapInboundClientCertificate(client.Certificate),
 		AuthFlowID:                         client.AuthFlowID,
 		RegistrationFlowID:                 client.RegistrationFlowID,
 		IsRegistrationFlowEnabled:          client.IsRegistrationFlowEnabled,
 		RecoveryFlowID:                     client.RecoveryFlowID,
 		IsRecoveryFlowEnabled:              client.IsRecoveryFlowEnabled,
+	}
+}
+
+func mapInboundClientCertificate(cert *host.Certificate) *enginebridge.Certificate {
+	if cert == nil {
+		return nil
+	}
+	return &enginebridge.Certificate{
+		Type:  cert.Type,
+		Value: cert.Value,
 	}
 }
 

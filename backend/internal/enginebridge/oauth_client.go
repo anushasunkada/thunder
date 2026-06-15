@@ -19,6 +19,7 @@
 package enginebridge
 
 import (
+	"github.com/thunder-id/thunderid/internal/cert"
 	inboundmodel "github.com/thunder-id/thunderid/internal/inboundclient/model"
 	oauth2const "github.com/thunder-id/thunderid/internal/oauth/oauth2/constants"
 )
@@ -68,6 +69,7 @@ func toOAuthClient(client *InboundClient) *inboundmodel.OAuthClient {
 		PKCERequired:                       client.PKCERequired,
 		PublicClient:                       client.PublicClient,
 		RequirePushedAuthorizationRequests: client.RequirePushedAuthorizationRequests,
+		Certificate:                        toInboundModelCertificate(client.Certificate),
 	}
 }
 
@@ -83,6 +85,17 @@ func toOAuthProfile(client *InboundClient) *inboundmodel.OAuthProfile {
 		PKCERequired:                       client.PKCERequired,
 		PublicClient:                       client.PublicClient,
 		RequirePushedAuthorizationRequests: client.RequirePushedAuthorizationRequests,
+		Certificate:                        toInboundModelCertificate(client.Certificate),
+	}
+}
+
+func toInboundModelCertificate(c *Certificate) *inboundmodel.Certificate {
+	if c == nil {
+		return nil
+	}
+	return &inboundmodel.Certificate{
+		Type:  cert.CertificateType(c.Type),
+		Value: c.Value,
 	}
 }
 
