@@ -27,7 +27,6 @@ import (
 
 	"github.com/thunder-id/thunderid/internal/flow/common"
 	"github.com/thunder-id/thunderid/internal/flow/core"
-	"github.com/thunder-id/thunderid/internal/flow/executor"
 	"github.com/thunder-id/thunderid/internal/system/cryptolib"
 	"github.com/thunder-id/thunderid/internal/system/error/serviceerror"
 	"github.com/thunder-id/thunderid/internal/system/log"
@@ -43,14 +42,14 @@ type flowEngineInterface interface {
 
 // FlowEngine is the main engine implementation for orchestrating flow executions.
 type flowEngine struct {
-	executorRegistry executor.ExecutorRegistryInterface
+	executorRegistry core.ExecutorRegistryInterface
 	observabilitySvc observability.ObservabilityServiceInterface
 	logger           *log.Logger
 }
 
 // newFlowEngine creates a new flow engine with the given dependencies.
 func newFlowEngine(
-	executorRegistry executor.ExecutorRegistryInterface,
+	executorRegistry core.ExecutorRegistryInterface,
 	observabilitySvc observability.ObservabilityServiceInterface,
 ) flowEngineInterface {
 	return &flowEngine{

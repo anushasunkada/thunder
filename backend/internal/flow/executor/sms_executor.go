@@ -43,14 +43,14 @@ type smsExecutor struct {
 	logger          *log.Logger
 	notifSenderSvc  notification.NotificationSenderServiceInterface
 	templateService template.TemplateServiceInterface
-	entityProvider  entityprovider.EntityProviderInterface
+	entityProvider  entityprovider.EntityResolverInterface
 }
 
 // newSMSExecutor creates a new instance of smsExecutor.
 func newSMSExecutor(flowFactory core.FlowFactoryInterface,
 	notifSenderSvc notification.NotificationSenderServiceInterface,
 	templateService template.TemplateServiceInterface,
-	entityProvider entityprovider.EntityProviderInterface) *smsExecutor {
+	entityProvider entityprovider.EntityResolverInterface) *smsExecutor {
 	logger := log.GetLogger().With(log.String(log.LoggerKeyComponentName, "SMSExecutor"))
 	base := flowFactory.CreateExecutor(
 		ExecutorNameSMSExecutor,
@@ -156,7 +156,7 @@ func (e *smsExecutor) Execute(ctx *core.NodeContext) (*common.ExecutorResponse, 
 
 // resolveRecipientMobile retrieves the recipient mobile number from user inputs, runtime data,
 // or the entity provider (via RuntimeData["userID"]), in that order.
-func resolveRecipientMobile(ctx *core.NodeContext, phoneAttr string, ep entityprovider.EntityProviderInterface) string {
+func resolveRecipientMobile(ctx *core.NodeContext, phoneAttr string, ep entityprovider.EntityResolverInterface) string {
 	if mobile, ok := ctx.UserInputs[phoneAttr]; ok && mobile != "" {
 		return mobile
 	}

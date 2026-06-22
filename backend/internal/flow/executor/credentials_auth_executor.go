@@ -36,7 +36,7 @@ import (
 type credentialsAuthExecutor struct {
 	core.ExecutorInterface
 	identifyingExecutorInterface
-	entityProvider entityprovider.EntityProviderInterface
+	entityProvider entityprovider.EntityResolverInterface
 	authnProvider  authnprovidermgr.AuthnProviderManagerInterface
 	logger         *log.Logger
 }
@@ -47,7 +47,7 @@ var _ identifyingExecutorInterface = (*credentialsAuthExecutor)(nil)
 // newCredentialsAuthExecutor creates a new instance of CredentialsAuthExecutor.
 func newCredentialsAuthExecutor(
 	flowFactory core.FlowFactoryInterface,
-	entityProvider entityprovider.EntityProviderInterface,
+	entityProvider entityprovider.EntityResolverInterface,
 	authnProvider authnprovidermgr.AuthnProviderManagerInterface,
 ) *credentialsAuthExecutor {
 	defaultInputs := []common.Input{
