@@ -268,10 +268,13 @@ const (
 
 // Custom JWT claim names.
 const (
-	ClaimUserType               string = "userType"
-	ClaimOUID                   string = "ouId"
-	ClaimOUName                 string = "ouName"
-	ClaimOUHandle               string = "ouHandle"
+	ClaimUserType string = "userType"
+	ClaimOUID     string = "ouId"
+	ClaimOUName   string = "ouName"
+	ClaimOUHandle string = "ouHandle"
+	// ClaimName and ClaimOwner carry an agent's system-attribute name/owner on its client token.
+	ClaimName                   string = "name"
+	ClaimOwner                  string = "owner"
 	ClaimClaimsRequest          string = "claims_req"
 	ClaimClaimsLocales          string = "claims_locales"
 	ClaimCompletedAuthClass     string = "completed_auth_class"
@@ -284,6 +287,13 @@ const (
 	// principal from a local one.
 	ClaimIDP string = "idp"
 )
+
+// SurfaceableClientSystemClaims is the fixed set of entity system-attribute keys that may be
+// surfaced as client-token claims.
+var SurfaceableClientSystemClaims = map[string]bool{
+	ClaimName:  true,
+	ClaimOwner: true,
+}
 
 // OIDC subject types.
 const (
