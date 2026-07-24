@@ -16,6 +16,10 @@
  * under the License.
  */
 
-export {prismjsInjectCore} from './prismjs-inject-core';
-export {linkWorkspaceSource} from './link-workspace-source';
-export type {LinkWorkspaceSourceOptions} from './link-workspace-source';
+import {defineConfig} from 'vitest/config';
+
+export default defineConfig({
+  test: {
+    globals: true,
+  },
+});
